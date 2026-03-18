@@ -1,0 +1,16 @@
+# Competition data
+cyber-physical-anomaly-detection-for-der-systems.zip
+cyber-physical-anomaly-detection-for-der-systems/
+train.csv
+test.csv
+sample_submission.csv
+
+# Generated artifacts
+outputs/
+__pycache__/
+*.py[cod]
+
+# Local tooling
+.venv/
+.idea/
+.DS_Store
