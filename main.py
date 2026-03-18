@@ -38,6 +38,10 @@ def dedupe(columns: Sequence[str]) -> List[str]:
     return list(dict.fromkeys(columns))
 
 
+def prefixed(prefix: str, fields: Sequence[str]) -> List[str]:
+    return [f"{prefix}.{field}" for field in fields]
+
+
 def build_volt_var_columns(prefix: str) -> List[str]:
     cols = [
         f"{prefix}.ID",
@@ -196,167 +200,40 @@ def build_trip_columns(prefix: str, axis_name: str) -> List[str]:
     return cols
 
 
-COMMON_STR = [
-    "common[0].Mn",
-    "common[0].Md",
-    "common[0].Opt",
-    "common[0].Vr",
-    "common[0].SN",
-]
+COMMON_FIELDS = "Mn Md Opt Vr SN".split()
+COMMON_STR = prefixed("common[0]", COMMON_FIELDS)
+COMMON_COLUMNS = prefixed("common[0]", ["ID", "L", *COMMON_FIELDS, "DA"])
 
-COMMON_COLUMNS = [
-    "common[0].ID",
-    "common[0].L",
-    *COMMON_STR,
-    "common[0].DA",
-]
+MEASURE_AC_FIELDS = """
+ID L ACType W VA Var PF A LLV LNV Hz TmpAmb TmpCab TmpSnk TmpTrns TmpSw TmpOt
+ThrotPct ThrotSrc WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3
+AL1 AL2 AL3 VL1L2 VL2L3 VL3L1 VL1 VL2 VL3
+""".split()
+MEASURE_AC_COLUMNS = prefixed("DERMeasureAC[0]", MEASURE_AC_FIELDS)
 
-MEASURE_AC_COLUMNS = [
-    "DERMeasureAC[0].ID",
-    "DERMeasureAC[0].L",
-    "DERMeasureAC[0].ACType",
-    "DERMeasureAC[0].W",
-    "DERMeasureAC[0].VA",
-    "DERMeasureAC[0].Var",
-    "DERMeasureAC[0].PF",
-    "DERMeasureAC[0].A",
-    "DERMeasureAC[0].LLV",
-    "DERMeasureAC[0].LNV",
-    "DERMeasureAC[0].Hz",
-    "DERMeasureAC[0].TmpAmb",
-    "DERMeasureAC[0].TmpCab",
-    "DERMeasureAC[0].TmpSnk",
-    "DERMeasureAC[0].TmpTrns",
-    "DERMeasureAC[0].TmpSw",
-    "DERMeasureAC[0].TmpOt",
-    "DERMeasureAC[0].ThrotPct",
-    "DERMeasureAC[0].ThrotSrc",
-    "DERMeasureAC[0].WL1",
-    "DERMeasureAC[0].WL2",
-    "DERMeasureAC[0].WL3",
-    "DERMeasureAC[0].VAL1",
-    "DERMeasureAC[0].VAL2",
-    "DERMeasureAC[0].VAL3",
-    "DERMeasureAC[0].VarL1",
-    "DERMeasureAC[0].VarL2",
-    "DERMeasureAC[0].VarL3",
-    "DERMeasureAC[0].PFL1",
-    "DERMeasureAC[0].PFL2",
-    "DERMeasureAC[0].PFL3",
-    "DERMeasureAC[0].AL1",
-    "DERMeasureAC[0].AL2",
-    "DERMeasureAC[0].AL3",
-    "DERMeasureAC[0].VL1L2",
-    "DERMeasureAC[0].VL2L3",
-    "DERMeasureAC[0].VL3L1",
-    "DERMeasureAC[0].VL1",
-    "DERMeasureAC[0].VL2",
-    "DERMeasureAC[0].VL3",
-]
+CAPACITY_FIELDS = """
+ID L WMaxRtg VAMaxRtg VarMaxInjRtg VarMaxAbsRtg WChaRteMaxRtg WDisChaRteMaxRtg
+VAChaRteMaxRtg VADisChaRteMaxRtg VNomRtg VMaxRtg VMinRtg AMaxRtg PFOvrExtRtg
+PFUndExtRtg NorOpCatRtg AbnOpCatRtg IntIslandCatRtg WMax WMaxOvrExt WOvrExtPF
+WMaxUndExt WUndExtPF VAMax VarMaxInj VarMaxAbs WChaRteMax WDisChaRteMax
+VAChaRteMax VADisChaRteMax VNom VMax VMin AMax PFOvrExt PFUndExt CtrlModes
+IntIslandCat
+""".split()
+CAPACITY_COLUMNS = prefixed("DERCapacity[0]", CAPACITY_FIELDS)
 
-CAPACITY_COLUMNS = [
-    "DERCapacity[0].ID",
-    "DERCapacity[0].L",
-    "DERCapacity[0].WMaxRtg",
-    "DERCapacity[0].VAMaxRtg",
-    "DERCapacity[0].VarMaxInjRtg",
-    "DERCapacity[0].VarMaxAbsRtg",
-    "DERCapacity[0].WChaRteMaxRtg",
-    "DERCapacity[0].WDisChaRteMaxRtg",
-    "DERCapacity[0].VAChaRteMaxRtg",
-    "DERCapacity[0].VADisChaRteMaxRtg",
-    "DERCapacity[0].VNomRtg",
-    "DERCapacity[0].VMaxRtg",
-    "DERCapacity[0].VMinRtg",
-    "DERCapacity[0].AMaxRtg",
-    "DERCapacity[0].PFOvrExtRtg",
-    "DERCapacity[0].PFUndExtRtg",
-    "DERCapacity[0].NorOpCatRtg",
-    "DERCapacity[0].AbnOpCatRtg",
-    "DERCapacity[0].IntIslandCatRtg",
-    "DERCapacity[0].WMax",
-    "DERCapacity[0].WMaxOvrExt",
-    "DERCapacity[0].WOvrExtPF",
-    "DERCapacity[0].WMaxUndExt",
-    "DERCapacity[0].WUndExtPF",
-    "DERCapacity[0].VAMax",
-    "DERCapacity[0].VarMaxInj",
-    "DERCapacity[0].VarMaxAbs",
-    "DERCapacity[0].WChaRteMax",
-    "DERCapacity[0].WDisChaRteMax",
-    "DERCapacity[0].VAChaRteMax",
-    "DERCapacity[0].VADisChaRteMax",
-    "DERCapacity[0].VNom",
-    "DERCapacity[0].VMax",
-    "DERCapacity[0].VMin",
-    "DERCapacity[0].AMax",
-    "DERCapacity[0].PFOvrExt",
-    "DERCapacity[0].PFUndExt",
-    "DERCapacity[0].CtrlModes",
-    "DERCapacity[0].IntIslandCat",
-]
+ENTER_SERVICE_FIELDS = "ID L ES ESVHi ESVLo ESHzHi ESHzLo ESDlyTms ESRndTms ESRmpTms ESDlyRemTms".split()
+ENTER_SERVICE_COLUMNS = prefixed("DEREnterService[0]", ENTER_SERVICE_FIELDS)
 
-ENTER_SERVICE_COLUMNS = [
-    "DEREnterService[0].ID",
-    "DEREnterService[0].L",
-    "DEREnterService[0].ES",
-    "DEREnterService[0].ESVHi",
-    "DEREnterService[0].ESVLo",
-    "DEREnterService[0].ESHzHi",
-    "DEREnterService[0].ESHzLo",
-    "DEREnterService[0].ESDlyTms",
-    "DEREnterService[0].ESRndTms",
-    "DEREnterService[0].ESRmpTms",
-    "DEREnterService[0].ESDlyRemTms",
-]
-
-CTL_AC_COLUMNS = [
-    "DERCtlAC[0].ID",
-    "DERCtlAC[0].L",
-    "DERCtlAC[0].PFWInjEna",
-    "DERCtlAC[0].PFWInjEnaRvrt",
-    "DERCtlAC[0].PFWInjRvrtTms",
-    "DERCtlAC[0].PFWInjRvrtRem",
-    "DERCtlAC[0].PFWAbsEna",
-    "DERCtlAC[0].PFWAbsEnaRvrt",
-    "DERCtlAC[0].PFWAbsRvrtTms",
-    "DERCtlAC[0].PFWAbsRvrtRem",
-    "DERCtlAC[0].WMaxLimPctEna",
-    "DERCtlAC[0].WMaxLimPct",
-    "DERCtlAC[0].WMaxLimPctRvrt",
-    "DERCtlAC[0].WMaxLimPctEnaRvrt",
-    "DERCtlAC[0].WMaxLimPctRvrtTms",
-    "DERCtlAC[0].WMaxLimPctRvrtRem",
-    "DERCtlAC[0].WSetEna",
-    "DERCtlAC[0].WSetMod",
-    "DERCtlAC[0].WSet",
-    "DERCtlAC[0].WSetRvrt",
-    "DERCtlAC[0].WSetPct",
-    "DERCtlAC[0].WSetPctRvrt",
-    "DERCtlAC[0].WSetEnaRvrt",
-    "DERCtlAC[0].WSetRvrtTms",
-    "DERCtlAC[0].WSetRvrtRem",
-    "DERCtlAC[0].VarSetEna",
-    "DERCtlAC[0].VarSetMod",
-    "DERCtlAC[0].VarSetPri",
-    "DERCtlAC[0].VarSet",
-    "DERCtlAC[0].VarSetRvrt",
-    "DERCtlAC[0].VarSetPct",
-    "DERCtlAC[0].VarSetPctRvrt",
-    "DERCtlAC[0].VarSetEnaRvrt",
-    "DERCtlAC[0].VarSetRvrtTms",
-    "DERCtlAC[0].VarSetRvrtRem",
-    "DERCtlAC[0].WRmp",
-    "DERCtlAC[0].WRmpRef",
-    "DERCtlAC[0].VarRmp",
-    "DERCtlAC[0].AntiIslEna",
-    "DERCtlAC[0].PFWInj.PF",
-    "DERCtlAC[0].PFWInj.Ext",
-    "DERCtlAC[0].PFWInjRvrt.PF",
-    "DERCtlAC[0].PFWInjRvrt.Ext",
-    "DERCtlAC[0].PFWAbs.Ext",
-    "DERCtlAC[0].PFWAbsRvrt.Ext",
-]
+CTL_AC_FIELDS = """
+ID L PFWInjEna PFWInjEnaRvrt PFWInjRvrtTms PFWInjRvrtRem PFWAbsEna PFWAbsEnaRvrt
+PFWAbsRvrtTms PFWAbsRvrtRem WMaxLimPctEna WMaxLimPct WMaxLimPctRvrt
+WMaxLimPctEnaRvrt WMaxLimPctRvrtTms WMaxLimPctRvrtRem WSetEna WSetMod WSet
+WSetRvrt WSetPct WSetPctRvrt WSetEnaRvrt WSetRvrtTms WSetRvrtRem VarSetEna
+VarSetMod VarSetPri VarSet VarSetRvrt VarSetPct VarSetPctRvrt VarSetEnaRvrt
+VarSetRvrtTms VarSetRvrtRem WRmp WRmpRef VarRmp AntiIslEna PFWInj.PF PFWInj.Ext
+PFWInjRvrt.PF PFWInjRvrt.Ext PFWAbs.Ext PFWAbsRvrt.Ext
+""".split()
+CTL_AC_COLUMNS = prefixed("DERCtlAC[0]", CTL_AC_FIELDS)
 
 VOLT_VAR_COLUMNS = build_volt_var_columns("DERVoltVar[0]")
 VOLT_WATT_COLUMNS = build_volt_watt_columns("DERVoltWatt[0]")
@@ -374,25 +251,11 @@ TRIP_COLUMNS = {
     for short_name, (prefix, axis_name, _) in TRIP_SPECS.items()
 }
 
-MEASURE_DC_COLUMNS = [
-    "DERMeasureDC[0].ID",
-    "DERMeasureDC[0].L",
-    "DERMeasureDC[0].NPrt",
-    "DERMeasureDC[0].DCA",
-    "DERMeasureDC[0].DCW",
-    "DERMeasureDC[0].Prt[0].PrtTyp",
-    "DERMeasureDC[0].Prt[0].ID",
-    "DERMeasureDC[0].Prt[0].DCA",
-    "DERMeasureDC[0].Prt[0].DCV",
-    "DERMeasureDC[0].Prt[0].DCW",
-    "DERMeasureDC[0].Prt[0].Tmp",
-    "DERMeasureDC[0].Prt[1].PrtTyp",
-    "DERMeasureDC[0].Prt[1].ID",
-    "DERMeasureDC[0].Prt[1].DCA",
-    "DERMeasureDC[0].Prt[1].DCV",
-    "DERMeasureDC[0].Prt[1].DCW",
-    "DERMeasureDC[0].Prt[1].Tmp",
-]
+MEASURE_DC_FIELDS = """
+ID L NPrt DCA DCW Prt[0].PrtTyp Prt[0].ID Prt[0].DCA Prt[0].DCV Prt[0].DCW
+Prt[0].Tmp Prt[1].PrtTyp Prt[1].ID Prt[1].DCA Prt[1].DCV Prt[1].DCW Prt[1].Tmp
+""".split()
+MEASURE_DC_COLUMNS = prefixed("DERMeasureDC[0]", MEASURE_DC_FIELDS)
 
 BLOCK_SOURCE_COLUMNS: Dict[str, List[str]] = {
     "common": COMMON_COLUMNS,
@@ -409,198 +272,33 @@ BLOCK_SOURCE_COLUMNS: Dict[str, List[str]] = {
 for short_name, cols in TRIP_COLUMNS.items():
     BLOCK_SOURCE_COLUMNS[f"trip_{short_name}"] = cols
 
+CURVE_BLOCK_META_FIELDS = "Ena AdptCrvReq AdptCrvRslt NPt NCrv RvrtTms RvrtRem RvrtCrv".split()
+FREQ_DROOP_META_FIELDS = "Ena AdptCtlReq AdptCtlRslt NCtl RvrtTms RvrtRem RvrtCtl".split()
+TRIP_META_FIELDS = "Ena AdptCrvReq AdptCrvRslt NPt NCrvSet".split()
+
 RAW_NUMERIC = dedupe(
     [
         "common[0].DA",
-        "DERMeasureAC[0].ACType",
-        "DERMeasureAC[0].W",
-        "DERMeasureAC[0].VA",
-        "DERMeasureAC[0].Var",
-        "DERMeasureAC[0].PF",
-        "DERMeasureAC[0].A",
-        "DERMeasureAC[0].LLV",
-        "DERMeasureAC[0].LNV",
-        "DERMeasureAC[0].Hz",
-        "DERMeasureAC[0].TmpAmb",
-        "DERMeasureAC[0].TmpCab",
-        "DERMeasureAC[0].TmpSnk",
-        "DERMeasureAC[0].TmpTrns",
-        "DERMeasureAC[0].TmpSw",
-        "DERMeasureAC[0].TmpOt",
-        "DERMeasureAC[0].ThrotPct",
-        "DERMeasureAC[0].ThrotSrc",
-        "DERMeasureAC[0].WL1",
-        "DERMeasureAC[0].WL2",
-        "DERMeasureAC[0].WL3",
-        "DERMeasureAC[0].VAL1",
-        "DERMeasureAC[0].VAL2",
-        "DERMeasureAC[0].VAL3",
-        "DERMeasureAC[0].VarL1",
-        "DERMeasureAC[0].VarL2",
-        "DERMeasureAC[0].VarL3",
-        "DERMeasureAC[0].PFL1",
-        "DERMeasureAC[0].PFL2",
-        "DERMeasureAC[0].PFL3",
-        "DERMeasureAC[0].AL1",
-        "DERMeasureAC[0].AL2",
-        "DERMeasureAC[0].AL3",
-        "DERMeasureAC[0].VL1L2",
-        "DERMeasureAC[0].VL2L3",
-        "DERMeasureAC[0].VL3L1",
-        "DERMeasureAC[0].VL1",
-        "DERMeasureAC[0].VL2",
-        "DERMeasureAC[0].VL3",
-        "DERCapacity[0].WMaxRtg",
-        "DERCapacity[0].VAMaxRtg",
-        "DERCapacity[0].VarMaxInjRtg",
-        "DERCapacity[0].VarMaxAbsRtg",
-        "DERCapacity[0].WChaRteMaxRtg",
-        "DERCapacity[0].WDisChaRteMaxRtg",
-        "DERCapacity[0].VAChaRteMaxRtg",
-        "DERCapacity[0].VADisChaRteMaxRtg",
-        "DERCapacity[0].VNomRtg",
-        "DERCapacity[0].VMaxRtg",
-        "DERCapacity[0].VMinRtg",
-        "DERCapacity[0].AMaxRtg",
-        "DERCapacity[0].PFOvrExtRtg",
-        "DERCapacity[0].PFUndExtRtg",
-        "DERCapacity[0].NorOpCatRtg",
-        "DERCapacity[0].AbnOpCatRtg",
-        "DERCapacity[0].IntIslandCatRtg",
-        "DERCapacity[0].WMax",
-        "DERCapacity[0].WMaxOvrExt",
-        "DERCapacity[0].WOvrExtPF",
-        "DERCapacity[0].WMaxUndExt",
-        "DERCapacity[0].WUndExtPF",
-        "DERCapacity[0].VAMax",
-        "DERCapacity[0].VarMaxInj",
-        "DERCapacity[0].VarMaxAbs",
-        "DERCapacity[0].WChaRteMax",
-        "DERCapacity[0].WDisChaRteMax",
-        "DERCapacity[0].VAChaRteMax",
-        "DERCapacity[0].VADisChaRteMax",
-        "DERCapacity[0].VNom",
-        "DERCapacity[0].VMax",
-        "DERCapacity[0].VMin",
-        "DERCapacity[0].AMax",
-        "DERCapacity[0].PFOvrExt",
-        "DERCapacity[0].PFUndExt",
-        "DERCapacity[0].CtrlModes",
-        "DERCapacity[0].IntIslandCat",
-        "DEREnterService[0].ES",
-        "DEREnterService[0].ESVHi",
-        "DEREnterService[0].ESVLo",
-        "DEREnterService[0].ESHzHi",
-        "DEREnterService[0].ESHzLo",
-        "DEREnterService[0].ESDlyTms",
-        "DEREnterService[0].ESRndTms",
-        "DEREnterService[0].ESRmpTms",
-        "DEREnterService[0].ESDlyRemTms",
-        "DERCtlAC[0].PFWInjEna",
-        "DERCtlAC[0].PFWInjEnaRvrt",
-        "DERCtlAC[0].PFWInjRvrtTms",
-        "DERCtlAC[0].PFWInjRvrtRem",
-        "DERCtlAC[0].PFWAbsEna",
-        "DERCtlAC[0].PFWAbsEnaRvrt",
-        "DERCtlAC[0].PFWAbsRvrtTms",
-        "DERCtlAC[0].PFWAbsRvrtRem",
-        "DERCtlAC[0].WMaxLimPctEna",
-        "DERCtlAC[0].WMaxLimPct",
-        "DERCtlAC[0].WMaxLimPctRvrt",
-        "DERCtlAC[0].WMaxLimPctEnaRvrt",
-        "DERCtlAC[0].WMaxLimPctRvrtTms",
-        "DERCtlAC[0].WMaxLimPctRvrtRem",
-        "DERCtlAC[0].WSetEna",
-        "DERCtlAC[0].WSetMod",
-        "DERCtlAC[0].WSet",
-        "DERCtlAC[0].WSetRvrt",
-        "DERCtlAC[0].WSetPct",
-        "DERCtlAC[0].WSetPctRvrt",
-        "DERCtlAC[0].WSetEnaRvrt",
-        "DERCtlAC[0].WSetRvrtTms",
-        "DERCtlAC[0].WSetRvrtRem",
-        "DERCtlAC[0].VarSetEna",
-        "DERCtlAC[0].VarSetMod",
-        "DERCtlAC[0].VarSetPri",
-        "DERCtlAC[0].VarSet",
-        "DERCtlAC[0].VarSetRvrt",
-        "DERCtlAC[0].VarSetPct",
-        "DERCtlAC[0].VarSetPctRvrt",
-        "DERCtlAC[0].VarSetEnaRvrt",
-        "DERCtlAC[0].VarSetRvrtTms",
-        "DERCtlAC[0].VarSetRvrtRem",
-        "DERCtlAC[0].WRmp",
-        "DERCtlAC[0].WRmpRef",
-        "DERCtlAC[0].VarRmp",
-        "DERCtlAC[0].AntiIslEna",
-        "DERCtlAC[0].PFWInj.PF",
-        "DERCtlAC[0].PFWInj.Ext",
-        "DERCtlAC[0].PFWInjRvrt.PF",
-        "DERCtlAC[0].PFWInjRvrt.Ext",
-        "DERCtlAC[0].PFWAbs.Ext",
-        "DERCtlAC[0].PFWAbsRvrt.Ext",
-        "DERVoltVar[0].Ena",
-        "DERVoltVar[0].AdptCrvReq",
-        "DERVoltVar[0].AdptCrvRslt",
-        "DERVoltVar[0].NPt",
-        "DERVoltVar[0].NCrv",
-        "DERVoltVar[0].RvrtTms",
-        "DERVoltVar[0].RvrtRem",
-        "DERVoltVar[0].RvrtCrv",
-        "DERVoltWatt[0].Ena",
-        "DERVoltWatt[0].AdptCrvReq",
-        "DERVoltWatt[0].AdptCrvRslt",
-        "DERVoltWatt[0].NPt",
-        "DERVoltWatt[0].NCrv",
-        "DERVoltWatt[0].RvrtTms",
-        "DERVoltWatt[0].RvrtRem",
-        "DERVoltWatt[0].RvrtCrv",
-        "DERFreqDroop[0].Ena",
-        "DERFreqDroop[0].AdptCtlReq",
-        "DERFreqDroop[0].AdptCtlRslt",
-        "DERFreqDroop[0].NCtl",
-        "DERFreqDroop[0].RvrtTms",
-        "DERFreqDroop[0].RvrtRem",
-        "DERFreqDroop[0].RvrtCtl",
-        "DERWattVar[0].Ena",
-        "DERWattVar[0].AdptCrvReq",
-        "DERWattVar[0].AdptCrvRslt",
-        "DERWattVar[0].NPt",
-        "DERWattVar[0].NCrv",
-        "DERWattVar[0].RvrtTms",
-        "DERWattVar[0].RvrtRem",
-        "DERWattVar[0].RvrtCrv",
-        "DERMeasureDC[0].NPrt",
-        "DERMeasureDC[0].DCA",
-        "DERMeasureDC[0].DCW",
-        "DERMeasureDC[0].Prt[0].PrtTyp",
-        "DERMeasureDC[0].Prt[0].ID",
-        "DERMeasureDC[0].Prt[0].DCA",
-        "DERMeasureDC[0].Prt[0].DCV",
-        "DERMeasureDC[0].Prt[0].DCW",
-        "DERMeasureDC[0].Prt[0].Tmp",
-        "DERMeasureDC[0].Prt[1].PrtTyp",
-        "DERMeasureDC[0].Prt[1].ID",
-        "DERMeasureDC[0].Prt[1].DCA",
-        "DERMeasureDC[0].Prt[1].DCV",
-        "DERMeasureDC[0].Prt[1].DCW",
-        "DERMeasureDC[0].Prt[1].Tmp",
+        *prefixed("DERMeasureAC[0]", MEASURE_AC_FIELDS[2:]),
+        *prefixed("DERCapacity[0]", CAPACITY_FIELDS[2:]),
+        *prefixed("DEREnterService[0]", ENTER_SERVICE_FIELDS[2:]),
+        *prefixed("DERCtlAC[0]", CTL_AC_FIELDS[2:]),
+        *prefixed("DERVoltVar[0]", CURVE_BLOCK_META_FIELDS),
+        *prefixed("DERVoltWatt[0]", CURVE_BLOCK_META_FIELDS),
+        *prefixed("DERFreqDroop[0]", FREQ_DROOP_META_FIELDS),
+        *prefixed("DERWattVar[0]", CURVE_BLOCK_META_FIELDS),
+        *prefixed("DERMeasureDC[0]", MEASURE_DC_FIELDS[2:]),
     ]
 )
 
-TRIP_META_COLUMNS = []
-for prefix, _, _ in TRIP_SPECS.values():
-    TRIP_META_COLUMNS.extend(
-        [
-            f"{prefix}.Ena",
-            f"{prefix}.AdptCrvReq",
-            f"{prefix}.AdptCrvRslt",
-            f"{prefix}.NPt",
-            f"{prefix}.NCrvSet",
-        ]
-    )
+TRIP_META_COLUMNS = [
+    f"{prefix}.{field}"
+    for prefix, _, _ in TRIP_SPECS.values()
+    for field in TRIP_META_FIELDS
+]
 RAW_NUMERIC = dedupe([*RAW_NUMERIC, *TRIP_META_COLUMNS])
 
+TRIP_SOURCE_COLUMNS = [col for cols in TRIP_COLUMNS.values() for col in cols]
 ALL_SOURCE_COLUMNS = dedupe(
     [
         *COMMON_COLUMNS,
@@ -613,10 +311,7 @@ ALL_SOURCE_COLUMNS = dedupe(
         *FREQ_DROOP_COLUMNS,
         *WATT_VAR_COLUMNS,
         *MEASURE_DC_COLUMNS,
-        *TRIP_COLUMNS["lv"],
-        *TRIP_COLUMNS["hv"],
-        *TRIP_COLUMNS["lf"],
-        *TRIP_COLUMNS["hf"],
+        *TRIP_SOURCE_COLUMNS,
     ]
 )
 NUMERIC_SOURCE_COLUMNS = [c for c in ALL_SOURCE_COLUMNS if c not in COMMON_STR]
@@ -643,6 +338,7 @@ def default_zip_path() -> Path:
 
 DEFAULT_ZIP_PATH = default_zip_path()
 DEFAULT_OUTPUT_DIR = SCRIPT_DIR / "outputs" / "v4_single"
+SQRT3 = math.sqrt(3.0)
 DEVICE_FAMILY_MAP = {"canon10": 0, "canon100": 1}
 RESIDUAL_TAIL_LEVELS = {"tail": 0.95, "extreme": 0.99, "ultra": 0.999}
 RESIDUAL_TAIL_FALLBACKS = {"tail": 0.05, "extreme": 0.10, "ultra": 0.20}
@@ -667,92 +363,30 @@ SURROGATE_TARGETS = {
     "a": ("DERMeasureAC_0_A", "DERCapacity_0_AMaxRtg"),
 }
 SURROGATE_LEAKY_FEATURES = {
-    "DERMeasureAC_0_W",
-    "DERMeasureAC_0_VA",
-    "DERMeasureAC_0_Var",
-    "DERMeasureAC_0_PF",
-    "DERMeasureAC_0_A",
-    "DERMeasureAC_0_WL1",
-    "DERMeasureAC_0_WL2",
-    "DERMeasureAC_0_WL3",
-    "DERMeasureAC_0_VAL1",
-    "DERMeasureAC_0_VAL2",
-    "DERMeasureAC_0_VAL3",
-    "DERMeasureAC_0_VarL1",
-    "DERMeasureAC_0_VarL2",
-    "DERMeasureAC_0_VarL3",
-    "DERMeasureAC_0_PFL1",
-    "DERMeasureAC_0_PFL2",
-    "DERMeasureAC_0_PFL3",
-    "DERMeasureAC_0_AL1",
-    "DERMeasureAC_0_AL2",
-    "DERMeasureAC_0_AL3",
-    "w_over_wmaxrtg",
-    "w_over_wmax",
-    "va_over_vamax",
-    "va_over_vamaxrtg",
-    "var_over_injmax",
-    "var_over_absmax",
-    "a_over_amax",
-    "w_minus_wmax",
-    "w_minus_wmaxrtg",
-    "va_minus_vamax",
-    "var_minus_injmax",
-    "var_plus_absmax",
-    "w_eq_wmaxrtg",
-    "w_eq_wmax",
-    "var_eq_varmaxinj",
-    "var_eq_neg_varmaxabs",
-    "pf_sign_mismatch",
-    "w_gt_wmax_tol",
-    "w_gt_wmaxrtg_tol",
-    "va_gt_vamax_tol",
-    "var_gt_injmax_tol",
-    "var_lt_absmax_tol",
-    "va_minus_pqmag",
-    "va_over_pqmag",
-    "pf_from_w_va",
-    "pf_error",
-    "w_phase_sum_error",
-    "va_phase_sum_error",
-    "var_phase_sum_error",
-    "phase_w_spread",
-    "phase_var_spread",
-    "wset_abs_error",
-    "wsetpct_target",
-    "wsetpct_abs_error",
-    "wmaxlim_target",
-    "wmaxlim_excess",
-    "varset_abs_error",
-    "varsetpct_target",
-    "varsetpct_abs_error",
-    "wset_enabled_far",
-    "wsetpct_enabled_far",
-    "wmaxlim_enabled_far",
-    "varsetpct_enabled_far",
-    "w_pct_of_rtg",
-    "var_pct_of_limit",
-    "enter_service_blocked_power",
-    "enter_service_blocked_va",
-    "enter_service_blocked_current",
-    "pf_inj_target_error",
-    "pf_inj_reversion_error",
-    "pf_reactive_near_limit",
-    "trip_lv_power_when_outside",
-    "trip_hv_power_when_outside",
-    "trip_lf_power_when_outside",
-    "trip_hf_power_when_outside",
-    "trip_any_power_when_outside",
-    "voltvar_curve_error",
-    "voltwatt_curve_error",
-    "wattvar_curve_expected",
-    "wattvar_curve_error",
-    "freqdroop_w_over_pmin_pct",
-    "dcw_over_w",
-    "dcw_over_abs_w",
-    "ac_zero_dc_positive",
-    "ac_positive_dc_zero",
-    "ac_dc_same_sign",
+    *(f"DERMeasureAC_0_{field}" for field in """
+    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3
+    AL1 AL2 AL3
+    """.split()),
+    *"""
+    w_over_wmaxrtg w_over_wmax va_over_vamax va_over_vamaxrtg var_over_injmax
+    var_over_absmax a_over_amax w_minus_wmax w_minus_wmaxrtg va_minus_vamax
+    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj
+    var_eq_neg_varmaxabs pf_sign_mismatch w_gt_wmax_tol w_gt_wmaxrtg_tol
+    va_gt_vamax_tol var_gt_injmax_tol var_lt_absmax_tol va_minus_pqmag
+    va_over_pqmag pf_from_w_va pf_error w_phase_sum_error va_phase_sum_error
+    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error
+    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess
+    varset_abs_error varsetpct_target varsetpct_abs_error wset_enabled_far
+    wsetpct_enabled_far wmaxlim_enabled_far varsetpct_enabled_far w_pct_of_rtg
+    var_pct_of_limit enter_service_blocked_power enter_service_blocked_va
+    enter_service_blocked_current pf_inj_target_error pf_inj_reversion_error
+    pf_reactive_near_limit trip_lv_power_when_outside trip_hv_power_when_outside
+    trip_lf_power_when_outside trip_hf_power_when_outside
+    trip_any_power_when_outside voltvar_curve_error voltwatt_curve_error
+    wattvar_curve_expected wattvar_curve_error freqdroop_w_over_pmin_pct
+    dcw_over_w dcw_over_abs_w ac_zero_dc_positive ac_positive_dc_zero
+    ac_dc_same_sign
+    """.split(),
 }
 
 EXPECTED_MODEL_META = {
@@ -1275,48 +909,25 @@ class ResearchBaseline:
         tolw: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         adpt_idx = self._curve_index(df[f"{prefix}.AdptCrvRslt"].to_numpy(float), 2)
-        must_actpt = self._select_curve_scalar(
+        group_scalar = lambda group, field: self._select_curve_scalar(
+            [df[f"{prefix}.Crv[{curve}].{group}.{field}"].to_numpy(float) for curve in range(2)],
+            adpt_idx,
+        )
+        group_points = lambda group, field: self._select_curve_points(
             [
-                df[f"{prefix}.Crv[0].MustTrip.ActPt"].to_numpy(float),
-                df[f"{prefix}.Crv[1].MustTrip.ActPt"].to_numpy(float),
+                np.column_stack(
+                    [df[f"{prefix}.Crv[{curve}].{group}.Pt[{i}].{field}"].to_numpy(float) for i in range(5)]
+                )
+                for curve in range(2)
             ],
             adpt_idx,
         )
-        mom_actpt = self._select_curve_scalar(
-            [
-                df[f"{prefix}.Crv[0].MomCess.ActPt"].to_numpy(float),
-                df[f"{prefix}.Crv[1].MomCess.ActPt"].to_numpy(float),
-            ],
-            adpt_idx,
-        )
-        must_x = self._select_curve_points(
-            [
-                np.column_stack([df[f"{prefix}.Crv[0].MustTrip.Pt[{i}].{axis_name}"].to_numpy(float) for i in range(5)]),
-                np.column_stack([df[f"{prefix}.Crv[1].MustTrip.Pt[{i}].{axis_name}"].to_numpy(float) for i in range(5)]),
-            ],
-            adpt_idx,
-        )
-        must_t = self._select_curve_points(
-            [
-                np.column_stack([df[f"{prefix}.Crv[0].MustTrip.Pt[{i}].Tms"].to_numpy(float) for i in range(5)]),
-                np.column_stack([df[f"{prefix}.Crv[1].MustTrip.Pt[{i}].Tms"].to_numpy(float) for i in range(5)]),
-            ],
-            adpt_idx,
-        )
-        mom_x = self._select_curve_points(
-            [
-                np.column_stack([df[f"{prefix}.Crv[0].MomCess.Pt[{i}].{axis_name}"].to_numpy(float) for i in range(5)]),
-                np.column_stack([df[f"{prefix}.Crv[1].MomCess.Pt[{i}].{axis_name}"].to_numpy(float) for i in range(5)]),
-            ],
-            adpt_idx,
-        )
-        mom_t = self._select_curve_points(
-            [
-                np.column_stack([df[f"{prefix}.Crv[0].MomCess.Pt[{i}].Tms"].to_numpy(float) for i in range(5)]),
-                np.column_stack([df[f"{prefix}.Crv[1].MomCess.Pt[{i}].Tms"].to_numpy(float) for i in range(5)]),
-            ],
-            adpt_idx,
-        )
+        must_actpt = group_scalar("MustTrip", "ActPt")
+        mom_actpt = group_scalar("MomCess", "ActPt")
+        must_x = group_points("MustTrip", axis_name)
+        must_t = group_points("MustTrip", "Tms")
+        mom_x = group_points("MomCess", axis_name)
+        mom_t = group_points("MomCess", "Tms")
         may_present = np.column_stack(
             [
                 df[f"{prefix}.Crv[{curve}].MayTrip.Pt[{point}].{axis_name}"].to_numpy(float)
@@ -1550,28 +1161,37 @@ class ResearchBaseline:
         vmax = df["DERCapacity[0].VMax"].to_numpy(float)
         vmin = df["DERCapacity[0].VMin"].to_numpy(float)
 
-        data["w_over_wmaxrtg"] = self._safe_div(w, wmaxrtg)
-        data["w_over_wmax"] = self._safe_div(w, wmax)
-        data["va_over_vamax"] = self._safe_div(va, vamax)
-        data["va_over_vamaxrtg"] = self._safe_div(va, vamaxrtg)
-        data["var_over_injmax"] = self._safe_div(var, varmaxinj)
-        data["var_over_absmax"] = self._safe_div(var, varmaxabs)
-        data["a_over_amax"] = self._safe_div(a, amax)
-        data["llv_over_vnom"] = self._safe_div(llv, vnom)
-        data["lnv_over_vnom"] = self._safe_div(lnv * math.sqrt(3.0), vnom)
+        for name, numerator, denominator in [
+            ("w_over_wmaxrtg", w, wmaxrtg),
+            ("w_over_wmax", w, wmax),
+            ("va_over_vamax", va, vamax),
+            ("va_over_vamaxrtg", va, vamaxrtg),
+            ("var_over_injmax", var, varmaxinj),
+            ("var_over_absmax", var, varmaxabs),
+            ("a_over_amax", a, amax),
+            ("llv_over_vnom", llv, vnom),
+            ("lnv_over_vnom", lnv * SQRT3, vnom),
+        ]:
+            data[name] = self._safe_div(numerator, denominator)
 
-        data["w_minus_wmax"] = (w - wmax).astype(np.float32)
-        data["w_minus_wmaxrtg"] = (w - wmaxrtg).astype(np.float32)
-        data["va_minus_vamax"] = (va - vamax).astype(np.float32)
-        data["var_minus_injmax"] = (var - varmaxinj).astype(np.float32)
-        data["var_plus_absmax"] = (var + varmaxabs).astype(np.float32)
-        data["llv_minus_lnv_sqrt3"] = (llv - lnv * math.sqrt(3.0)).astype(np.float32)
-        data["hz_delta_60"] = (hz - 60.0).astype(np.float32)
+        for name, value in [
+            ("w_minus_wmax", w - wmax),
+            ("w_minus_wmaxrtg", w - wmaxrtg),
+            ("va_minus_vamax", va - vamax),
+            ("var_minus_injmax", var - varmaxinj),
+            ("var_plus_absmax", var + varmaxabs),
+            ("llv_minus_lnv_sqrt3", llv - lnv * SQRT3),
+            ("hz_delta_60", hz - 60.0),
+        ]:
+            data[name] = value.astype(np.float32)
 
-        data["w_eq_wmaxrtg"] = np.isclose(w, wmaxrtg, equal_nan=False).astype(np.int8)
-        data["w_eq_wmax"] = np.isclose(w, wmax, equal_nan=False).astype(np.int8)
-        data["var_eq_varmaxinj"] = np.isclose(var, varmaxinj, equal_nan=False).astype(np.int8)
-        data["var_eq_neg_varmaxabs"] = np.isclose(var, -varmaxabs, equal_nan=False).astype(np.int8)
+        for name, left, right in [
+            ("w_eq_wmaxrtg", w, wmaxrtg),
+            ("w_eq_wmax", w, wmax),
+            ("var_eq_varmaxinj", var, varmaxinj),
+            ("var_eq_neg_varmaxabs", var, -varmaxabs),
+        ]:
+            data[name] = np.isclose(left, right, equal_nan=False).astype(np.int8)
         data["pf_sign_mismatch"] = (
             (np.sign(np.nan_to_num(pf)) != np.sign(np.nan_to_num(w)))
             & (np.nan_to_num(pf) != 0)
@@ -1582,55 +1202,45 @@ class ResearchBaseline:
         tolva = np.maximum(50.0, 0.02 * np.nan_to_num(vamax, nan=0.0)).astype(np.float32)
         tolvi = np.maximum(20.0, 0.02 * np.nan_to_num(varmaxinj, nan=0.0)).astype(np.float32)
         tolva2 = np.maximum(20.0, 0.02 * np.nan_to_num(varmaxabs, nan=0.0)).astype(np.float32)
-        data["w_gt_wmax_tol"] = (w > (wmax + tolw)).astype(np.int8)
-        data["w_gt_wmaxrtg_tol"] = (w > (wmaxrtg + tolw)).astype(np.int8)
-        data["va_gt_vamax_tol"] = (va > (vamax + tolva)).astype(np.int8)
-        data["var_gt_injmax_tol"] = (var > (varmaxinj + tolvi)).astype(np.int8)
+        for name, value, upper_bound in [
+            ("w_gt_wmax_tol", w, wmax + tolw),
+            ("w_gt_wmaxrtg_tol", w, wmaxrtg + tolw),
+            ("va_gt_vamax_tol", va, vamax + tolva),
+            ("var_gt_injmax_tol", var, varmaxinj + tolvi),
+        ]:
+            data[name] = (value > upper_bound).astype(np.int8)
         data["var_lt_absmax_tol"] = (var < (-varmaxabs - tolva2)).astype(np.int8)
 
         pq = np.sqrt(np.square(w.astype(np.float32)) + np.square(var.astype(np.float32)))
         data["va_minus_pqmag"] = (va - pq).astype(np.float32)
         data["va_over_pqmag"] = self._safe_div(va, pq)
-        data["pf_from_w_va"] = self._safe_div(w, va)
-        data["pf_error"] = (pf - data["pf_from_w_va"]).astype(np.float32)
+        pf_from_w_va = self._safe_div(w, va)
+        data["pf_from_w_va"] = pf_from_w_va
+        data["pf_error"] = (pf - pf_from_w_va).astype(np.float32)
 
-        data["w_phase_sum_error"] = (
-            w
-            - (
-                df["DERMeasureAC[0].WL1"].to_numpy(float)
-                + df["DERMeasureAC[0].WL2"].to_numpy(float)
-                + df["DERMeasureAC[0].WL3"].to_numpy(float)
-            )
-        ).astype(np.float32)
-        data["va_phase_sum_error"] = (
-            va
-            - (
-                df["DERMeasureAC[0].VAL1"].to_numpy(float)
-                + df["DERMeasureAC[0].VAL2"].to_numpy(float)
-                + df["DERMeasureAC[0].VAL3"].to_numpy(float)
-            )
-        ).astype(np.float32)
-        data["var_phase_sum_error"] = (
-            var
-            - (
-                df["DERMeasureAC[0].VarL1"].to_numpy(float)
-                + df["DERMeasureAC[0].VarL2"].to_numpy(float)
-                + df["DERMeasureAC[0].VarL3"].to_numpy(float)
-            )
-        ).astype(np.float32)
-        phase_ll = df[["DERMeasureAC[0].VL1L2", "DERMeasureAC[0].VL2L3", "DERMeasureAC[0].VL3L1"]].to_numpy(float)
-        phase_ln = df[["DERMeasureAC[0].VL1", "DERMeasureAC[0].VL2", "DERMeasureAC[0].VL3"]].to_numpy(float)
-        phase_w = df[["DERMeasureAC[0].WL1", "DERMeasureAC[0].WL2", "DERMeasureAC[0].WL3"]].to_numpy(float)
-        phase_var = df[["DERMeasureAC[0].VarL1", "DERMeasureAC[0].VarL2", "DERMeasureAC[0].VarL3"]].to_numpy(float)
-        data["phase_ll_spread"] = (self._nanmax_rows(phase_ll) - self._nanmin_rows(phase_ll)).astype(np.float32)
-        data["phase_ln_spread"] = (self._nanmax_rows(phase_ln) - self._nanmin_rows(phase_ln)).astype(np.float32)
-        data["phase_w_spread"] = (self._nanmax_rows(phase_w) - self._nanmin_rows(phase_w)).astype(np.float32)
-        data["phase_var_spread"] = (self._nanmax_rows(phase_var) - self._nanmin_rows(phase_var)).astype(np.float32)
+        for name, total, suffixes in [
+            ("w_phase_sum_error", w, ["WL1", "WL2", "WL3"]),
+            ("va_phase_sum_error", va, ["VAL1", "VAL2", "VAL3"]),
+            ("var_phase_sum_error", var, ["VarL1", "VarL2", "VarL3"]),
+        ]:
+            phase_sum = sum(df[f"DERMeasureAC[0].{suffix}"].to_numpy(float) for suffix in suffixes)
+            data[name] = (total - phase_sum).astype(np.float32)
+        for name, suffixes in [
+            ("phase_ll_spread", ["VL1L2", "VL2L3", "VL3L1"]),
+            ("phase_ln_spread", ["VL1", "VL2", "VL3"]),
+            ("phase_w_spread", ["WL1", "WL2", "WL3"]),
+            ("phase_var_spread", ["VarL1", "VarL2", "VarL3"]),
+        ]:
+            phase_values = df[[f"DERMeasureAC[0].{suffix}" for suffix in suffixes]].to_numpy(float)
+            data[name] = (self._nanmax_rows(phase_values) - self._nanmin_rows(phase_values)).astype(np.float32)
 
-        data["wmax_over_wmaxrtg"] = self._safe_div(wmax, wmaxrtg)
-        data["vamax_over_vamaxrtg"] = self._safe_div(vamax, vamaxrtg)
-        data["vmax_over_vnom"] = self._safe_div(vmax, vnom)
-        data["vmin_over_vnom"] = self._safe_div(vmin, vnom)
+        for name, numerator, denominator in [
+            ("wmax_over_wmaxrtg", wmax, wmaxrtg),
+            ("vamax_over_vamaxrtg", vamax, vamaxrtg),
+            ("vmax_over_vnom", vmax, vnom),
+            ("vmin_over_vnom", vmin, vnom),
+        ]:
+            data[name] = self._safe_div(numerator, denominator)
 
         wsetena = np.nan_to_num(df["DERCtlAC[0].WSetEna"].to_numpy(float), nan=0.0)
         wset = df["DERCtlAC[0].WSet"].to_numpy(float)
@@ -1702,7 +1312,7 @@ class ResearchBaseline:
         )
 
         voltage_pct = 100.0 * self._safe_div(llv, vnom)
-        line_neutral_voltage_pct = 100.0 * self._safe_div(lnv * math.sqrt(3.0), vnom)
+        line_neutral_voltage_pct = 100.0 * self._safe_div(lnv * SQRT3, vnom)
         w_pct = 100.0 * self._safe_div(w, wmaxrtg)
         var_pct = self._var_pct(var, varmaxinj, varmaxabs)
 
@@ -1758,59 +1368,64 @@ class ResearchBaseline:
         data["trip_any_outside_musttrip"] = trip_any_outside
         data["trip_any_power_when_outside"] = trip_any_power_when_outside
 
-        voltvar_measure = voltage_pct - 100.0 + df["DERVoltVar[0].Crv[0].VRef"].fillna(100.0).to_numpy(float)
-        self._add_curve_block_features(
-            data,
-            name="voltvar",
-            raw_idx=df["DERVoltVar[0].AdptCrvRslt"].to_numpy(float),
-            curve_x=[np.column_stack([df[f"DERVoltVar[0].Crv[{curve}].Pt[{point}].V"].to_numpy(float) for point in range(4)]) for curve in range(3)],
-            curve_y=[np.column_stack([df[f"DERVoltVar[0].Crv[{curve}].Pt[{point}].Var"].to_numpy(float) for point in range(4)]) for curve in range(3)],
-            curve_actpt=[df[f"DERVoltVar[0].Crv[{curve}].ActPt"].to_numpy(float) for curve in range(3)],
-            curve_meta={
-                "deptref": [df[f"DERVoltVar[0].Crv[{curve}].DeptRef"].to_numpy(float) for curve in range(3)],
-                "pri": [df[f"DERVoltVar[0].Crv[{curve}].Pri"].to_numpy(float) for curve in range(3)],
-                "vref": [df[f"DERVoltVar[0].Crv[{curve}].VRef"].to_numpy(float) for curve in range(3)],
-                "vref_auto": [df[f"DERVoltVar[0].Crv[{curve}].VRefAuto"].to_numpy(float) for curve in range(3)],
-                "vref_auto_ena": [df[f"DERVoltVar[0].Crv[{curve}].VRefAutoEna"].to_numpy(float) for curve in range(3)],
-                "vref_auto_tms": [df[f"DERVoltVar[0].Crv[{curve}].VRefAutoTms"].to_numpy(float) for curve in range(3)],
-                "rsp": [df[f"DERVoltVar[0].Crv[{curve}].RspTms"].to_numpy(float) for curve in range(3)],
-                "readonly": [df[f"DERVoltVar[0].Crv[{curve}].ReadOnly"].to_numpy(float) for curve in range(3)],
-            },
-            measure_value=voltvar_measure,
-            observed_value=var_pct,
-        )
-
-        self._add_curve_block_features(
-            data,
-            name="voltwatt",
-            raw_idx=df["DERVoltWatt[0].AdptCrvRslt"].to_numpy(float),
-            curve_x=[np.column_stack([df[f"DERVoltWatt[0].Crv[{curve}].Pt[{point}].V"].to_numpy(float) for point in range(2)]) for curve in range(3)],
-            curve_y=[np.column_stack([df[f"DERVoltWatt[0].Crv[{curve}].Pt[{point}].W"].to_numpy(float) for point in range(2)]) for curve in range(3)],
-            curve_actpt=[df[f"DERVoltWatt[0].Crv[{curve}].ActPt"].to_numpy(float) for curve in range(3)],
-            curve_meta={
-                "deptref": [df[f"DERVoltWatt[0].Crv[{curve}].DeptRef"].to_numpy(float) for curve in range(3)],
-                "rsp": [df[f"DERVoltWatt[0].Crv[{curve}].RspTms"].to_numpy(float) for curve in range(3)],
-                "readonly": [df[f"DERVoltWatt[0].Crv[{curve}].ReadOnly"].to_numpy(float) for curve in range(3)],
-            },
-            measure_value=voltage_pct,
-            observed_value=w_pct,
-        )
-
-        self._add_curve_block_features(
-            data,
-            name="wattvar",
-            raw_idx=df["DERWattVar[0].AdptCrvRslt"].to_numpy(float),
-            curve_x=[np.column_stack([df[f"DERWattVar[0].Crv[{curve}].Pt[{point}].W"].to_numpy(float) for point in range(6)]) for curve in range(3)],
-            curve_y=[np.column_stack([df[f"DERWattVar[0].Crv[{curve}].Pt[{point}].Var"].to_numpy(float) for point in range(6)]) for curve in range(3)],
-            curve_actpt=[df[f"DERWattVar[0].Crv[{curve}].ActPt"].to_numpy(float) for curve in range(3)],
-            curve_meta={
-                "deptref": [df[f"DERWattVar[0].Crv[{curve}].DeptRef"].to_numpy(float) for curve in range(3)],
-                "pri": [df[f"DERWattVar[0].Crv[{curve}].Pri"].to_numpy(float) for curve in range(3)],
-                "readonly": [df[f"DERWattVar[0].Crv[{curve}].ReadOnly"].to_numpy(float) for curve in range(3)],
-            },
-            measure_value=w_pct,
-            observed_value=var_pct,
-        )
+        curve_scalars = lambda prefix, field: [df[f"{prefix}.Crv[{curve}].{field}"].to_numpy(float) for curve in range(3)]
+        curve_points = lambda prefix, field, point_count: [
+            np.column_stack([df[f"{prefix}.Crv[{curve}].Pt[{point}].{field}"].to_numpy(float) for point in range(point_count)])
+            for curve in range(3)
+        ]
+        curve_specs = [
+            (
+                "voltvar",
+                "DERVoltVar[0]",
+                4,
+                "V",
+                "Var",
+                {
+                    "deptref": "DeptRef",
+                    "pri": "Pri",
+                    "vref": "VRef",
+                    "vref_auto": "VRefAuto",
+                    "vref_auto_ena": "VRefAutoEna",
+                    "vref_auto_tms": "VRefAutoTms",
+                    "rsp": "RspTms",
+                    "readonly": "ReadOnly",
+                },
+                voltage_pct - 100.0 + df["DERVoltVar[0].Crv[0].VRef"].fillna(100.0).to_numpy(float),
+                var_pct,
+            ),
+            (
+                "voltwatt",
+                "DERVoltWatt[0]",
+                2,
+                "V",
+                "W",
+                {"deptref": "DeptRef", "rsp": "RspTms", "readonly": "ReadOnly"},
+                voltage_pct,
+                w_pct,
+            ),
+            (
+                "wattvar",
+                "DERWattVar[0]",
+                6,
+                "W",
+                "Var",
+                {"deptref": "DeptRef", "pri": "Pri", "readonly": "ReadOnly"},
+                w_pct,
+                var_pct,
+            ),
+        ]
+        for name, prefix, point_count, x_field, y_field, meta_fields, measure_value, observed_value in curve_specs:
+            self._add_curve_block_features(
+                data,
+                name=name,
+                raw_idx=df[f"{prefix}.AdptCrvRslt"].to_numpy(float),
+                curve_x=curve_points(prefix, x_field, point_count),
+                curve_y=curve_points(prefix, y_field, point_count),
+                curve_actpt=curve_scalars(prefix, "ActPt"),
+                curve_meta={meta_name: curve_scalars(prefix, field) for meta_name, field in meta_fields.items()},
+                measure_value=measure_value,
+                observed_value=observed_value,
+            )
 
         self._add_freq_droop_features(data, df, hz=hz, w_pct=w_pct)
         dc_port_type_rare = self._add_dc_features(data, df, w=w, abs_w=abs_w)
@@ -1819,99 +1434,98 @@ class ResearchBaseline:
         ac_type_is_rare = np.isfinite(ac_type) & (ac_type == 3.0)
         data["ac_type_is_rare"] = ac_type_is_rare.astype(np.int8)
 
-        model_structure_anomaly = data["model_structure_anomaly_any"].astype(np.int8)
-        noncanonical_flag = data["noncanonical"] == 1
-        common_missing_flag = data["common_missing_any"] == 1
-        w_gt_wmax_flag = data["w_gt_wmax_tol"] == 1
-        w_gt_wmaxrtg_flag = data["w_gt_wmaxrtg_tol"] == 1
-        va_gt_vamax_flag = data["va_gt_vamax_tol"] == 1
-        var_gt_injmax_flag = data["var_gt_injmax_tol"] == 1
-        var_lt_absmax_flag = data["var_lt_absmax_tol"] == 1
-        wset_far_flag = data["wset_enabled_far"] == 1
-        wsetpct_far_flag = data["wsetpct_enabled_far"] == 1
-        wmaxlim_far_flag = data["wmaxlim_enabled_far"] == 1
-        varsetpct_far_flag = data["varsetpct_enabled_far"] == 1
-        model_structure_flag = model_structure_anomaly == 1
-        ac_type_rare_flag = ac_type_is_rare == 1
-        dc_type_rare_flag = dc_port_type_rare == 1
-        enter_state_flag = enter_state_anomaly == 1
-        enter_blocked_power_flag = enter_blocked_power == 1
-        enter_blocked_current_flag = enter_blocked_current == 1
-        pf_abs_flag = pf_abs_ext_present == 1
-        pf_abs_rvrt_flag = pf_abs_rvrt_ext_present == 1
-        trip_power_flag = trip_any_power_when_outside == 1
-
-        hard_rule_flags = np.column_stack(
-            [
-                noncanonical_flag,
-                common_missing_flag,
-                w_gt_wmax_flag,
-                w_gt_wmaxrtg_flag,
-                va_gt_vamax_flag,
-                var_gt_injmax_flag,
-                var_lt_absmax_flag,
-                wset_far_flag,
-                wsetpct_far_flag,
-                wmaxlim_far_flag,
-                varsetpct_far_flag,
-                model_structure_flag,
-                ac_type_rare_flag,
-                dc_type_rare_flag,
-                enter_state_flag,
-                enter_blocked_power_flag,
-                enter_blocked_current_flag,
-                pf_abs_flag,
-                pf_abs_rvrt_flag,
-                trip_power_flag,
-            ]
-        )
-        hard_override_flags = np.column_stack(
-            [
-                noncanonical_flag,
-                common_missing_flag,
-                w_gt_wmax_flag,
-                w_gt_wmaxrtg_flag,
-                va_gt_vamax_flag,
-                var_gt_injmax_flag,
-                var_lt_absmax_flag,
-                wset_far_flag,
-                wsetpct_far_flag,
-                model_structure_flag,
-                ac_type_rare_flag,
-                dc_type_rare_flag,
-                enter_state_flag,
-                pf_abs_flag,
-                pf_abs_rvrt_flag,
-                trip_power_flag,
-            ]
-        )
+        flag_map = {
+            "noncanonical": data["noncanonical"] == 1,
+            "common_missing": data["common_missing_any"] == 1,
+            "w_gt_wmax": data["w_gt_wmax_tol"] == 1,
+            "w_gt_wmaxrtg": data["w_gt_wmaxrtg_tol"] == 1,
+            "va_gt_vamax": data["va_gt_vamax_tol"] == 1,
+            "var_gt_injmax": data["var_gt_injmax_tol"] == 1,
+            "var_lt_absmax": data["var_lt_absmax_tol"] == 1,
+            "wset_far": data["wset_enabled_far"] == 1,
+            "wsetpct_far": data["wsetpct_enabled_far"] == 1,
+            "wmaxlim_far": data["wmaxlim_enabled_far"] == 1,
+            "varsetpct_far": data["varsetpct_enabled_far"] == 1,
+            "model_structure": data["model_structure_anomaly_any"] == 1,
+            "ac_type_rare": ac_type_is_rare == 1,
+            "dc_type_rare": dc_port_type_rare == 1,
+            "enter_state": enter_state_anomaly == 1,
+            "enter_blocked_power": enter_blocked_power == 1,
+            "enter_blocked_current": enter_blocked_current == 1,
+            "pf_abs": pf_abs_ext_present == 1,
+            "pf_abs_rvrt": pf_abs_rvrt_ext_present == 1,
+            "trip_power": trip_any_power_when_outside == 1,
+        }
+        hard_rule_names = [
+            "noncanonical",
+            "common_missing",
+            "w_gt_wmax",
+            "w_gt_wmaxrtg",
+            "va_gt_vamax",
+            "var_gt_injmax",
+            "var_lt_absmax",
+            "wset_far",
+            "wsetpct_far",
+            "wmaxlim_far",
+            "varsetpct_far",
+            "model_structure",
+            "ac_type_rare",
+            "dc_type_rare",
+            "enter_state",
+            "enter_blocked_power",
+            "enter_blocked_current",
+            "pf_abs",
+            "pf_abs_rvrt",
+            "trip_power",
+        ]
+        hard_override_names = [
+            "noncanonical",
+            "common_missing",
+            "w_gt_wmax",
+            "w_gt_wmaxrtg",
+            "va_gt_vamax",
+            "var_gt_injmax",
+            "var_lt_absmax",
+            "wset_far",
+            "wsetpct_far",
+            "model_structure",
+            "ac_type_rare",
+            "dc_type_rare",
+            "enter_state",
+            "pf_abs",
+            "pf_abs_rvrt",
+            "trip_power",
+        ]
+        hard_rule_flags = np.column_stack([flag_map[name] for name in hard_rule_names])
+        hard_override_flags = np.column_stack([flag_map[name] for name in hard_override_names])
+        float_flags = {name: flag.astype(np.float32) for name, flag in flag_map.items()}
         data["hard_rule_count"] = hard_rule_flags.sum(axis=1).astype(np.int8)
         data["hard_rule_score"] = (
-            3.0 * noncanonical_flag.astype(np.float32)
-            + 2.5 * common_missing_flag.astype(np.float32)
+            3.0 * float_flags["noncanonical"]
+            + 2.5 * float_flags["common_missing"]
             + 2.0 * (
-                w_gt_wmax_flag.astype(np.float32)
-                + w_gt_wmaxrtg_flag.astype(np.float32)
-                + va_gt_vamax_flag.astype(np.float32)
-                + var_gt_injmax_flag.astype(np.float32)
-                + var_lt_absmax_flag.astype(np.float32)
-                + model_structure_flag.astype(np.float32)
-                + enter_state_flag.astype(np.float32)
-                + trip_power_flag.astype(np.float32)
+                float_flags["w_gt_wmax"]
+                + float_flags["w_gt_wmaxrtg"]
+                + float_flags["va_gt_vamax"]
+                + float_flags["var_gt_injmax"]
+                + float_flags["var_lt_absmax"]
+                + float_flags["model_structure"]
+                + float_flags["enter_state"]
+                + float_flags["trip_power"]
             )
             + 1.5 * (
-                wset_far_flag.astype(np.float32)
-                + wsetpct_far_flag.astype(np.float32)
-                + ac_type_rare_flag.astype(np.float32)
-                + dc_type_rare_flag.astype(np.float32)
-                + pf_abs_flag.astype(np.float32)
-                + pf_abs_rvrt_flag.astype(np.float32)
+                float_flags["wset_far"]
+                + float_flags["wsetpct_far"]
+                + float_flags["ac_type_rare"]
+                + float_flags["dc_type_rare"]
+                + float_flags["pf_abs"]
+                + float_flags["pf_abs_rvrt"]
             )
-            + 1.0 * varsetpct_far_flag.astype(np.float32)
-            + 0.75 * wmaxlim_far_flag.astype(np.float32)
+            + 1.0 * float_flags["varsetpct_far"]
+            + 0.75 * float_flags["wmaxlim_far"]
             + 0.35 * (
-                enter_blocked_power_flag.astype(np.float32)
-                + enter_blocked_current_flag.astype(np.float32)
+                float_flags["enter_blocked_power"]
+                + float_flags["enter_blocked_current"]
             )
         )
         hard_rule_anomaly = hard_rule_flags.any(axis=1).astype(np.int8)
