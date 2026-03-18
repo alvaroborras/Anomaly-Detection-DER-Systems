@@ -19,6 +19,7 @@ This v2 keeps the original training recipe but expands semantic coverage for:
 - structural missingness and DC regime features.
 """
 import json
+import hashlib
 import math
 import random
 import re
@@ -832,6 +833,14 @@ def seed_everything(seed: int) -> None:
     # Keep the pipeline reproducible without forcing single-threaded execution.
     random.seed(seed)
     np.random.seed(seed)
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 class ResearchBaseline:
@@ -2729,9 +2738,17 @@ def run_pipeline(config: RunConfig = DEFAULT_RUN_CONFIG) -> ValidationReport:
     model_path = config.output_dir / MODEL_FILENAME
     report_path = config.output_dir / REPORT_FILENAME
     baseline.save(model_path, report_path)
+    final_solution_path = report_path
+    final_solution_label = "validation_report"
     if config.write_test_predictions:
         submission_path = config.output_dir / f"submission_semantic_v4_single_sample{report.sample_rows}.csv"
         baseline.predict_test(config.zip_path, submission_path)
+        final_solution_path = submission_path
+        final_solution_label = "submission"
+    print(
+        f"[solution] {final_solution_label}_sha256={file_sha256(final_solution_path)} "
+        f"path={final_solution_path}"
+    )
     return report
 
 
