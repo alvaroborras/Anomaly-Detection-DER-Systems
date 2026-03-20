@@ -249,7 +249,6 @@ def _var_pct(var, vmi, vma):
     denom = np.where(var >= 0, np.asarray(vmi, dtype=np.float32), np.asarray(vma, dtype=np.float32))
     return 100.0 * _d(var, denom)
 
-
 def _tt(y_true, prob, *, low=FTF, high=MT, step=0.01):
     if len(y_true) == 0:
         return (0.5, 0.0)
@@ -280,18 +279,15 @@ def _snc(df, candidates):
         keep.append(col)
     return keep
 
-
 def _edf(df):
     out = df.copy()
     out['df'] = out['df'].map(FAM).fillna(-1).astype(np.int8)
     return out
 
-
 def _gsf(columns):
     excluded = {'Id', 'Label', 'fold_id', 'af', 'dg', 'ra', 'hrc', 'rs', 'oa'}
     excluded.update(SS.values())
     return [col for col in columns if col not in excluded and col not in SLF]
-
 
 def _b(values, *, fv, dtype, scale=1.0, round_values=True):
     out = pd.to_numeric(values, errors='coerce')
@@ -301,17 +297,14 @@ def _b(values, *, fv, dtype, scale=1.0, round_values=True):
         out = out.round()
     return out.fillna(fv).astype(dtype)
 
-
 def _hf(frame):
     return pd.util.hash_pandas_object(frame, index=False).to_numpy(np.uint64)
-
 
 def _lss(keys, sum_map, count_map):
     key_series = pd.Series(keys)
     sv = key_series.map(sum_map).fillna(0.0).to_numpy(np.float32)
     cv = key_series.map(count_map).fillna(0).to_numpy(np.int32)
     return (sv, cv)
-
 
 def _asf(out, *, fp, sr, sc, so, oc):
     out['sr'] = sr.astype(np.float32)
@@ -326,18 +319,15 @@ def _asf(out, *, fp, sr, sc, so, oc):
     out['sols'] = (oc < 20).astype(np.int8)
     return out
 
-
 def _spm(ids, *, fp):
     ids_arr = np.asarray(ids, dtype=np.int64)
     fit_mask = ids_arr % 2 == 0
     return fit_mask if fp else ~fit_mask
 
-
 def _sfc(sdf):
     excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'dg'}
     excluded.update(SS.values())
     return [col for col in sdf.columns if col not in excluded and pd.api.types.is_numeric_dtype(sdf[col])]
-
 
 def _cfc(cat_df):
     rnc = [SR[col] for col in RN if SR[col] in cat_df.columns]
@@ -347,22 +337,58 @@ def _cfc(cat_df):
     excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'ra'}
     return [col for col in candidates if col in cat_df.columns and col not in excluded]
 
+def _cn(df):
+    for col in NSC:
+        if df[col].dtype == object:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+def _bsw(x_df, y):
+    weights = np.ones(len(x_df), dtype=np.float32)
+    family = x_df['df'].to_numpy()
+    ho = x_df['oa'].to_numpy() == 1
+    weights[(family == 'canon100') & (y == 0)] *= CNW
+    weights[ho] *= HOTW
+    return weights
+
+def _bsf(x_df, *, iob):
+    frame = {'family': x_df['df'].astype(str), 'throt_src': _b(x_df['DERMeasureAC_0_ThrotSrc'], fv=-1, dtype=np.int16), 'throt_pct': _b(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fv=-1, dtype=np.int16), 'wmaxlim_pct': _b(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fv=-1, dtype=np.int16), 'wset_pct': _b(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'varset_pct': _b(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'pf_set': _b(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fv=-1, dtype=np.int16), 'fd_idx': _b(x_df['DERFreqDroop_0_AdptCtlRslt'], fv=-1, dtype=np.int16), 'vv_idx': _b(x_df['DERVoltVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'vw_idx': _b(x_df['DERVoltWatt_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'wv_idx': _b(x_df['DERWattVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'volt_bin': _b(x_df['vp'], fv=-999, dtype=np.int16), 'hz_bin': _b(x_df['DERMeasureAC_0_Hz'], scale=0.1, fv=-999, dtype=np.int16), 'enter_idle': _b(x_df['esi'], fv=0, dtype=np.int8, round_values=False), 'droop_active': _b(x_df['fod'], fv=0, dtype=np.int8, round_values=False)}
+    if iob:
+        frame['w_bin'] = _b(x_df['wpr'], scale=5.0, fv=-999, dtype=np.int16)
+        frame['var_bin'] = _b(x_df['vpl'], scale=5.0, fv=-999, dtype=np.int16)
+        frame['pf_mode'] = _b(x_df['pcae'], fv=0, dtype=np.int8, round_values=False)
+    return pd.DataFrame(frame)
+
+def _bsk(x_df):
+    return _hf(_bsf(x_df, iob=False))
+
+def _bok(x_df):
+    return _hf(_bsf(x_df, iob=True))
+
+def _afi(x_df):
+    out = x_df.copy()
+    c1m = out['df'].astype(str) == 'canon100'
+    for fname in CIF:
+        if fname not in out.columns:
+            continue
+        values = pd.to_numeric(out[fname], errors='coerce').to_numpy(np.float32)
+        out[f'canon100_{fname}'] = np.where(c1m.to_numpy(), values, 0.0).astype(np.float32)
+    return out
 
 class R:
 
-    def __init__(self, *, ad=DOD / 'artifacts', chunksize=5000, kf=5, n_estimators=180, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cti=400, cat_depth=8, clr=0.05, n_jobs=4, seed=DEFAULT_SEED):
+    def __init__(self, *, ad=DOD / 'artifacts', chunksize=5000, kf=5, ne=180, md=8, lr=0.05, su=0.8, cb=0.8, cti=400, cd=8, clr=0.05, nj=4, seed=DEFAULT_SEED):
         self.ad = ad
         self.chunksize = chunksize
         self.kf = kf
-        self.n_estimators = n_estimators
-        self.max_depth = max_depth
-        self.learning_rate = learning_rate
-        self.subsample = subsample
-        self.colsample_bytree = colsample_bytree
+        self.ne = ne
+        self.md = md
+        self.lr = lr
+        self.su = su
+        self.cb = cb
         self.cti = cti
-        self.cat_depth = cat_depth
+        self.cd = cd
         self.clr = clr
-        self.n_jobs = n_jobs
+        self.nj = nj
         self.seed = seed
         self.ovr = list(OVR)
         self.smd = {}
@@ -380,11 +406,6 @@ class R:
         self.scm = {}
         self.sosm = {}
         self.socm = {}
-
-    def _cn(self, df):
-        for col in NSC:
-            if df[col].dtype == object:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
 
     def _abm(self, data, df):
         bmt = np.zeros(len(df), dtype=np.int16)
@@ -678,7 +699,7 @@ class R:
         return rare_type.astype(np.int8)
 
     def bf(self, df):
-        self._cn(df)
+        _cn(df)
         fpg = df[CS].fillna('<NA>').agg('|'.join, axis=1)
         data = {'Id': df['Id'].to_numpy(), 'dg': fpg.to_numpy(dtype=object), 'df': np.where(fpg == CANON1, 'canon10', np.where(fpg == CANON2, 'canon100', 'other')), 'cma': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'cmc': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'csd': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
         data['nc'] = (data['df'] == 'other').astype(np.int8)
@@ -830,35 +851,13 @@ class R:
             if limit_rows > 0 and yielded >= limit_rows:
                 break
 
-    def _bsw(self, x_df, y):
-        weights = np.ones(len(x_df), dtype=np.float32)
-        family = x_df['df'].to_numpy()
-        ho = x_df['oa'].to_numpy() == 1
-        weights[(family == 'canon100') & (y == 0)] *= CNW
-        weights[ho] *= HOTW
-        return weights
-
-    def _bsf(self, x_df, *, iob):
-        frame = {'family': x_df['df'].astype(str), 'throt_src': _b(x_df['DERMeasureAC_0_ThrotSrc'], fv=-1, dtype=np.int16), 'throt_pct': _b(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fv=-1, dtype=np.int16), 'wmaxlim_pct': _b(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fv=-1, dtype=np.int16), 'wset_pct': _b(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'varset_pct': _b(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'pf_set': _b(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fv=-1, dtype=np.int16), 'fd_idx': _b(x_df['DERFreqDroop_0_AdptCtlRslt'], fv=-1, dtype=np.int16), 'vv_idx': _b(x_df['DERVoltVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'vw_idx': _b(x_df['DERVoltWatt_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'wv_idx': _b(x_df['DERWattVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'volt_bin': _b(x_df['vp'], fv=-999, dtype=np.int16), 'hz_bin': _b(x_df['DERMeasureAC_0_Hz'], scale=0.1, fv=-999, dtype=np.int16), 'enter_idle': _b(x_df['esi'], fv=0, dtype=np.int8, round_values=False), 'droop_active': _b(x_df['fod'], fv=0, dtype=np.int8, round_values=False)}
-        if iob:
-            frame['w_bin'] = _b(x_df['wpr'], scale=5.0, fv=-999, dtype=np.int16)
-            frame['var_bin'] = _b(x_df['vpl'], scale=5.0, fv=-999, dtype=np.int16)
-            frame['pf_mode'] = _b(x_df['pcae'], fv=0, dtype=np.int8, round_values=False)
-        return pd.DataFrame(frame)
-
-    def _bsk(self, x_df):
-        return _hf(self._bsf(x_df, iob=False))
-
-    def _bok(self, x_df):
-        return _hf(self._bsf(x_df, iob=True))
-
     def _fts(self, x_train, y_train):
         out = x_train.copy()
         y_arr = y_train.to_numpy(np.float32)
         fs = out['df'].astype(str)
         self.fbr = pd.DataFrame({'family': fs, 'y': y_arr}).groupby('family')['y'].mean().to_dict()
-        keys = self._bsk(out)
-        ok = self._bok(out)
+        keys = _bsk(out)
+        ok = _bok(out)
         fi = (out['Id'].to_numpy(np.int64) % self.kf).astype(np.int8)
         sr = np.zeros(len(out), dtype=np.float32)
         sc = np.zeros(len(out), dtype=np.int32)
@@ -897,8 +896,8 @@ class R:
         if not self.scm:
             return x_df
         out = x_df.copy()
-        keys = self._bsk(out)
-        ok = self._bok(out)
+        keys = _bsk(out)
+        ok = _bok(out)
         sv, cv = _lss(keys, self.ssm, self.scm)
         osv, ocv = _lss(ok, self.sosm, self.socm)
         gr = float(np.mean(list(self.fbr.values()))) if self.fbr else 0.5
@@ -907,24 +906,14 @@ class R:
         so = (osv + SM * fp) / (ocv + SM)
         return _asf(out, fp=fp, sr=sr, sc=cv, so=so, oc=ocv)
 
-    def _afi(self, x_df):
-        out = x_df.copy()
-        c1m = out['df'].astype(str) == 'canon100'
-        for fname in CIF:
-            if fname not in out.columns:
-                continue
-            values = pd.to_numeric(out[fname], errors='coerce').to_numpy(np.float32)
-            out[f'canon100_{fname}'] = np.where(c1m.to_numpy(), values, 0.0).astype(np.float32)
-        return out
-
     def _xsp(self, *, eval_metric, verbosity):
-        return {'subsample': self.subsample, 'colsample_bytree': self.colsample_bytree, 'eval_metric': eval_metric, 'tree_method': 'hist', 'n_jobs': self.n_jobs, 'random_state': self.seed, 'seed': self.seed, 'verbosity': verbosity}
+        return {'subsample': self.su, 'colsample_bytree': self.cb, 'eval_metric': eval_metric, 'tree_method': 'hist', 'n_jobs': self.nj, 'random_state': self.seed, 'seed': self.seed, 'verbosity': verbosity}
 
     def _nsm(self):
-        return G(n_estimators=max(80, self.n_estimators // 2), max_depth=max(4, self.max_depth - 2), learning_rate=min(0.08, self.learning_rate * 1.2), objective='reg:squarederror', **self._xsp(eval_metric='rmse', verbosity=0))
+        return G(n_estimators=max(80, self.ne // 2), max_depth=max(4, self.md - 2), learning_rate=min(0.08, self.lr * 1.2), objective='reg:squarederror', **self._xsp(eval_metric='rmse', verbosity=0))
 
     def _ncf(self):
-        return X(n_estimators=self.n_estimators, max_depth=self.max_depth, learning_rate=self.learning_rate, objective='binary:logistic', **self._xsp(eval_metric='logloss', verbosity=1))
+        return X(n_estimators=self.ne, max_depth=self.md, learning_rate=self.lr, objective='binary:logistic', **self._xsp(eval_metric='logloss', verbosity=1))
 
     def _fsm(self, x_train, y_train, vm):
         self.sur_cols = _gsf(x_train.columns)
@@ -1070,7 +1059,7 @@ class R:
 
     def _ncm(self):
         self._eca()
-        return C(iterations=self.cti, depth=self.cat_depth, learning_rate=self.clr, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.n_jobs, allow_writing_files=False, verbose=False)
+        return C(iterations=self.cti, depth=self.cd, learning_rate=self.clr, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.nj, allow_writing_files=False, verbose=False)
 
     def _bta(self):
         shutil.rmtree(self.ad, ignore_errors=True)
@@ -1081,7 +1070,7 @@ class R:
             feats = self.bf(chunk.drop(columns=['Label']))
             feats['Label'] = labels
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.kf).astype(np.int8)
-            feats['af'] = (self._bsk(feats) % self.kf).astype(np.int8)
+            feats['af'] = (_bsk(feats) % self.kf).astype(np.int8)
             for family in ('canon10', 'canon100', 'other'):
                 fm = feats['df'] == family
                 if fm.any():
@@ -1143,7 +1132,7 @@ class R:
         self._crq(work, y, no_valid)
         work = self._arf(work)
         work = self._fts(work, y)
-        work = self._afi(work)
+        work = _afi(work)
         return (work, self._csc())
 
     def _pcf(self, bdf):
@@ -1166,12 +1155,12 @@ class R:
             model = self._ncf()
             x_train = sdf.loc[tm, fc]
             y_train = y[tm]
-            weights = self._bsw(sdf.loc[tm], y_train)
+            weights = _bsw(sdf.loc[tm], y_train)
             model.fit(x_train, y_train, sample_weight=weights)
             probs[vm] = model.predict_proba(sdf.loc[vm, fc])[:, 1].astype(np.float32)
         if ff and mm.any():
             fm = self._ncf()
-            weights = self._bsw(sdf.loc[mm], y[mm])
+            weights = _bsw(sdf.loc[mm], y[mm])
             fm.fit(sdf.loc[mm, fc], y[mm], sample_weight=weights)
         return (probs, fm)
 
@@ -1186,12 +1175,12 @@ class R:
             if not vm.any():
                 continue
             model = self._ncm()
-            weights = self._bsw(cat_df.loc[tm], y[tm])
+            weights = _bsw(cat_df.loc[tm], y[tm])
             model.fit(cat_df.loc[tm, fc], y[tm], cat_features=list(cc), sample_weight=weights, verbose=False)
             probs[vm] = model.predict_proba(cat_df.loc[vm, fc])[:, 1].astype(np.float32)
         if ff and mm.any():
             fm = self._ncm()
-            weights = self._bsw(cat_df.loc[mm], y[mm])
+            weights = _bsw(cat_df.loc[mm], y[mm])
             fm.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights, verbose=False)
         return (probs, fm)
 
@@ -1280,7 +1269,7 @@ class R:
         sdf = self._aws(work.copy())
         sdf = self._arf(sdf)
         sdf = self._apf(sdf)
-        sdf = self._afi(sdf)
+        sdf = _afi(sdf)
         sp = np.ones(len(sdf), dtype=np.float32)
         if (~ho).any():
             sm = self.smd[family]

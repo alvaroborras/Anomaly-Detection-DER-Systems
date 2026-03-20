@@ -40,8 +40,8 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- The current kept `main.py` is ~74.7k chars, down from ~130k.
-- The most productive safe reductions so far have come from deleting non-essential surface area, removing dead duplicate logic, shortening internal names/feature columns, and hoisting stateless helpers out of class scope.
+- The current kept `main.py` is ~71.8k chars, down from ~130k.
+- The most productive safe reductions so far have come from deleting non-essential surface area, removing dead duplicate logic, shortening internal names/feature columns, and hoisting pure/stateless helpers out of class scope.
 - Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic/scenario helper plumbing, and any remaining verbose setup code that does not affect the final submission.
 - Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this remains a backup path, not the leading one.
 
@@ -64,4 +64,8 @@ Workload constraints:
 - Kept: shortened another batch of remaining hard-rule names, tuning locals, fold-feature columns, and residual/freqdroop feature names with no behavior change. This brought `main.py` to 75,888 chars while preserving the exact hash.
 - Crash/reverted: the first attempt to hoist stateless helpers to module scope used an over-broad prefix replacement and broke `self._nsm`/`self._ncm` into undefined globals. The idea was still sound, but the replacement needed exact name boundaries.
 - Kept: hoisted the stateless math/selection helpers out of class scope with an exact replacement pass, which safely reduced indentation/decorator overhead and brought `main.py` to 74,686 chars while preserving the exact hash.
-- Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path; naming surface and class-scoped boilerplate are still paying off.
+- Kept: shortened another safe batch of remaining local identifiers plus the last long internal DC/freqdroop/target feature names, with a narrower non-colliding rename set after the prior crash. This brought `main.py` to 73,484 chars while preserving the exact hash.
+- Kept: shortened another safe batch of shared column/field constants plus remaining one-off locals and internal feature names (DC, phase-error, freqdroop, watt-limit terms). This brought `main.py` to 72,246 chars while preserving the exact hash.
+- Kept: hoisted another batch of pure helper functions (encoding/binning/hash/stat aggregation/candidate builders) out of class scope and fixed their signatures for direct global calls. This brought `main.py` to 71,807 chars while preserving the exact hash.
+- Crash/reverted: a later rename sweep accidentally rewrote the CatBoost `cat_features=` keyword to `cfs=`, so broad renames now need an explicit denylist for library/API keyword names.
+- Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path; naming surface and class-scoped boilerplate are still paying off, but avoid blind replacements of external API keywords.
