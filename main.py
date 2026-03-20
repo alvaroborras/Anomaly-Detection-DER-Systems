@@ -60,44 +60,44 @@ def btc(prefix, an):
         cp = f'{prefix}.Crv[{curve}]'
         cols.append(f'{cp}.ReadOnly')
         for group in ['MustTrip', 'MayTrip', 'MomCess']:
-            group_prefix = f'{cp}.{group}'
-            cols.append(f'{group_prefix}.ActPt')
+            gpr = f'{cp}.{group}'
+            cols.append(f'{gpr}.ActPt')
             for point in range(5):
-                cols.extend([f'{group_prefix}.Pt[{point}].{an}', f'{group_prefix}.Pt[{point}].Tms'])
+                cols.extend([f'{gpr}.Pt[{point}].{an}', f'{gpr}.Pt[{point}].Tms'])
     return cols
-COMMON_FIELDS = 'Mn Md Opt Vr SN'.split()
-CS = p('common[0]', COMMON_FIELDS)
-COMMON_COLUMNS = p('common[0]', ['ID', 'L', *COMMON_FIELDS, 'DA'])
-MEASURE_AC_FIELDS = '\nID L ACType W VA Var PF A LLV LNV Hz TmpAmb TmpCab TmpSnk TmpTrns TmpSw TmpOt\nThrotPct ThrotSrc WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\nAL1 AL2 AL3 VL1L2 VL2L3 VL3L1 VL1 VL2 VL3\n'.split()
-MEASURE_AC_COLUMNS = p('DERMeasureAC[0]', MEASURE_AC_FIELDS)
-CAPACITY_FIELDS = '\nID L WMaxRtg VAMaxRtg VarMaxInjRtg VarMaxAbsRtg WChaRteMaxRtg WDisChaRteMaxRtg\nVAChaRteMaxRtg VADisChaRteMaxRtg VNomRtg VMaxRtg VMinRtg AMaxRtg PFOvrExtRtg\nPFUndExtRtg NorOpCatRtg AbnOpCatRtg IntIslandCatRtg WMax WMaxOvrExt WOvrExtPF\nWMaxUndExt WUndExtPF VAMax VarMaxInj VarMaxAbs WChaRteMax WDisChaRteMax\nVAChaRteMax VADisChaRteMax VNom VMax VMin AMax PFOvrExt PFUndExt CtrlModes\nIntIslandCat\n'.split()
-CAPACITY_COLUMNS = p('DERCapacity[0]', CAPACITY_FIELDS)
+COF = 'Mn Md Opt Vr SN'.split()
+CS = p('common[0]', COF)
+COC = p('common[0]', ['ID', 'L', *COF, 'DA'])
+MAF = '\nID L ACType W VA Var PF A LLV LNV Hz TmpAmb TmpCab TmpSnk TmpTrns TmpSw TmpOt\nThrotPct ThrotSrc WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\nAL1 AL2 AL3 VL1L2 VL2L3 VL3L1 VL1 VL2 VL3\n'.split()
+MAC = p('DERMeasureAC[0]', MAF)
+CPF = '\nID L WMaxRtg VAMaxRtg VarMaxInjRtg VarMaxAbsRtg WChaRteMaxRtg WDisChaRteMaxRtg\nVAChaRteMaxRtg VADisChaRteMaxRtg VNomRtg VMaxRtg VMinRtg AMaxRtg PFOvrExtRtg\nPFUndExtRtg NorOpCatRtg AbnOpCatRtg IntIslandCatRtg WMax WMaxOvrExt WOvrExtPF\nWMaxUndExt WUndExtPF VAMax VarMaxInj VarMaxAbs WChaRteMax WDisChaRteMax\nVAChaRteMax VADisChaRteMax VNom VMax VMin AMax PFOvrExt PFUndExt CtrlModes\nIntIslandCat\n'.split()
+CAC = p('DERCapacity[0]', CPF)
 ESF = 'ID L ES ESVHi ESVLo ESHzHi ESHzLo ESDlyTms ESRndTms ESRmpTms ESDlyRemTms'.split()
 ESC = p('DEREnterService[0]', ESF)
-CTL_AC_FIELDS = '\nID L PFWInjEna PFWInjEnaRvrt PFWInjRvrtTms PFWInjRvrtRem PFWAbsEna PFWAbsEnaRvrt\nPFWAbsRvrtTms PFWAbsRvrtRem WMaxLimPctEna WMaxLimPct WMaxLimPctRvrt\nWMaxLimPctEnaRvrt WMaxLimPctRvrtTms WMaxLimPctRvrtRem WSetEna WSetMod WSet\nWSetRvrt WSetPct WSetPctRvrt WSetEnaRvrt WSetRvrtTms WSetRvrtRem VarSetEna\nVarSetMod VarSetPri VarSet VarSetRvrt VarSetPct VarSetPctRvrt VarSetEnaRvrt\nVarSetRvrtTms VarSetRvrtRem WRmp WRmpRef VarRmp AntiIslEna PFWInj.PF PFWInj.Ext\nPFWInjRvrt.PF PFWInjRvrt.Ext PFWAbs.Ext PFWAbsRvrt.Ext\n'.split()
-CTL_AC_COLUMNS = p('DERCtlAC[0]', CTL_AC_FIELDS)
-VOLT_VAR_COLUMNS = bvv('DERVoltVar[0]')
-VOLT_WATT_COLUMNS = bvw('DERVoltWatt[0]')
-FREQ_DROOP_COLUMNS = bfd('DERFreqDroop[0]')
-WATT_VAR_COLUMNS = bwv('DERWattVar[0]')
+CTF = '\nID L PFWInjEna PFWInjEnaRvrt PFWInjRvrtTms PFWInjRvrtRem PFWAbsEna PFWAbsEnaRvrt\nPFWAbsRvrtTms PFWAbsRvrtRem WMaxLimPctEna WMaxLimPct WMaxLimPctRvrt\nWMaxLimPctEnaRvrt WMaxLimPctRvrtTms WMaxLimPctRvrtRem WSetEna WSetMod WSet\nWSetRvrt WSetPct WSetPctRvrt WSetEnaRvrt WSetRvrtTms WSetRvrtRem VarSetEna\nVarSetMod VarSetPri VarSet VarSetRvrt VarSetPct VarSetPctRvrt VarSetEnaRvrt\nVarSetRvrtTms VarSetRvrtRem WRmp WRmpRef VarRmp AntiIslEna PFWInj.PF PFWInj.Ext\nPFWInjRvrt.PF PFWInjRvrt.Ext PFWAbs.Ext PFWAbsRvrt.Ext\n'.split()
+TAC = p('DERCtlAC[0]', CTF)
+VVC = bvv('DERVoltVar[0]')
+VWC = bvw('DERVoltWatt[0]')
+FDC = bfd('DERFreqDroop[0]')
+WVC = bwv('DERWattVar[0]')
 TS = {'lv': ('DERTripLV[0]', 'V', 'low'), 'hv': ('DERTripHV[0]', 'V', 'high'), 'lf': ('DERTripLF[0]', 'Hz', 'low'), 'hf': ('DERTripHF[0]', 'Hz', 'high')}
 TRIP_COLUMNS = {sn: btc(prefix, an) for sn, (prefix, an, _) in TS.items()}
-MEASURE_DC_FIELDS = '\nID L NPrt DCA DCW Prt[0].PrtTyp Prt[0].ID Prt[0].DCA Prt[0].DCV Prt[0].DCW\nPrt[0].Tmp Prt[1].PrtTyp Prt[1].ID Prt[1].DCA Prt[1].DCV Prt[1].DCW Prt[1].Tmp\n'.split()
-MEASURE_DC_COLUMNS = p('DERMeasureDC[0]', MEASURE_DC_FIELDS)
-BSC = {'common': COMMON_COLUMNS, 'measure_ac': MEASURE_AC_COLUMNS, 'capacity': CAPACITY_COLUMNS, 'enter_service': ESC, 'ctl_ac': CTL_AC_COLUMNS, 'volt_var': VOLT_VAR_COLUMNS, 'volt_watt': VOLT_WATT_COLUMNS, 'freq_droop': FREQ_DROOP_COLUMNS, 'watt_var': WATT_VAR_COLUMNS, 'measure_dc': MEASURE_DC_COLUMNS}
+MDF = '\nID L NPrt DCA DCW Prt[0].PrtTyp Prt[0].ID Prt[0].DCA Prt[0].DCV Prt[0].DCW\nPrt[0].Tmp Prt[1].PrtTyp Prt[1].ID Prt[1].DCA Prt[1].DCV Prt[1].DCW Prt[1].Tmp\n'.split()
+MDC = p('DERMeasureDC[0]', MDF)
+BSC = {'common': COC, 'measure_ac': MAC, 'capacity': CAC, 'enter_service': ESC, 'ctl_ac': TAC, 'volt_var': VVC, 'volt_watt': VWC, 'freq_droop': FDC, 'watt_var': WVC, 'measure_dc': MDC}
 for sn, cols in TRIP_COLUMNS.items():
     BSC[f'trip_{sn}'] = cols
 CBM = 'Ena AdptCrvReq AdptCrvRslt NPt NCrv RvrtTms RvrtRem RvrtCrv'.split()
 FDM = 'Ena AdptCtlReq AdptCtlRslt NCtl RvrtTms RvrtRem RvrtCtl'.split()
-TRIP_META_FIELDS = 'Ena AdptCrvReq AdptCrvRslt NPt NCrvSet'.split()
-RN = dedupe(['common[0].DA', *p('DERMeasureAC[0]', MEASURE_AC_FIELDS[2:]), *p('DERCapacity[0]', CAPACITY_FIELDS[2:]), *p('DEREnterService[0]', ESF[2:]), *p('DERCtlAC[0]', CTL_AC_FIELDS[2:]), *p('DERVoltVar[0]', CBM), *p('DERVoltWatt[0]', CBM), *p('DERFreqDroop[0]', FDM), *p('DERWattVar[0]', CBM), *p('DERMeasureDC[0]', MEASURE_DC_FIELDS[2:])])
-TRIP_META_COLUMNS = [f'{prefix}.{field}' for prefix, _, _ in TS.values() for field in TRIP_META_FIELDS]
+TMF = 'Ena AdptCrvReq AdptCrvRslt NPt NCrvSet'.split()
+RN = dedupe(['common[0].DA', *p('DERMeasureAC[0]', MAF[2:]), *p('DERCapacity[0]', CPF[2:]), *p('DEREnterService[0]', ESF[2:]), *p('DERCtlAC[0]', CTF[2:]), *p('DERVoltVar[0]', CBM), *p('DERVoltWatt[0]', CBM), *p('DERFreqDroop[0]', FDM), *p('DERWattVar[0]', CBM), *p('DERMeasureDC[0]', MDF[2:])])
+TMC = [f'{prefix}.{field}' for prefix, _, _ in TS.values() for field in TMF]
 RXN = ['DERMeasureAC[0].A_SF', 'DERMeasureAC[0].V_SF', 'DERMeasureAC[0].Hz_SF', 'DERMeasureAC[0].W_SF', 'DERMeasureAC[0].PF_SF', 'DERMeasureAC[0].VA_SF', 'DERMeasureAC[0].Var_SF', 'DERCapacity[0].WOvrExtRtg', 'DERCapacity[0].WOvrExtRtgPF', 'DERCapacity[0].WUndExtRtg', 'DERCapacity[0].WUndExtRtgPF', 'DERCapacity[0].W_SF', 'DERCapacity[0].PF_SF', 'DERCapacity[0].VA_SF', 'DERCapacity[0].Var_SF', 'DERCapacity[0].V_SF', 'DERCapacity[0].A_SF', 'DERCtlAC[0].WSet_SF', 'DERMeasureDC[0].DCA_SF', 'DERMeasureDC[0].DCW_SF']
 RXS = ['DERMeasureDC[0].Prt[0].IDStr', 'DERMeasureDC[0].Prt[1].IDStr']
-RN = dedupe([*RN, *TRIP_META_COLUMNS, *RXN])
+RN = dedupe([*RN, *TMC, *RXN])
 RSC = dedupe([*CS, *RXS])
-TRIP_SOURCE_COLUMNS = [col for cols in TRIP_COLUMNS.values() for col in cols]
-ASC = dedupe([*COMMON_COLUMNS, *MEASURE_AC_COLUMNS, *CAPACITY_COLUMNS, *ESC, *CTL_AC_COLUMNS, *VOLT_VAR_COLUMNS, *VOLT_WATT_COLUMNS, *FREQ_DROOP_COLUMNS, *WATT_VAR_COLUMNS, *MEASURE_DC_COLUMNS, *TRIP_SOURCE_COLUMNS, *RXN, *RXS])
+TSC = [col for cols in TRIP_COLUMNS.values() for col in cols]
+ASC = dedupe([*COC, *MAC, *CAC, *ESC, *TAC, *VVC, *VWC, *FDC, *WVC, *MDC, *TSC, *RXN, *RXS])
 NSC = [c for c in ASC if c not in RSC]
 UTR = dedupe(['Id', 'Label', *ASC])
 UTE = dedupe(['Id', *ASC])
@@ -121,7 +121,7 @@ AT = 0.003
 MOP = 0.995
 CIF = ['rs', 'sr', 'so', 'rqs', 'mdwr']
 STG = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
-SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav va_over_vamaxrtg voi\n    voa aoa w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs psm gw gwr\n    gva gvi vla vmp\n    vop pfv pf_error wpe ape\n    vpe phase_w_spread pvs wsae\n    wspt wspe wltg wlex\n    vsae vspt vspe wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_pwo trip_hv_pwo\n    trip_lf_pwo trip_hf_pwo\n    tpo voltvar_cer voltwatt_cer\n    wattvar_ce wattvar_cer fdwp\n    dcw_over_w dwwa azdp apdz\n    adss\n    '.split()}
+SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav vvr voi\n    voa aoa wmx wmr vmv\n    vmi0 vpa wew w_eq_wmax vev\n    vena psm gw gwr\n    gva gvi vla vmp\n    vop pfv pf_error wpe ape\n    vpe pws pvs wsae\n    wspt wspe wltg wlex\n    vsae vspt vspe wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_pwo trip_hv_pwo\n    trip_lf_pwo trip_hf_pwo\n    tpo voltvar_cer voltwatt_cer\n    wattvar_ce wattvar_cer fdwp\n    dcw_over_w dwwa azdp apdz\n    adss\n    '.split()}
 HRN = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wset_far', 'wsetpct_far', 'wmaxlim_far', 'varsetpct_far', 'ms0', 'atr2', 'dtr2', 'enter_state', 'eip', 'eic', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
 OVR = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wset_far', 'wsetpct_far', 'ms0', 'atr2', 'dtr2', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
 RCM = {'nc': 'nc', 'cmi': 'cma', 'gww': 'gw', 'gwrt': 'gwr', 'vgv': 'gva', 'vgi': 'gvi', 'vlm': 'vla', 'wset_far': 'wf', 'wsetpct_far': 'wef', 'wmaxlim_far': 'wmf', 'varsetpct_far': 'vef', 'ms0': 'msa', 'atr2': 'atr', 'dtr2': 'dtr', 'enter_state': 'esa', 'eip': 'ebp', 'eic': 'ebc', 'pf_abs': 'pae', 'pf_abs_rvrt': 'pre', 'trip_power': 'tpo'}
@@ -340,7 +340,7 @@ class R:
 
     def _ami(self, data, df):
         as0 = np.zeros(len(df), dtype=np.int16)
-        missing_sum = np.zeros(len(df), dtype=np.int16)
+        msm = np.zeros(len(df), dtype=np.int16)
         for bn, (id_col, len_col, expected_id, expected_len) in EMM.items():
             raw_id = df[id_col].to_numpy(float)
             raw_len = df[len_col].to_numpy(float)
@@ -356,9 +356,9 @@ class R:
             mismatch = ~id_missing & ~id_match | ~len_missing & ~len_match
             data[f'{bn}_ms0_anomaly'] = mismatch.astype(np.int8)
             as0 += mismatch.astype(np.int16)
-            missing_sum += (id_missing | len_missing).astype(np.int16)
+            msm += (id_missing | len_missing).astype(np.int16)
         data['msac'] = as0.astype(np.int8)
-        data['msmc'] = missing_sum.astype(np.int8)
+        data['msmc'] = msm.astype(np.int8)
         data['msa'] = (as0 > 0).astype(np.int8)
 
     def _ace(self, data, *, wmaxrtg, wmax, vamaxrtg, vamax, varmaxinjrtg, vmi, varmaxabsrtg, vma, vnomrtg, vnom, vmaxrtg, vmax, vminrtg, vmin, amaxrtg, amax, wcha_rtg, wdis_rtg, vacha_rtg, vadis_rtg, wcha, wdis, vacha, vadis, por, pfover, pur, pfunder):
@@ -536,11 +536,11 @@ class R:
         data[f'{name}_cml'] = (mv - x_min).astype(np.float32)
         data[f'{name}_cmh'] = (x_max - mv).astype(np.float32)
         if ov is not None:
-            expected_value = _pwi(mv, sx, sy)
-            data[f'{name}_ce'] = expected_value.astype(np.float32)
-            data[f'{name}_cer'] = (ov - expected_value).astype(np.float32)
-        for meta_name, curves in curve_meta.items():
-            data[f'{name}_curve_{meta_name}'] = _cs(curves, adpt_idx).astype(np.float32)
+            ev = _pwi(mv, sx, sy)
+            data[f'{name}_ce'] = ev.astype(np.float32)
+            data[f'{name}_cer'] = (ov - ev).astype(np.float32)
+        for mn, curves in curve_meta.items():
+            data[f'{name}_curve_{mn}'] = _cs(curves, adpt_idx).astype(np.float32)
 
     def _afd(self, data, df, *, hz, w_pct):
         raw_idx = df['DERFreqDroop[0].AdptCtlRslt'].to_numpy(float)
@@ -561,7 +561,7 @@ class R:
         readonly = _cs(ro_curves, ctl_idx)
         oa2 = np.maximum(hz - (60.0 + dbof), 0.0)
         ua = np.maximum(60.0 - dbuf - hz, 0.0)
-        expected_delta_pct = 100.0 * _d(oa2, kof) - 100.0 * _d(ua, kuf)
+        edp = 100.0 * _d(oa2, kof) - 100.0 * _d(ua, kuf)
         dbof_stack = np.column_stack(dbof_curves)
         dbuf_stack = np.column_stack(dbuf_curves)
         k_stack = np.column_stack(kof_curves + kuf_curves)
@@ -569,15 +569,15 @@ class R:
         data['fdci'] = ctl_idx.astype(np.int8)
         data['fdof'] = dbof.astype(np.float32)
         data['fduf'] = dbuf.astype(np.float32)
-        data['freqdroop_kof'] = kof.astype(np.float32)
-        data['freqdroop_kuf'] = kuf.astype(np.float32)
-        data['freqdroop_rsp'] = rsp.astype(np.float32)
+        data['fdko'] = kof.astype(np.float32)
+        data['fdku'] = kuf.astype(np.float32)
+        data['fdrs'] = rsp.astype(np.float32)
         data['fdpm'] = pmin.astype(np.float32)
         data['fdro'] = readonly.astype(np.float32)
         data['fdbw'] = (dbof + dbuf).astype(np.float32)
         data['fdoa'] = oa2.astype(np.float32)
         data['fdua'] = ua.astype(np.float32)
-        data['fdep'] = expected_delta_pct.astype(np.float32)
+        data['fdep'] = edp.astype(np.float32)
         data['fod'] = ((oa2 > 0) | (ua > 0)).astype(np.int8)
         data['fdwp'] = (w_pct - pmin).astype(np.float32)
         data['fdbs'] = (_x(np.column_stack([dbof_stack, dbuf_stack])) - _n(np.column_stack([dbof_stack, dbuf_stack]))).astype(np.float32)
@@ -612,8 +612,8 @@ class R:
 
     def bf(self, df):
         self._cn(df)
-        fingerprint = df[CS].fillna('<NA>').agg('|'.join, axis=1)
-        data = {'Id': df['Id'].to_numpy(), 'dg': fingerprint.to_numpy(dtype=object), 'df': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'cma': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'cmc': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'csd': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
+        fpg = df[CS].fillna('<NA>').agg('|'.join, axis=1)
+        data = {'Id': df['Id'].to_numpy(), 'dg': fpg.to_numpy(dtype=object), 'df': np.where(fpg == CANON1, 'canon10', np.where(fpg == CANON2, 'canon100', 'other')), 'cma': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'cmc': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'csd': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
         data['nc'] = (data['df'] == 'other').astype(np.int8)
         for col in RN:
             arr = df[col].to_numpy()
@@ -646,11 +646,11 @@ class R:
         vnom = df['DERCapacity[0].VNom'].to_numpy(float)
         vmax = df['DERCapacity[0].VMax'].to_numpy(float)
         vmin = df['DERCapacity[0].VMin'].to_numpy(float)
-        for name, numerator, denominator in [('wwr', w, wmaxrtg), ('ww', w, wmax), ('vav', va, vamax), ('va_over_vamaxrtg', va, vamaxrtg), ('voi', var, vmi), ('voa', var, vma), ('aoa', a, amax), ('llv_over_vnom', llv, vnom), ('lnv_over_vnom', lnv * SQRT3, vnom)]:
-            data[name] = _d(numerator, denominator)
-        for name, value in [('w_minus_wmax', w - wmax), ('w_minus_wmaxrtg', w - wmaxrtg), ('va_minus_vamax', va - vamax), ('var_minus_injmax', var - vmi), ('var_plus_absmax', var + vma), ('llv_minus_lnv_sqrt3', llv - lnv * SQRT3), ('hz_delta_60', hz - 60.0)]:
+        for name, numerator, dnr in [('wwr', w, wmaxrtg), ('ww', w, wmax), ('vav', va, vamax), ('vvr', va, vamaxrtg), ('voi', var, vmi), ('voa', var, vma), ('aoa', a, amax), ('llv_over_vnom', llv, vnom), ('lnv_over_vnom', lnv * SQRT3, vnom)]:
+            data[name] = _d(numerator, dnr)
+        for name, value in [('wmx', w - wmax), ('wmr', w - wmaxrtg), ('vmv', va - vamax), ('vmi0', var - vmi), ('vpa', var + vma), ('llv_minus_lnv_sqrt3', llv - lnv * SQRT3), ('hz_delta_60', hz - 60.0)]:
             data[name] = value.astype(np.float32)
-        for name, left, right in [('w_eq_wmaxrtg', w, wmaxrtg), ('w_eq_wmax', w, wmax), ('var_eq_varmaxinj', var, vmi), ('var_eq_neg_varmaxabs', var, -vma)]:
+        for name, left, right in [('wew', w, wmaxrtg), ('w_eq_wmax', w, wmax), ('vev', var, vmi), ('vena', var, -vma)]:
             data[name] = np.isclose(left, right, equal_nan=False).astype(np.int8)
         data['psm'] = ((np.sign(np.nan_to_num(pf)) != np.sign(np.nan_to_num(w))) & (np.nan_to_num(pf) != 0) & (np.nan_to_num(w) != 0)).astype(np.int8)
         tolw = np.maximum(50.0, 0.02 * np.nan_to_num(wmaxrtg, nan=0.0)).astype(np.float32)
@@ -669,11 +669,11 @@ class R:
         for name, total, suffixes in [('wpe', w, ['WL1', 'WL2', 'WL3']), ('ape', va, ['VAL1', 'VAL2', 'VAL3']), ('vpe', var, ['VarL1', 'VarL2', 'VarL3'])]:
             phase_sum = sum((df[f'DERMeasureAC[0].{suffix}'].to_numpy(float) for suffix in suffixes))
             data[name] = (total - phase_sum).astype(np.float32)
-        for name, suffixes in [('phase_ll_spread', ['VL1L2', 'VL2L3', 'VL3L1']), ('phase_ln_spread', ['VL1', 'VL2', 'VL3']), ('phase_w_spread', ['WL1', 'WL2', 'WL3']), ('pvs', ['VarL1', 'VarL2', 'VarL3'])]:
-            phase_values = df[[f'DERMeasureAC[0].{suffix}' for suffix in suffixes]].to_numpy(float)
-            data[name] = (_x(phase_values) - _n(phase_values)).astype(np.float32)
-        for name, numerator, denominator in [('wmax_over_wmaxrtg', wmax, wmaxrtg), ('vamax_over_vamaxrtg', vamax, vamaxrtg), ('vmax_over_vnom', vmax, vnom), ('vmin_over_vnom', vmin, vnom)]:
-            data[name] = _d(numerator, denominator)
+        for name, suffixes in [('phase_ll_spread', ['VL1L2', 'VL2L3', 'VL3L1']), ('phase_ln_spread', ['VL1', 'VL2', 'VL3']), ('pws', ['WL1', 'WL2', 'WL3']), ('pvs', ['VarL1', 'VarL2', 'VarL3'])]:
+            pv = df[[f'DERMeasureAC[0].{suffix}' for suffix in suffixes]].to_numpy(float)
+            data[name] = (_x(pv) - _n(pv)).astype(np.float32)
+        for name, numerator, dnr in [('wmax_over_wmaxrtg', wmax, wmaxrtg), ('vamax_over_vamaxrtg', vamax, vamaxrtg), ('vmax_over_vnom', vmax, vnom), ('vmin_over_vnom', vmin, vnom)]:
+            data[name] = _d(numerator, dnr)
         wsetena = np.nan_to_num(df['DERCtlAC[0].WSetEna'].to_numpy(float), nan=0.0)
         wset = df['DERCtlAC[0].WSet'].to_numpy(float)
         wsetpct = df['DERCtlAC[0].WSetPct'].to_numpy(float)
@@ -732,7 +732,7 @@ class R:
         cpt0 = lambda prefix, field, pc: [np.column_stack([df[f'{prefix}.Crv[{curve}].Pt[{point}].{field}'].to_numpy(float) for point in range(pc)]) for curve in range(3)]
         curve_specs = [('voltvar', 'DERVoltVar[0]', 4, 'V', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'vref': 'VRef', 'vref_auto': 'VRefAuto', 'vref_auto_ena': 'VRefAutoEna', 'vref_auto_tms': 'VRefAutoTms', 'rsp': 'RspTms', 'readonly': 'ReadOnly'}, vp - 100.0 + df['DERVoltVar[0].Crv[0].VRef'].fillna(100.0).to_numpy(float), var_pct), ('voltwatt', 'DERVoltWatt[0]', 2, 'V', 'W', {'deptref': 'DeptRef', 'rsp': 'RspTms', 'readonly': 'ReadOnly'}, vp, w_pct), ('wattvar', 'DERWattVar[0]', 6, 'W', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'readonly': 'ReadOnly'}, w_pct, var_pct)]
         for name, prefix, pc, x_field, y_field, meta_fields, mv, ov in curve_specs:
-            self._acb(data, name=name, raw_idx=df[f'{prefix}.AdptCrvRslt'].to_numpy(float), curve_x=cpt0(prefix, x_field, pc), curve_y=cpt0(prefix, y_field, pc), capt=csc0(prefix, 'ActPt'), curve_meta={meta_name: csc0(prefix, field) for meta_name, field in meta_fields.items()}, mv=mv, ov=ov)
+            self._acb(data, name=name, raw_idx=df[f'{prefix}.AdptCrvRslt'].to_numpy(float), curve_x=cpt0(prefix, x_field, pc), curve_y=cpt0(prefix, y_field, pc), capt=csc0(prefix, 'ActPt'), curve_meta={mn: csc0(prefix, field) for mn, field in meta_fields.items()}, mv=mv, ov=ov)
         self._afd(data, df, hz=hz, w_pct=w_pct)
         dpr = self._adc(data, df, w=w, abs_w=abs_w)
         ac_type = df['DERMeasureAC[0].ACType'].to_numpy(float)
@@ -849,16 +849,16 @@ class R:
                 continue
             stats = pd.DataFrame({'key': keys[tm], 'y': y_arr[tm]}).groupby('key')['y'].agg(['sum', 'count'])
             ost = pd.DataFrame({'key': ok[tm], 'y': y_arr[tm]}).groupby('key')['y'].agg(['sum', 'count'])
-            valid_keys = pd.Series(keys[vm])
-            valid_sum = valid_keys.map(stats['sum']).fillna(0.0).to_numpy(np.float32)
-            valid_count = valid_keys.map(stats['count']).fillna(0).to_numpy(np.int32)
+            vk = pd.Series(keys[vm])
+            valid_sum = vk.map(stats['sum']).fillna(0.0).to_numpy(np.float32)
+            vc = vk.map(stats['count']).fillna(0).to_numpy(np.int32)
             vok = pd.Series(ok[vm])
             vos = vok.map(ost['sum']).fillna(0.0).to_numpy(np.float32)
             voc = vok.map(ost['count']).fillna(0).to_numpy(np.int32)
-            valid_family = fs.loc[vm].tolist()
-            prior = np.array([self.fbr.get(name, gr) for name in valid_family], dtype=np.float32)
-            sr[vm] = (valid_sum + SM * prior) / (valid_count + SM)
-            sc[vm] = valid_count
+            vf = fs.loc[vm].tolist()
+            prior = np.array([self.fbr.get(name, gr) for name in vf], dtype=np.float32)
+            sr[vm] = (valid_sum + SM * prior) / (vc + SM)
+            sc[vm] = vc
             so[vm] = (vos + SM * prior) / (voc + SM)
             oc[vm] = voc
         full_stats = pd.DataFrame({'key': keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
@@ -1067,10 +1067,10 @@ class R:
             for family in ('canon10', 'canon100', 'other'):
                 fm = feats['df'] == family
                 if fm.any():
-                    family_dir = train_root / family
-                    family_dir.mkdir(parents=True, exist_ok=True)
+                    fdir = train_root / family
+                    fdir.mkdir(parents=True, exist_ok=True)
                     fd = feats.loc[fm].copy()
-                    fd.to_parquet(family_dir / f'{ci:05d}.parquet', index=False)
+                    fd.to_parquet(fdir / f'{ci:05d}.parquet', index=False)
                     built += len(fd)
             if ci % 10 == 0:
                 print(f'[artifacts] materialized {built:,} training rows')
@@ -1078,8 +1078,8 @@ class R:
             gc.collect()
 
     def _lfa(self, family, columns=None):
-        family_dir = self.ad / 'train' / family
-        paths = sorted(family_dir.glob('*.parquet'))
+        fdir = self.ad / 'train' / family
+        paths = sorted(fdir.glob('*.parquet'))
         if not paths:
             return pd.DataFrame(columns=list(columns or []))
         frames = [pd.read_parquet(path, columns=columns) for path in paths]
