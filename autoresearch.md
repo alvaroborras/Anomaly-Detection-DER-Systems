@@ -40,8 +40,8 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- The current kept `main.py` is ~88k chars, down from ~130k.
-- The most productive safe reductions so far have come from deleting non-essential surface area and shortening internal names rather than changing the predictor itself.
+- The current kept `main.py` is ~81.6k chars, down from ~130k.
+- The most productive safe reductions so far have come from deleting non-essential surface area, removing dead duplicate logic, and shortening internal names/feature columns rather than changing the predictor itself.
 - Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic/scenario helper plumbing, and any remaining verbose setup code that does not affect the final submission.
 - Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this remains a backup path, not the leading one.
 
@@ -58,4 +58,6 @@ Workload constraints:
 - Kept: shortened another batch of helper-method names plus common locals (`_apply_residual_calibration_features`, `_fit_transform_scenario_features`, `_train_*`, curve/scenario temp names, etc.) with no behavior change. This brought `main.py` to 90,596 chars while preserving the exact hash.
 - Kept: shortened class/import aliases, more helper/function names, and several remaining long tuning constants with no behavior change. This brought `main.py` to 89,610 chars while preserving the exact hash.
 - Kept: shortened several internal engineered feature/column names (`device_family`, hard-rule/scenario feature names, residual-calibration prefixes, etc.) with no behavior change. This brought `main.py` to 87,820 chars while preserving the exact hash.
-- Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path.
+- Kept: shortened another batch of internal identifiers (feature-ratio names, helper args, cross-validation and integrity variables, etc.) with no behavior change. This brought `main.py` to 84,931 chars while preserving the exact hash.
+- Kept: removed the dead earlier `tune_threshold` definition and shortened another broad batch of helper names, constants, and internal feature-column names with no behavior change. This brought `main.py` to 81,646 chars while preserving the exact hash.
+- Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path; duplicated or one-off naming surface is still paying off.

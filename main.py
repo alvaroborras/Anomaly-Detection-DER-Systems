@@ -119,9 +119,9 @@ HOTW = 0.35
 SM = 50.0
 AT = 0.003
 MOP = 0.995
-CIF = ['rs', 'sr', 'so', 'resid_quantile_score', 'mode_dispatch_w_resid']
+CIF = ['rs', 'sr', 'so', 'rqs', 'mdwr']
 STG = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
-SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav va_over_vamaxrtg voi\n    voa aoa w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs pf_sign_mismatch gw gwr\n    gva gvi vla vmp\n    vop pfv pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error\n    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess\n    varset_abs_error varsetpct_target varsetpct_abs_error wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_power_when_outside trip_hv_power_when_outside\n    trip_lf_power_when_outside trip_hf_power_when_outside\n    tpo voltvar_curve_error voltwatt_curve_error\n    wattvar_curve_expected wattvar_curve_error fdwp\n    dcw_over_w dcw_over_abs_w azdp apdz\n    ac_dc_same_sign\n    '.split()}
+SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav va_over_vamaxrtg voi\n    voa aoa w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs pf_sign_mismatch gw gwr\n    gva gvi vla vmp\n    vop pfv pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error\n    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess\n    varset_abs_error varsetpct_target varsetpct_abs_error wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_pwo trip_hv_pwo\n    trip_lf_pwo trip_hf_pwo\n    tpo voltvar_cer voltwatt_cer\n    wattvar_ce wattvar_cer fdwp\n    dcw_over_w dcw_over_abs_w azdp apdz\n    ac_dc_same_sign\n    '.split()}
 HRN = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'wmaxlim_far', 'varsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'enter_blocked_power', 'enter_blocked_current', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
 OVR = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
 RCM = {'noncanonical': 'noncanonical', 'common_missing': 'cma', 'w_gt_wmax': 'gw', 'w_gt_wmaxrtg': 'gwr', 'va_gt_vamax': 'gva', 'var_gt_injmax': 'gvi', 'var_lt_absmax': 'vla', 'wset_far': 'wf', 'wsetpct_far': 'wef', 'wmaxlim_far': 'wmf', 'varsetpct_far': 'vef', 'model_structure': 'msa', 'ac_type_rare': 'ac_type_is_rare', 'dc_type_rare': 'dtr', 'enter_state': 'esa', 'enter_blocked_power': 'ebp', 'enter_blocked_current': 'ebc', 'pf_abs': 'pae', 'pf_abs_rvrt': 'pre', 'trip_power': 'tpo'}
@@ -134,8 +134,8 @@ def s(seed):
 
 class R:
 
-    def __init__(self, *, artifact_dir=DOD / 'artifacts', chunksize=5000, kf=5, n_estimators=180, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cat_iterations=400, cat_depth=8, cat_learning_rate=0.05, n_jobs=4, seed=DEFAULT_SEED):
-        self.artifact_dir = artifact_dir
+    def __init__(self, *, ad=DOD / 'artifacts', chunksize=5000, kf=5, n_estimators=180, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cat_iterations=400, cat_depth=8, cat_learning_rate=0.05, n_jobs=4, seed=DEFAULT_SEED):
+        self.ad = ad
         self.chunksize = chunksize
         self.kf = kf
         self.n_estimators = n_estimators
@@ -149,15 +149,15 @@ class R:
         self.n_jobs = n_jobs
         self.seed = seed
         self.ovr = list(OVR)
-        self.semantic_models = {}
-        self.cat_models = {}
+        self.smd = {}
+        self.cmd = {}
         self.ctx = {}
         self.thr = {'canon10': 0.5, 'canon100': 0.5}
         self.blend_w = {'canon10': 1.0, 'canon100': 1.0}
         self.sem_cols = {}
         self.cat_cols = {}
         self.sur_cols = None
-        self.surrogate_models = {}
+        self.sgm = {}
         self.res_q = {}
         self.fbr = {}
         self.ssm = {}
@@ -199,7 +199,7 @@ class R:
         return out
 
     @staticmethod
-    def _nanmean_rows(arr):
+    def _nmr(arr):
         arr = np.asarray(arr, dtype=np.float32)
         mask = np.isfinite(arr)
         out = np.full(arr.shape[0], np.nan, dtype=np.float32)
@@ -211,7 +211,7 @@ class R:
         return out
 
     @staticmethod
-    def _curve_index(raw_idx, num_options):
+    def _ci(raw_idx, num_options):
         idx = np.nan_to_num(np.asarray(raw_idx, dtype=np.float32), nan=1.0)
         idx = idx.astype(np.int16) - 1
         idx[(idx < 0) | (idx >= num_options)] = 0
@@ -228,17 +228,17 @@ class R:
         return np.take_along_axis(stacked, idx[:, None, None], axis=1)[:, 0, :]
 
     @staticmethod
-    def _pair_point_count(xp, yp):
+    def _ppc(xp, yp):
         return (np.isfinite(np.asarray(xp, dtype=np.float32)) & np.isfinite(np.asarray(yp, dtype=np.float32))).sum(axis=1).astype(np.int16)
 
     @staticmethod
-    def _curve_reverse_steps(xp):
+    def _crs(xp):
         xp = np.asarray(xp, dtype=np.float32)
         finite_pair = np.isfinite(xp[:, :-1]) & np.isfinite(xp[:, 1:])
         return ((np.diff(xp, axis=1) < -1e-06) & finite_pair).sum(axis=1).astype(np.int8)
 
     @staticmethod
-    def _curve_slope_stats(xp, yp):
+    def _css(xp, yp):
         xp = np.asarray(xp, dtype=np.float32)
         yp = np.asarray(yp, dtype=np.float32)
         dx = np.diff(xp, axis=1)
@@ -246,10 +246,10 @@ class R:
         valid = np.isfinite(xp[:, :-1]) & np.isfinite(xp[:, 1:]) & np.isfinite(yp[:, :-1]) & np.isfinite(yp[:, 1:]) & (np.abs(dx) > 1e-06)
         slopes = np.full(dx.shape, np.nan, dtype=np.float32)
         slopes[valid] = dy[valid] / dx[valid]
-        return (R._nanmean_rows(slopes), R._x(np.abs(slopes)))
+        return (R._nmr(slopes), R._x(np.abs(slopes)))
 
     @staticmethod
-    def _piecewise_interp(x, xp, yp):
+    def _pwi(x, xp, yp):
         x = np.asarray(x, dtype=np.float32)
         xp = np.asarray(xp, dtype=np.float32)
         yp = np.asarray(yp, dtype=np.float32)
@@ -369,7 +369,7 @@ class R:
         temps = df[temp_cols].to_numpy(float)
         temp_min = self._n(temps)
         temp_max = self._x(temps)
-        temp_mean = self._nanmean_rows(temps)
+        temp_mean = self._nmr(temps)
         amb = df['DERMeasureAC[0].TmpAmb'].to_numpy(float)
         data['temp_min'] = temp_min
         data['temp_max'] = temp_max
@@ -444,19 +444,19 @@ class R:
         return (np.isfinite(pfabs_ext).astype(np.int8), np.isfinite(pfabs_rvrt_ext).astype(np.int8))
 
     def _atb(self, data, df, *, sn, prefix, an, mode, mv, abs_w, tolw):
-        adpt_idx = self._curve_index(df[f'{prefix}.AdptCrvRslt'].to_numpy(float), 2)
-        group_scalar = lambda group, field: self._cs([df[f'{prefix}.Crv[{curve}].{group}.{field}'].to_numpy(float) for curve in range(2)], adpt_idx)
-        group_points = lambda group, field: self._cp([np.column_stack([df[f'{prefix}.Crv[{curve}].{group}.Pt[{i}].{field}'].to_numpy(float) for i in range(5)]) for curve in range(2)], adpt_idx)
-        must_actpt = group_scalar('MustTrip', 'ActPt')
-        mom_actpt = group_scalar('MomCess', 'ActPt')
-        must_x = group_points('MustTrip', an)
-        must_t = group_points('MustTrip', 'Tms')
-        mom_x = group_points('MomCess', an)
-        mom_t = group_points('MomCess', 'Tms')
+        adpt_idx = self._ci(df[f'{prefix}.AdptCrvRslt'].to_numpy(float), 2)
+        gs = lambda group, field: self._cs([df[f'{prefix}.Crv[{curve}].{group}.{field}'].to_numpy(float) for curve in range(2)], adpt_idx)
+        gp = lambda group, field: self._cp([np.column_stack([df[f'{prefix}.Crv[{curve}].{group}.Pt[{i}].{field}'].to_numpy(float) for i in range(5)]) for curve in range(2)], adpt_idx)
+        must_actpt = gs('MustTrip', 'ActPt')
+        mom_actpt = gs('MomCess', 'ActPt')
+        must_x = gp('MustTrip', an)
+        must_t = gp('MustTrip', 'Tms')
+        mom_x = gp('MomCess', an)
+        mom_t = gp('MomCess', 'Tms')
         may_present = np.column_stack([df[f'{prefix}.Crv[{curve}].MayTrip.Pt[{point}].{an}'].to_numpy(float) for curve in range(2) for point in range(5)])
         enabled = np.nan_to_num(df[f'{prefix}.Ena'].to_numpy(float), nan=0.0) > 0
-        must_count = self._pair_point_count(must_x, must_t)
-        mom_count = self._pair_point_count(mom_x, mom_t)
+        must_count = self._ppc(must_x, must_t)
+        mom_count = self._ppc(mom_x, mom_t)
         must_x_min = self._n(must_x)
         must_x_max = self._x(must_x)
         must_t_min = self._n(must_t)
@@ -470,61 +470,61 @@ class R:
         else:
             margin = must_x_min - mv
         outside = enabled & np.isfinite(margin) & (margin < 0)
-        power_when_outside = outside & (abs_w > tolw)
+        pwo = outside & (abs_w > tolw)
         envelope_gap = np.where(np.isfinite(mom_x_min) & np.isfinite(must_x_max), np.abs(mom_x_min - must_x_max), np.nan)
-        data[f'trip_{sn}_curve_idx'] = adpt_idx.astype(np.int8)
+        data[f'trip_{sn}_ci'] = adpt_idx.astype(np.int8)
         data[f'trip_{sn}_enabled'] = enabled.astype(np.int8)
-        data[f'trip_{sn}_curve_req_gap'] = (df[f'{prefix}.AdptCrvReq'].to_numpy(float) - df[f'{prefix}.AdptCrvRslt'].to_numpy(float)).astype(np.float32)
-        data[f'trip_{sn}_musttrip_count'] = must_count
-        data[f'trip_{sn}_musttrip_actpt_gap'] = (must_actpt - must_count).astype(np.float32)
-        data[f'trip_{sn}_musttrip_axis_min'] = must_x_min
-        data[f'trip_{sn}_musttrip_axis_max'] = must_x_max
-        data[f'trip_{sn}_musttrip_axis_span'] = (must_x_max - must_x_min).astype(np.float32)
-        data[f'trip_{sn}_musttrip_tms_span'] = (must_t_max - must_t_min).astype(np.float32)
-        data[f'trip_{sn}_musttrip_reverse_steps'] = self._curve_reverse_steps(must_x)
-        data[f'trip_{sn}_momcess_count'] = mom_count
-        data[f'trip_{sn}_momcess_actpt_gap'] = (mom_actpt - mom_count).astype(np.float32)
-        data[f'trip_{sn}_momcess_axis_span'] = (mom_x_max - mom_x_min).astype(np.float32)
-        data[f'trip_{sn}_momcess_tms_span'] = (mom_t_max - mom_t_min).astype(np.float32)
-        data[f'trip_{sn}_momcess_reverse_steps'] = self._curve_reverse_steps(mom_x)
-        data[f'trip_{sn}_maytrip_present_any'] = np.isfinite(may_present).any(axis=1).astype(np.int8)
-        data[f'trip_{sn}_musttrip_margin'] = margin.astype(np.float32)
-        data[f'trip_{sn}_outside_musttrip'] = outside.astype(np.int8)
-        data[f'trip_{sn}_power_when_outside'] = power_when_outside.astype(np.int8)
-        data[f'trip_{sn}_momcess_musttrip_gap'] = envelope_gap.astype(np.float32)
-        return (outside.astype(np.int8), power_when_outside.astype(np.int8))
+        data[f'trip_{sn}_crg'] = (df[f'{prefix}.AdptCrvReq'].to_numpy(float) - df[f'{prefix}.AdptCrvRslt'].to_numpy(float)).astype(np.float32)
+        data[f'trip_{sn}_mt_count'] = must_count
+        data[f'trip_{sn}_mt_actpt_gap'] = (must_actpt - must_count).astype(np.float32)
+        data[f'trip_{sn}_mt_axis_min'] = must_x_min
+        data[f'trip_{sn}_mt_axis_max'] = must_x_max
+        data[f'trip_{sn}_mt_axis_span'] = (must_x_max - must_x_min).astype(np.float32)
+        data[f'trip_{sn}_mt_tms_span'] = (must_t_max - must_t_min).astype(np.float32)
+        data[f'trip_{sn}_mt_reverse_steps'] = self._crs(must_x)
+        data[f'trip_{sn}_mc_count'] = mom_count
+        data[f'trip_{sn}_mc_actpt_gap'] = (mom_actpt - mom_count).astype(np.float32)
+        data[f'trip_{sn}_mc_axis_span'] = (mom_x_max - mom_x_min).astype(np.float32)
+        data[f'trip_{sn}_mc_tms_span'] = (mom_t_max - mom_t_min).astype(np.float32)
+        data[f'trip_{sn}_mc_reverse_steps'] = self._crs(mom_x)
+        data[f'trip_{sn}_mpa'] = np.isfinite(may_present).any(axis=1).astype(np.int8)
+        data[f'trip_{sn}_mt_margin'] = margin.astype(np.float32)
+        data[f'trip_{sn}_om'] = outside.astype(np.int8)
+        data[f'trip_{sn}_pwo'] = pwo.astype(np.int8)
+        data[f'trip_{sn}_mc_mt_gap'] = envelope_gap.astype(np.float32)
+        return (outside.astype(np.int8), pwo.astype(np.int8))
 
-    def _acb(self, data, *, name, raw_idx, curve_x, curve_y, curve_actpt, curve_meta, mv, observed_value=None):
-        adpt_idx = self._curve_index(raw_idx, len(curve_x))
-        selected_x = self._cp(curve_x, adpt_idx)
-        selected_y = self._cp(curve_y, adpt_idx)
-        selected_actpt = self._cs(curve_actpt, adpt_idx)
-        data[f'{name}_curve_idx'] = adpt_idx.astype(np.int8)
-        pc = self._pair_point_count(selected_x, selected_y)
-        data[f'{name}_curve_point_count'] = pc
-        data[f'{name}_curve_actpt_gap'] = (selected_actpt - pc).astype(np.float32)
-        x_min = self._n(selected_x)
-        x_max = self._x(selected_x)
-        y_min = self._n(selected_y)
-        y_max = self._x(selected_y)
-        mean_slope, max_abs_slope = self._curve_slope_stats(selected_x, selected_y)
-        data[f'{name}_curve_x_span'] = (x_max - x_min).astype(np.float32)
-        data[f'{name}_curve_y_span'] = (y_max - y_min).astype(np.float32)
-        data[f'{name}_curve_reverse_steps'] = self._curve_reverse_steps(selected_x)
-        data[f'{name}_curve_mean_slope'] = mean_slope
-        data[f'{name}_curve_max_abs_slope'] = max_abs_slope
-        data[f'{name}_curve_measure_margin_low'] = (mv - x_min).astype(np.float32)
-        data[f'{name}_curve_measure_margin_high'] = (x_max - mv).astype(np.float32)
-        if observed_value is not None:
-            expected_value = self._piecewise_interp(mv, selected_x, selected_y)
-            data[f'{name}_curve_expected'] = expected_value.astype(np.float32)
-            data[f'{name}_curve_error'] = (observed_value - expected_value).astype(np.float32)
+    def _acb(self, data, *, name, raw_idx, curve_x, curve_y, curve_actpt, curve_meta, mv, ov=None):
+        adpt_idx = self._ci(raw_idx, len(curve_x))
+        sx = self._cp(curve_x, adpt_idx)
+        sy = self._cp(curve_y, adpt_idx)
+        sa = self._cs(curve_actpt, adpt_idx)
+        data[f'{name}_ci'] = adpt_idx.astype(np.int8)
+        pc = self._ppc(sx, sy)
+        data[f'{name}_cpc'] = pc
+        data[f'{name}_cag'] = (sa - pc).astype(np.float32)
+        x_min = self._n(sx)
+        x_max = self._x(sx)
+        y_min = self._n(sy)
+        y_max = self._x(sy)
+        mean_slope, max_abs_slope = self._css(sx, sy)
+        data[f'{name}_cxs'] = (x_max - x_min).astype(np.float32)
+        data[f'{name}_cys'] = (y_max - y_min).astype(np.float32)
+        data[f'{name}_crs'] = self._crs(sx)
+        data[f'{name}_cms'] = mean_slope
+        data[f'{name}_cas'] = max_abs_slope
+        data[f'{name}_cml'] = (mv - x_min).astype(np.float32)
+        data[f'{name}_cmh'] = (x_max - mv).astype(np.float32)
+        if ov is not None:
+            expected_value = self._pwi(mv, sx, sy)
+            data[f'{name}_ce'] = expected_value.astype(np.float32)
+            data[f'{name}_cer'] = (ov - expected_value).astype(np.float32)
         for meta_name, curves in curve_meta.items():
             data[f'{name}_curve_{meta_name}'] = self._cs(curves, adpt_idx).astype(np.float32)
 
     def _afd(self, data, df, *, hz, w_pct):
         raw_idx = df['DERFreqDroop[0].AdptCtlRslt'].to_numpy(float)
-        ctl_idx = self._curve_index(raw_idx, 3)
+        ctl_idx = self._ci(raw_idx, 3)
         dbof_curves = [df[f'DERFreqDroop[0].Ctl[{i}].DbOf'].to_numpy(float) for i in range(3)]
         dbuf_curves = [df[f'DERFreqDroop[0].Ctl[{i}].DbUf'].to_numpy(float) for i in range(3)]
         kof_curves = [df[f'DERFreqDroop[0].Ctl[{i}].KOf'].to_numpy(float) for i in range(3)]
@@ -539,9 +539,9 @@ class R:
         rsp = self._cs(rsp_curves, ctl_idx)
         pmin = self._cs(pmin_curves, ctl_idx)
         readonly = self._cs(ro_curves, ctl_idx)
-        over_activation = np.maximum(hz - (60.0 + dbof), 0.0)
-        under_activation = np.maximum(60.0 - dbuf - hz, 0.0)
-        expected_delta_pct = 100.0 * self._d(over_activation, kof) - 100.0 * self._d(under_activation, kuf)
+        oa2 = np.maximum(hz - (60.0 + dbof), 0.0)
+        ua = np.maximum(60.0 - dbuf - hz, 0.0)
+        expected_delta_pct = 100.0 * self._d(oa2, kof) - 100.0 * self._d(ua, kuf)
         dbof_stack = np.column_stack(dbof_curves)
         dbuf_stack = np.column_stack(dbuf_curves)
         k_stack = np.column_stack(kof_curves + kuf_curves)
@@ -555,10 +555,10 @@ class R:
         data['freqdroop_pmin'] = pmin.astype(np.float32)
         data['fdro'] = readonly.astype(np.float32)
         data['fdbw'] = (dbof + dbuf).astype(np.float32)
-        data['fdoa'] = over_activation.astype(np.float32)
-        data['fdua'] = under_activation.astype(np.float32)
+        data['fdoa'] = oa2.astype(np.float32)
+        data['fdua'] = ua.astype(np.float32)
         data['fdep'] = expected_delta_pct.astype(np.float32)
-        data['fod'] = ((over_activation > 0) | (under_activation > 0)).astype(np.int8)
+        data['fod'] = ((oa2 > 0) | (ua > 0)).astype(np.int8)
         data['fdwp'] = (w_pct - pmin).astype(np.float32)
         data['freqdroop_db_span'] = (self._x(np.column_stack([dbof_stack, dbuf_stack])) - self._n(np.column_stack([dbof_stack, dbuf_stack]))).astype(np.float32)
         data['freqdroop_k_span'] = (self._x(k_stack) - self._n(k_stack)).astype(np.float32)
@@ -697,9 +697,9 @@ class R:
         trip_power_flags = []
         for sn, (prefix, an, mode) in TS.items():
             mv = vp if an == 'V' else hz
-            outside, power_when_outside = self._atb(data, df, sn=sn, prefix=prefix, an=an, mode=mode, mv=mv, abs_w=abs_w, tolw=tolw)
+            outside, pwo = self._atb(data, df, sn=sn, prefix=prefix, an=an, mode=mode, mv=mv, abs_w=abs_w, tolw=tolw)
             trip_outside_flags.append(outside)
-            trip_power_flags.append(power_when_outside)
+            trip_power_flags.append(pwo)
         if trip_outside_flags:
             trip_any_outside = np.column_stack(trip_outside_flags).any(axis=1).astype(np.int8)
             tpo = np.column_stack(trip_power_flags).any(axis=1).astype(np.int8)
@@ -711,22 +711,22 @@ class R:
         curve_scalars = lambda prefix, field: [df[f'{prefix}.Crv[{curve}].{field}'].to_numpy(float) for curve in range(3)]
         curve_points = lambda prefix, field, pc: [np.column_stack([df[f'{prefix}.Crv[{curve}].Pt[{point}].{field}'].to_numpy(float) for point in range(pc)]) for curve in range(3)]
         curve_specs = [('voltvar', 'DERVoltVar[0]', 4, 'V', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'vref': 'VRef', 'vref_auto': 'VRefAuto', 'vref_auto_ena': 'VRefAutoEna', 'vref_auto_tms': 'VRefAutoTms', 'rsp': 'RspTms', 'readonly': 'ReadOnly'}, vp - 100.0 + df['DERVoltVar[0].Crv[0].VRef'].fillna(100.0).to_numpy(float), var_pct), ('voltwatt', 'DERVoltWatt[0]', 2, 'V', 'W', {'deptref': 'DeptRef', 'rsp': 'RspTms', 'readonly': 'ReadOnly'}, vp, w_pct), ('wattvar', 'DERWattVar[0]', 6, 'W', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'readonly': 'ReadOnly'}, w_pct, var_pct)]
-        for name, prefix, pc, x_field, y_field, meta_fields, mv, observed_value in curve_specs:
-            self._acb(data, name=name, raw_idx=df[f'{prefix}.AdptCrvRslt'].to_numpy(float), curve_x=curve_points(prefix, x_field, pc), curve_y=curve_points(prefix, y_field, pc), curve_actpt=curve_scalars(prefix, 'ActPt'), curve_meta={meta_name: curve_scalars(prefix, field) for meta_name, field in meta_fields.items()}, mv=mv, observed_value=observed_value)
+        for name, prefix, pc, x_field, y_field, meta_fields, mv, ov in curve_specs:
+            self._acb(data, name=name, raw_idx=df[f'{prefix}.AdptCrvRslt'].to_numpy(float), curve_x=curve_points(prefix, x_field, pc), curve_y=curve_points(prefix, y_field, pc), curve_actpt=curve_scalars(prefix, 'ActPt'), curve_meta={meta_name: curve_scalars(prefix, field) for meta_name, field in meta_fields.items()}, mv=mv, ov=ov)
         self._afd(data, df, hz=hz, w_pct=w_pct)
         dc_port_type_rare = self._adc(data, df, w=w, abs_w=abs_w)
         ac_type = df['DERMeasureAC[0].ACType'].to_numpy(float)
         ac_type_is_rare = np.isfinite(ac_type) & (ac_type == 3.0)
         data['ac_type_is_rare'] = ac_type_is_rare.astype(np.int8)
         flag_map = {'noncanonical': data['noncanonical'] == 1, 'common_missing': data['cma'] == 1, 'w_gt_wmax': data['gw'] == 1, 'w_gt_wmaxrtg': data['gwr'] == 1, 'va_gt_vamax': data['gva'] == 1, 'var_gt_injmax': data['gvi'] == 1, 'var_lt_absmax': data['vla'] == 1, 'wset_far': data['wf'] == 1, 'wsetpct_far': data['wef'] == 1, 'wmaxlim_far': data['wmf'] == 1, 'varsetpct_far': data['vef'] == 1, 'model_structure': data['msa'] == 1, 'ac_type_rare': ac_type_is_rare == 1, 'dc_type_rare': dc_port_type_rare == 1, 'enter_state': enter_state_anomaly == 1, 'enter_blocked_power': enter_blocked_power == 1, 'enter_blocked_current': enter_blocked_current == 1, 'pf_abs': pae == 1, 'pf_abs_rvrt': pre == 1, 'trip_power': tpo == 1}
-        hard_rule_flags = np.column_stack([flag_map[name] for name in HRN])
-        hard_override_flags = np.column_stack([flag_map[name] for name in self.ovr])
+        hrf = np.column_stack([flag_map[name] for name in HRN])
+        hof = np.column_stack([flag_map[name] for name in self.ovr])
         ff = {name: flag.astype(np.float32) for name, flag in flag_map.items()}
-        data['hard_rule_count'] = hard_rule_flags.sum(axis=1).astype(np.int8)
+        data['hard_rule_count'] = hrf.sum(axis=1).astype(np.int8)
         data['rs'] = 3.0 * ff['noncanonical'] + 2.5 * ff['common_missing'] + 2.0 * (ff['w_gt_wmax'] + ff['w_gt_wmaxrtg'] + ff['va_gt_vamax'] + ff['var_gt_injmax'] + ff['var_lt_absmax'] + ff['model_structure'] + ff['enter_state'] + ff['trip_power']) + 1.5 * (ff['wset_far'] + ff['wsetpct_far'] + ff['ac_type_rare'] + ff['dc_type_rare'] + ff['pf_abs'] + ff['pf_abs_rvrt']) + 1.0 * ff['varsetpct_far'] + 0.75 * ff['wmaxlim_far'] + 0.35 * (ff['enter_blocked_power'] + ff['enter_blocked_current'])
-        ra = hard_rule_flags.any(axis=1).astype(np.int8)
+        ra = hrf.any(axis=1).astype(np.int8)
         data['ra'] = ra
-        data['oa'] = hard_override_flags.any(axis=1).astype(np.int8)
+        data['oa'] = hof.any(axis=1).astype(np.int8)
         return pd.DataFrame(data)
 
     def irc(self, member, usecols, limit_rows=0):
@@ -770,23 +770,23 @@ class R:
             out = out.round()
         return out.fillna(fv).astype(dtype)
 
-    def _bsf(self, x_df, *, include_output_bins):
+    def _bsf(self, x_df, *, iob):
         frame = {'family': x_df['df'].astype(str), 'throt_src': self._b(x_df['DERMeasureAC_0_ThrotSrc'], fv=-1, dtype=np.int16), 'throt_pct': self._b(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fv=-1, dtype=np.int16), 'wmaxlim_pct': self._b(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fv=-1, dtype=np.int16), 'wset_pct': self._b(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'varset_pct': self._b(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'pf_set': self._b(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fv=-1, dtype=np.int16), 'fd_idx': self._b(x_df['DERFreqDroop_0_AdptCtlRslt'], fv=-1, dtype=np.int16), 'vv_idx': self._b(x_df['DERVoltVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'vw_idx': self._b(x_df['DERVoltWatt_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'wv_idx': self._b(x_df['DERWattVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'volt_bin': self._b(x_df['vp'], fv=-999, dtype=np.int16), 'hz_bin': self._b(x_df['DERMeasureAC_0_Hz'], scale=0.1, fv=-999, dtype=np.int16), 'enter_idle': self._b(x_df['esi'], fv=0, dtype=np.int8, round_values=False), 'droop_active': self._b(x_df['fod'], fv=0, dtype=np.int8, round_values=False)}
-        if include_output_bins:
+        if iob:
             frame['w_bin'] = self._b(x_df['wpr'], scale=5.0, fv=-999, dtype=np.int16)
             frame['var_bin'] = self._b(x_df['vpl'], scale=5.0, fv=-999, dtype=np.int16)
             frame['pf_mode'] = self._b(x_df['pcae'], fv=0, dtype=np.int8, round_values=False)
         return pd.DataFrame(frame)
 
     @staticmethod
-    def _hash_frame(frame):
+    def _hf(frame):
         return pd.util.hash_pandas_object(frame, index=False).to_numpy(np.uint64)
 
     def _bsk(self, x_df):
-        return self._hash_frame(self._bsf(x_df, include_output_bins=False))
+        return self._hf(self._bsf(x_df, iob=False))
 
     def _bok(self, x_df):
-        return self._hash_frame(self._bsf(x_df, include_output_bins=True))
+        return self._hf(self._bsf(x_df, iob=True))
 
     @staticmethod
     def _lss(keys, sum_map, count_map):
@@ -798,15 +798,15 @@ class R:
     @staticmethod
     def _asf(out, *, fp, sr, sc, so, oc):
         out['sr'] = sr.astype(np.float32)
-        out['scenario_rate_delta'] = (sr - fp).astype(np.float32)
+        out['srd'] = (sr - fp).astype(np.float32)
         out['sc'] = sc.astype(np.int32)
-        out['scenario_log_count'] = np.log1p(sc).astype(np.float32)
-        out['scenario_low_support'] = (sc < 20).astype(np.int8)
+        out['slc'] = np.log1p(sc).astype(np.float32)
+        out['sls'] = (sc < 20).astype(np.int8)
         out['so'] = so.astype(np.float32)
-        out['scenario_output_rate_delta'] = (so - fp).astype(np.float32)
+        out['sord'] = (so - fp).astype(np.float32)
         out['oc'] = oc.astype(np.int32)
-        out['scenario_output_log_count'] = np.log1p(oc).astype(np.float32)
-        out['scenario_output_low_support'] = (oc < 20).astype(np.int8)
+        out['solc'] = np.log1p(oc).astype(np.float32)
+        out['sols'] = (oc < 20).astype(np.int8)
         return out
 
     def _fts(self, x_train, y_train):
@@ -828,25 +828,25 @@ class R:
             if not vm.any():
                 continue
             stats = pd.DataFrame({'key': keys[tm], 'y': y_arr[tm]}).groupby('key')['y'].agg(['sum', 'count'])
-            output_stats = pd.DataFrame({'key': ok[tm], 'y': y_arr[tm]}).groupby('key')['y'].agg(['sum', 'count'])
+            ost = pd.DataFrame({'key': ok[tm], 'y': y_arr[tm]}).groupby('key')['y'].agg(['sum', 'count'])
             valid_keys = pd.Series(keys[vm])
             valid_sum = valid_keys.map(stats['sum']).fillna(0.0).to_numpy(np.float32)
             valid_count = valid_keys.map(stats['count']).fillna(0).to_numpy(np.int32)
-            valid_output_keys = pd.Series(ok[vm])
-            valid_output_sum = valid_output_keys.map(output_stats['sum']).fillna(0.0).to_numpy(np.float32)
-            valid_output_count = valid_output_keys.map(output_stats['count']).fillna(0).to_numpy(np.int32)
+            vok = pd.Series(ok[vm])
+            valid_output_sum = vok.map(ost['sum']).fillna(0.0).to_numpy(np.float32)
+            voc = vok.map(ost['count']).fillna(0).to_numpy(np.int32)
             valid_family = fs.loc[vm].tolist()
             prior = np.array([self.fbr.get(name, gr) for name in valid_family], dtype=np.float32)
             sr[vm] = (valid_sum + SM * prior) / (valid_count + SM)
             sc[vm] = valid_count
-            so[vm] = (valid_output_sum + SM * prior) / (valid_output_count + SM)
-            oc[vm] = valid_output_count
+            so[vm] = (valid_output_sum + SM * prior) / (voc + SM)
+            oc[vm] = voc
         full_stats = pd.DataFrame({'key': keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
-        full_output_stats = pd.DataFrame({'key': ok, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
+        fos = pd.DataFrame({'key': ok, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
         self.ssm = {int(idx): float(val) for idx, val in full_stats['sum'].items()}
         self.scm = {int(idx): int(val) for idx, val in full_stats['count'].items()}
-        self.sosm = {int(idx): float(val) for idx, val in full_output_stats['sum'].items()}
-        self.socm = {int(idx): int(val) for idx, val in full_output_stats['count'].items()}
+        self.sosm = {int(idx): float(val) for idx, val in fos['sum'].items()}
+        self.socm = {int(idx): int(val) for idx, val in fos['count'].items()}
         fp = fs.map(self.fbr).fillna(gr).to_numpy(np.float32)
         return self._asf(out, fp=fp, sr=sr, sc=sc, so=so, oc=oc)
 
@@ -857,12 +857,12 @@ class R:
         keys = self._bsk(out)
         ok = self._bok(out)
         sv, cv = self._lss(keys, self.ssm, self.scm)
-        output_sum_values, output_count_values = self._lss(ok, self.sosm, self.socm)
+        output_sum_values, ocv = self._lss(ok, self.sosm, self.socm)
         gr = float(np.mean(list(self.fbr.values()))) if self.fbr else 0.5
         fp = out['df'].astype(str).map(self.fbr).fillna(gr).to_numpy(np.float32)
         sr = (sv + SM * fp) / (cv + SM)
-        so = (output_sum_values + SM * fp) / (output_count_values + SM)
-        return self._asf(out, fp=fp, sr=sr, sc=cv, so=so, oc=output_count_values)
+        so = (output_sum_values + SM * fp) / (ocv + SM)
+        return self._asf(out, fp=fp, sr=sr, sc=cv, so=so, oc=ocv)
 
     def _afi(self, x_df):
         out = x_df.copy()
@@ -874,10 +874,10 @@ class R:
             out[f'canon100_{feature_name}'] = np.where(canon100_mask.to_numpy(), values, 0.0).astype(np.float32)
         return out
 
-    def _spm(self, ids, *, fit_partition):
+    def _spm(self, ids, *, fp):
         ids_arr = np.asarray(ids, dtype=np.int64)
         fit_mask = ids_arr % 2 == 0
-        return fit_mask if fit_partition else ~fit_mask
+        return fit_mask if fp else ~fit_mask
 
     def _xsp(self, *, eval_metric, verbosity):
         return {'subsample': self.subsample, 'colsample_bytree': self.colsample_bytree, 'eval_metric': eval_metric, 'tree_method': 'hist', 'n_jobs': self.n_jobs, 'random_state': self.seed, 'seed': self.seed, 'verbosity': verbosity}
@@ -890,46 +890,46 @@ class R:
 
     def _fsm(self, x_train, y_train, vm):
         self.sur_cols = self._gsf(x_train.columns)
-        fit_partition = self._spm(x_train['Id'], fit_partition=True)
-        normal_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy() & fit_partition
-        surrogate_df = x_train.loc[normal_mask].copy()
-        if surrogate_df.empty:
+        fp = self._spm(x_train['Id'], fp=True)
+        normal_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy() & fp
+        sdf2 = x_train.loc[normal_mask].copy()
+        if sdf2.empty:
             raise RuntimeError('No rows available to train surrogate models.')
-        self.surrogate_models = {}
+        self.sgm = {}
         for family in FAM:
-            fd = surrogate_df.loc[surrogate_df['df'] == family].copy()
+            fd = sdf2.loc[sdf2['df'] == family].copy()
             if fd.empty:
                 continue
-            x_surrogate = self._edf(fd[self.sur_cols])
+            xs = self._edf(fd[self.sur_cols])
             for tg, (target_col, _) in STG.items():
                 model = self._nsm()
                 y_target = fd[target_col].to_numpy(np.float32)
                 print(f'[surrogate] training {family}/{tg} on {len(fd):,} normal rows')
-                model.fit(x_surrogate, y_target)
-                self.surrogate_models[family, tg] = model
+                model.fit(xs, y_target)
+                self.sgm[family, tg] = model
 
     def _aws(self, x_df):
-        if self.sur_cols is None or not self.surrogate_models:
+        if self.sur_cols is None or not self.sgm:
             return x_df
         out = x_df.copy()
         for tg in STG:
             out[f'pred_{tg}'] = np.nan
             out[f'resid_{tg}'] = np.nan
-            out[f'abs_resid_{tg}'] = np.nan
-            out[f'norm_resid_{tg}'] = np.nan
-            out[f'abs_norm_resid_{tg}'] = np.nan
-            out[f'tail_resid_{tg}'] = 0
-            out[f'extreme_resid_{tg}'] = 0
-            out[f'ultra_resid_{tg}'] = 0
-            out[f'q99_ratio_resid_{tg}'] = np.nan
-        x_surrogate = self._edf(out[self.sur_cols])
+            out[f'ar_{tg}'] = np.nan
+            out[f'nr_{tg}'] = np.nan
+            out[f'anr_{tg}'] = np.nan
+            out[f'tr_{tg}'] = 0
+            out[f'er_{tg}'] = 0
+            out[f'ur_{tg}'] = 0
+            out[f'q9r_{tg}'] = np.nan
+        xs = self._edf(out[self.sur_cols])
         for family in FAM:
             fm = out['df'] == family
             if not fm.any():
                 continue
-            x_family = x_surrogate.loc[fm]
+            x_family = xs.loc[fm]
             for tg, (target_col, scale_col) in STG.items():
-                model = self.surrogate_models.get((family, tg))
+                model = self.sgm.get((family, tg))
                 if model is None:
                     continue
                 pred = model.predict(x_family).astype(np.float32)
@@ -937,97 +937,97 @@ class R:
                 resid = actual - pred
                 out.loc[fm, f'pred_{tg}'] = pred
                 out.loc[fm, f'resid_{tg}'] = resid
-                out.loc[fm, f'abs_resid_{tg}'] = np.abs(resid).astype(np.float32)
+                out.loc[fm, f'ar_{tg}'] = np.abs(resid).astype(np.float32)
                 if scale_col is not None:
                     scale = out.loc[fm, scale_col].to_numpy(np.float32)
                     norm_resid = self._d(resid, scale)
                 else:
                     scale = np.maximum(0.05, np.abs(actual))
                     norm_resid = (resid / scale).astype(np.float32)
-                out.loc[fm, f'norm_resid_{tg}'] = norm_resid.astype(np.float32)
-                out.loc[fm, f'abs_norm_resid_{tg}'] = np.abs(norm_resid).astype(np.float32)
-        out['resid_energy_total'] = out[['abs_resid_w', 'abs_resid_va', 'abs_resid_var', 'abs_resid_pf', 'abs_resid_a']].sum(axis=1).astype(np.float32)
+                out.loc[fm, f'nr_{tg}'] = norm_resid.astype(np.float32)
+                out.loc[fm, f'anr_{tg}'] = np.abs(norm_resid).astype(np.float32)
+        out['ret'] = out[['ar_w', 'ar_va', 'ar_var', 'ar_pf', 'ar_a']].sum(axis=1).astype(np.float32)
         out['resid_va_minus_pq'] = (out['pred_va'] - np.sqrt(np.square(out['pred_w']) + np.square(out['pred_var']))).astype(np.float32)
-        out['resid_w_var_ratio'] = self._d(out['abs_resid_w'].to_numpy(float), out['abs_resid_var'].to_numpy(float) + 0.001)
+        out['resid_w_var_ratio'] = self._d(out['ar_w'].to_numpy(float), out['ar_var'].to_numpy(float) + 0.001)
         return out
 
     def _crq(self, x_train, y_train, vm):
-        calibration_partition = self._spm(x_train['Id'], fit_partition=False)
+        calibration_partition = self._spm(x_train['Id'], fp=False)
         base_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy()
         self.res_q = {}
         for family in FAM:
             fm = base_mask & (x_train['df'] == family)
-            family_calibration = fm & calibration_partition
-            if not family_calibration.any():
-                family_calibration = fm
-            family_quantiles = {}
+            fc = fm & calibration_partition
+            if not fc.any():
+                fc = fm
+            fq = {}
             for tg in STG:
-                series = x_train.loc[family_calibration, f'abs_norm_resid_{tg}']
+                series = x_train.loc[fc, f'anr_{tg}']
                 values = pd.to_numeric(series, errors='coerce').to_numpy(np.float32)
                 values = values[np.isfinite(values)]
                 quantiles = RTF.copy()
                 if values.size > 0:
                     for level_name, q in RTL.items():
                         quantiles[level_name] = float(np.quantile(values, q))
-                family_quantiles[tg] = {key: max(1e-06, value) for key, value in quantiles.items()}
-            self.res_q[family] = family_quantiles
+                fq[tg] = {key: max(1e-06, value) for key, value in quantiles.items()}
+            self.res_q[family] = fq
 
     def _arf(self, x_df):
         if not self.res_q:
             return x_df
         out = x_df.copy()
         for tg in STG:
-            out[f'tail_resid_{tg}'] = 0
-            out[f'extreme_resid_{tg}'] = 0
-            out[f'ultra_resid_{tg}'] = 0
-            out[f'q99_ratio_resid_{tg}'] = np.nan
+            out[f'tr_{tg}'] = 0
+            out[f'er_{tg}'] = 0
+            out[f'ur_{tg}'] = 0
+            out[f'q9r_{tg}'] = np.nan
         for family in FAM:
             fm = out['df'] == family
             if not fm.any():
                 continue
-            family_quantiles = self.res_q.get(family, {})
+            fq = self.res_q.get(family, {})
             for tg in STG:
-                abs_norm = out.loc[fm, f'abs_norm_resid_{tg}'].to_numpy(np.float32)
-                q = family_quantiles.get(tg, RTF)
+                abs_norm = out.loc[fm, f'anr_{tg}'].to_numpy(np.float32)
+                q = fq.get(tg, RTF)
                 tail = abs_norm >= q['tail']
                 extreme = abs_norm >= q['extreme']
                 ultra = abs_norm >= q['ultra']
                 q99_ratio = self._d(abs_norm, np.full_like(abs_norm, q['extreme'], dtype=np.float32))
-                out.loc[fm, f'tail_resid_{tg}'] = tail.astype(np.int8)
-                out.loc[fm, f'extreme_resid_{tg}'] = extreme.astype(np.int8)
-                out.loc[fm, f'ultra_resid_{tg}'] = ultra.astype(np.int8)
-                out.loc[fm, f'q99_ratio_resid_{tg}'] = q99_ratio.astype(np.float32)
-        abs_norm_w = np.nan_to_num(out['abs_norm_resid_w'].to_numpy(np.float32), nan=0.0)
-        abs_norm_var = np.nan_to_num(out['abs_norm_resid_var'].to_numpy(np.float32), nan=0.0)
-        abs_norm_pf = np.nan_to_num(out['abs_norm_resid_pf'].to_numpy(np.float32), nan=0.0)
-        abs_norm_a = np.nan_to_num(out['abs_norm_resid_a'].to_numpy(np.float32), nan=0.0)
+                out.loc[fm, f'tr_{tg}'] = tail.astype(np.int8)
+                out.loc[fm, f'er_{tg}'] = extreme.astype(np.int8)
+                out.loc[fm, f'ur_{tg}'] = ultra.astype(np.int8)
+                out.loc[fm, f'q9r_{tg}'] = q99_ratio.astype(np.float32)
+        abs_norm_w = np.nan_to_num(out['anr_w'].to_numpy(np.float32), nan=0.0)
+        abs_norm_var = np.nan_to_num(out['anr_var'].to_numpy(np.float32), nan=0.0)
+        abs_norm_pf = np.nan_to_num(out['anr_pf'].to_numpy(np.float32), nan=0.0)
+        abs_norm_a = np.nan_to_num(out['anr_a'].to_numpy(np.float32), nan=0.0)
         pf_mode = np.nan_to_num(out['pcae'].to_numpy(np.float32), nan=0.0) > 0
-        voltvar_mode = (np.nan_to_num(out['DERVoltVar_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['voltvar_curve_expected'].to_numpy(np.float32))
-        voltwatt_mode = (np.nan_to_num(out['DERVoltWatt_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['voltwatt_curve_expected'].to_numpy(np.float32))
-        wattvar_mode = (np.nan_to_num(out['DERWattVar_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['wattvar_curve_expected'].to_numpy(np.float32))
+        voltvar_mode = (np.nan_to_num(out['DERVoltVar_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['voltvar_ce'].to_numpy(np.float32))
+        voltwatt_mode = (np.nan_to_num(out['DERVoltWatt_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['voltwatt_ce'].to_numpy(np.float32))
+        wattvar_mode = (np.nan_to_num(out['DERWattVar_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['wattvar_ce'].to_numpy(np.float32))
         droop_mode = np.nan_to_num(out['fod'].to_numpy(np.float32), nan=0.0) > 0
-        enter_idle_mode = np.nan_to_num(out['esi'].to_numpy(np.float32), nan=0.0) > 0
-        out['mode_resid_pf_pf'] = (abs_norm_pf * pf_mode).astype(np.float32)
-        out['mode_resid_var_pf'] = (abs_norm_var * pf_mode).astype(np.float32)
-        out['mode_resid_var_voltvar'] = (abs_norm_var * voltvar_mode).astype(np.float32)
-        out['mode_resid_w_voltwatt'] = (abs_norm_w * voltwatt_mode).astype(np.float32)
-        out['mode_resid_var_wattvar'] = (abs_norm_var * wattvar_mode).astype(np.float32)
-        out['mode_resid_w_droop'] = (abs_norm_w * droop_mode).astype(np.float32)
-        out['mode_resid_w_enter_idle'] = (abs_norm_w * enter_idle_mode).astype(np.float32)
-        out['mode_resid_a_enter_idle'] = (abs_norm_a * enter_idle_mode).astype(np.float32)
-        out['mode_curve_var_resid'] = (abs_norm_var * (voltvar_mode | wattvar_mode | pf_mode)).astype(np.float32)
-        out['mode_dispatch_w_resid'] = (abs_norm_w * (voltwatt_mode | droop_mode | enter_idle_mode)).astype(np.float32)
-        out['mode_extreme_var_curve'] = (np.nan_to_num(out['extreme_resid_var'].to_numpy(np.float32), nan=0.0) * (voltvar_mode | wattvar_mode | pf_mode)).astype(np.int8)
-        out['mode_extreme_w_dispatch'] = (np.nan_to_num(out['extreme_resid_w'].to_numpy(np.float32), nan=0.0) * (voltwatt_mode | droop_mode | enter_idle_mode)).astype(np.int8)
-        out['mode_tail_count'] = out[['mode_extreme_var_curve', 'mode_extreme_w_dispatch']].sum(axis=1).astype(np.int8)
-        out['resid_tail_count'] = out[['tail_resid_w', 'tail_resid_va', 'tail_resid_var', 'tail_resid_pf', 'tail_resid_a']].sum(axis=1).astype(np.int8)
-        out['resid_extreme_count'] = out[['extreme_resid_w', 'extreme_resid_va', 'extreme_resid_var', 'extreme_resid_pf', 'extreme_resid_a']].sum(axis=1).astype(np.int8)
-        out['resid_ultra_count'] = out[['ultra_resid_w', 'ultra_resid_va', 'ultra_resid_var', 'ultra_resid_pf', 'ultra_resid_a']].sum(axis=1).astype(np.int8)
-        out['resid_quantile_score'] = out[['q99_ratio_resid_w', 'q99_ratio_resid_va', 'q99_ratio_resid_var', 'q99_ratio_resid_pf', 'q99_ratio_resid_a']].sum(axis=1).astype(np.float32)
+        eim = np.nan_to_num(out['esi'].to_numpy(np.float32), nan=0.0) > 0
+        out['mrpp'] = (abs_norm_pf * pf_mode).astype(np.float32)
+        out['mrvp'] = (abs_norm_var * pf_mode).astype(np.float32)
+        out['mrvv'] = (abs_norm_var * voltvar_mode).astype(np.float32)
+        out['mrwv'] = (abs_norm_w * voltwatt_mode).astype(np.float32)
+        out['mrvw'] = (abs_norm_var * wattvar_mode).astype(np.float32)
+        out['mrwd'] = (abs_norm_w * droop_mode).astype(np.float32)
+        out['mrwe'] = (abs_norm_w * eim).astype(np.float32)
+        out['mrae'] = (abs_norm_a * eim).astype(np.float32)
+        out['mcvr'] = (abs_norm_var * (voltvar_mode | wattvar_mode | pf_mode)).astype(np.float32)
+        out['mdwr'] = (abs_norm_w * (voltwatt_mode | droop_mode | eim)).astype(np.float32)
+        out['mevc'] = (np.nan_to_num(out['er_var'].to_numpy(np.float32), nan=0.0) * (voltvar_mode | wattvar_mode | pf_mode)).astype(np.int8)
+        out['mewd'] = (np.nan_to_num(out['er_w'].to_numpy(np.float32), nan=0.0) * (voltwatt_mode | droop_mode | eim)).astype(np.int8)
+        out['mtc'] = out[['mevc', 'mewd']].sum(axis=1).astype(np.int8)
+        out['rtc'] = out[['tr_w', 'tr_va', 'tr_var', 'tr_pf', 'tr_a']].sum(axis=1).astype(np.int8)
+        out['rec'] = out[['er_w', 'er_va', 'er_var', 'er_pf', 'er_a']].sum(axis=1).astype(np.int8)
+        out['ruc'] = out[['ur_w', 'ur_va', 'ur_var', 'ur_pf', 'ur_a']].sum(axis=1).astype(np.int8)
+        out['rqs'] = out[['q9r_w', 'q9r_va', 'q9r_var', 'q9r_pf', 'q9r_a']].sum(axis=1).astype(np.float32)
         return out
 
     @staticmethod
-    def tune_threshold(y_true, prob, *, low=FTF, high=MT, step=0.01):
+    def _tt(y_true, prob, *, low=FTF, high=MT, step=0.01):
         if len(y_true) == 0:
             return (0.5, 0.0)
         bt, best_f2 = (0.5, -1.0)
@@ -1040,7 +1040,7 @@ class R:
         return (bt, best_f2)
 
     @staticmethod
-    def _blend_probs(primary, secondary, weight):
+    def _bp(primary, secondary, weight):
         if secondary is None:
             return primary.astype(np.float32)
         return (weight * primary + (1.0 - weight) * secondary).astype(np.float32)
@@ -1068,8 +1068,8 @@ class R:
         return C(iterations=self.cat_iterations, depth=self.cat_depth, learning_rate=self.cat_learning_rate, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.n_jobs, allow_writing_files=False, verbose=False)
 
     def _bta(self):
-        shutil.rmtree(self.artifact_dir, ignore_errors=True)
-        train_root = self.artifact_dir / 'train'
+        shutil.rmtree(self.ad, ignore_errors=True)
+        train_root = self.ad / 'train'
         built = 0
         for ci, chunk in enumerate(self.irc('train.csv', UTR)):
             labels = chunk['Label'].astype(np.int8).to_numpy()
@@ -1091,7 +1091,7 @@ class R:
             gc.collect()
 
     def _lfa(self, family, columns=None):
-        family_dir = self.artifact_dir / 'train' / family
+        family_dir = self.ad / 'train' / family
         paths = sorted(family_dir.glob('*.parquet'))
         if not paths:
             return pd.DataFrame(columns=list(columns or []))
@@ -1100,13 +1100,13 @@ class R:
 
     def _roc(self, df):
         out = df.copy()
-        hard_rule_flags = np.column_stack([pd.to_numeric(out[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in HRN])
+        hrf = np.column_stack([pd.to_numeric(out[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in HRN])
         if self.ovr:
-            hard_override_flags = np.column_stack([pd.to_numeric(out[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in self.ovr])
-            out['oa'] = hard_override_flags.any(axis=1).astype(np.int8)
+            hof = np.column_stack([pd.to_numeric(out[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in self.ovr])
+            out['oa'] = hof.any(axis=1).astype(np.int8)
         else:
             out['oa'] = np.zeros(len(out), dtype=np.int8)
-        out['ra'] = hard_rule_flags.any(axis=1).astype(np.int8)
+        out['ra'] = hrf.any(axis=1).astype(np.int8)
         return out
 
     def _aho(self):
@@ -1125,10 +1125,10 @@ class R:
         self.ovr = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MOP]
 
     def _csc(self):
-        return (self.sur_cols, self.surrogate_models, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm)
+        return (self.sur_cols, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm)
 
     def _asc(self, cx):
-        self.sur_cols, self.surrogate_models, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm = cx
+        self.sur_cols, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm = cx
 
     def _psf(self, bdf, y):
         work = self._roc(bdf)
@@ -1165,7 +1165,7 @@ class R:
         probs = np.ones(len(sdf), dtype=np.float32)
         mm = sdf['oa'].to_numpy(np.int8) == 0
         fi = sdf[fold_col].to_numpy(np.int8)
-        final_model = None
+        fm = None
         for fold in range(self.kf):
             tm = mm & (fi != fold)
             vm = mm & (fi == fold)
@@ -1178,16 +1178,16 @@ class R:
             model.fit(x_train, y_train, sample_weight=weights)
             probs[vm] = model.predict_proba(sdf.loc[vm, fc])[:, 1].astype(np.float32)
         if fit_final and mm.any():
-            final_model = self._ncf()
+            fm = self._ncf()
             weights = self._bsw(sdf.loc[mm], y[mm])
-            final_model.fit(sdf.loc[mm, fc], y[mm], sample_weight=weights)
-        return (probs, final_model)
+            fm.fit(sdf.loc[mm, fc], y[mm], sample_weight=weights)
+        return (probs, fm)
 
     def _tco(self, cat_df, y, fc, cc, *, fold_col, fit_final):
         probs = np.ones(len(cat_df), dtype=np.float32)
         mm = cat_df['oa'].to_numpy(np.int8) == 0
         fi = cat_df[fold_col].to_numpy(np.int8)
-        final_model = None
+        fm = None
         for fold in range(self.kf):
             tm = mm & (fi != fold)
             vm = mm & (fi == fold)
@@ -1198,48 +1198,48 @@ class R:
             model.fit(cat_df.loc[tm, fc], y[tm], cat_features=list(cc), sample_weight=weights, verbose=False)
             probs[vm] = model.predict_proba(cat_df.loc[vm, fc])[:, 1].astype(np.float32)
         if fit_final and mm.any():
-            final_model = self._ncm()
+            fm = self._ncm()
             weights = self._bsw(cat_df.loc[mm], y[mm])
-            final_model.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights, verbose=False)
-        return (probs, final_model)
+            fm.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights, verbose=False)
+        return (probs, fm)
 
     def _sfb(self, y, ho, semantic_primary, semantic_audit, cat_primary, cat_audit):
-        baseline_primary_prob = semantic_primary.copy()
-        baseline_primary_prob[ho] = 1.0
-        baseline_thr, _ = self.tune_threshold(y, baseline_primary_prob)
-        baseline_pred_primary = (baseline_primary_prob >= baseline_thr).astype(np.int8)
-        baseline_audit_prob = semantic_audit.copy()
-        baseline_audit_prob[ho] = 1.0
-        baseline_pred_audit = (baseline_audit_prob >= baseline_thr).astype(np.int8)
-        baseline_primary_score = float(fbeta_score(y, baseline_pred_primary, beta=2))
-        baseline_audit_score = float(fbeta_score(y, baseline_pred_audit, beta=2))
+        bpp = semantic_primary.copy()
+        bpp[ho] = 1.0
+        baseline_thr, _ = self._tt(y, bpp)
+        bpr = (bpp >= baseline_thr).astype(np.int8)
+        bap = semantic_audit.copy()
+        bap[ho] = 1.0
+        bar = (bap >= baseline_thr).astype(np.int8)
+        bps0 = float(fbeta_score(y, bpr, beta=2))
+        bas0 = float(fbeta_score(y, bar, beta=2))
         best_weight = 1.0
         bt = baseline_thr
-        best_primary_pred = baseline_pred_primary
-        best_audit_pred = baseline_pred_audit
-        best_primary_score = baseline_primary_score
-        best_audit_for_best = baseline_audit_score
+        bppd = bpr
+        bapd = bar
+        bps1 = bps0
+        bafb = bas0
         weight_grid = [round(step / 20.0, 2) for step in range(21)] if cat_primary is not None else [1.0]
         for weight in weight_grid:
-            blended_primary = self._blend_probs(semantic_primary, cat_primary, weight)
+            blended_primary = self._bp(semantic_primary, cat_primary, weight)
             blended_primary[ho] = 1.0
-            thr, _ = self.tune_threshold(y, blended_primary)
+            thr, _ = self._tt(y, blended_primary)
             pred_primary = (blended_primary >= thr).astype(np.int8)
-            blended_audit = self._blend_probs(semantic_audit, cat_audit, weight)
+            blended_audit = self._bp(semantic_audit, cat_audit, weight)
             blended_audit[ho] = 1.0
             pred_audit = (blended_audit >= thr).astype(np.int8)
             ps = float(fbeta_score(y, pred_primary, beta=2))
             as_ = float(fbeta_score(y, pred_audit, beta=2))
-            if as_ < baseline_audit_score - AT:
+            if as_ < bas0 - AT:
                 continue
-            if ps > best_primary_score + 1e-12 or (abs(ps - best_primary_score) <= 1e-12 and as_ > best_audit_for_best):
+            if ps > bps1 + 1e-12 or (abs(ps - bps1) <= 1e-12 and as_ > bafb):
                 best_weight = weight
                 bt = thr
-                best_primary_pred = pred_primary
-                best_audit_pred = pred_audit
-                best_primary_score = ps
-                best_audit_for_best = as_
-        return (best_weight, bt, best_primary_pred.astype(np.int8), best_audit_pred.astype(np.int8))
+                bppd = pred_primary
+                bapd = pred_audit
+                bps1 = ps
+                bafb = as_
+        return (best_weight, bt, bppd.astype(np.int8), bapd.astype(np.int8))
 
     def fit(self):
         self._bta()
@@ -1262,12 +1262,12 @@ class R:
             ho = sdf['oa'].to_numpy(np.int8) == 1
             sp1, sm = self._tso(sdf, y, semf, fold_col='fold_id', fit_final=True)
             sa1, _ = self._tso(sdf, y, semf, fold_col='audit_fold_id', fit_final=False)
-            self.semantic_models[family] = sm
+            self.smd[family] = sm
             cp1 = ca1 = cm = None
             if catf:
                 cp1, cm = self._tco(cat_df, y, catf, catc, fold_col='fold_id', fit_final=True)
                 ca1, _ = self._tco(cat_df, y, catf, catc, fold_col='audit_fold_id', fit_final=False)
-            self.cat_models[family] = cm
+            self.cmd[family] = cm
             weight, threshold, _, _ = self._sfb(y, ho, sp1, sa1, cp1, ca1)
             self.blend_w[family] = weight
             self.thr[family] = threshold
@@ -1279,7 +1279,7 @@ class R:
             raise RuntimeError('No training artifacts were available for model fitting.')
 
     def _pfc(self, family, bdf):
-        if family not in self.ctx or family not in self.semantic_models:
+        if family not in self.ctx or family not in self.smd:
             raise RuntimeError(f'Missing fitted semantic model bundle for family {family}.')
         cx = self.ctx[family]
         self._asc(cx)
@@ -1291,23 +1291,23 @@ class R:
         sdf = self._afi(sdf)
         sp = np.ones(len(sdf), dtype=np.float32)
         if (~ho).any():
-            sm = self.semantic_models[family]
+            sm = self.smd[family]
             sp[~ho] = sm.predict_proba(sdf.loc[~ho, self.sem_cols[family]])[:, 1].astype(np.float32)
         cat_prob = None
-        cm = self.cat_models.get(family)
+        cm = self.cmd.get(family)
         if cm is not None and self.cat_cols.get(family):
             cat_df = self._pcf(bdf.copy())
             cat_prob = np.ones(len(cat_df), dtype=np.float32)
             if (~ho).any():
                 cat_prob[~ho] = cm.predict_proba(cat_df.loc[~ho, self.cat_cols[family]])[:, 1].astype(np.float32)
-        bp = self._blend_probs(sp, cat_prob, self.blend_w.get(family, 1.0))
+        bp = self._bp(sp, cat_prob, self.blend_w.get(family, 1.0))
         bp[ho] = 1.0
         pred = (bp >= self.thr.get(family, 0.5)).astype(np.int8)
         pred[ho] = 1
         return pred
 
     def pt(self, out_csv):
-        if not self.semantic_models:
+        if not self.smd:
             raise RuntimeError('Model is not fitted.')
         out_csv.parent.mkdir(parents=True, exist_ok=True)
         tr = 0
