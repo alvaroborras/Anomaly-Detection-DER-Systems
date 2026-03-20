@@ -40,8 +40,8 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- The current kept `main.py` is ~81.6k chars, down from ~130k.
-- The most productive safe reductions so far have come from deleting non-essential surface area, removing dead duplicate logic, and shortening internal names/feature columns rather than changing the predictor itself.
+- The current kept `main.py` is ~74.7k chars, down from ~130k.
+- The most productive safe reductions so far have come from deleting non-essential surface area, removing dead duplicate logic, shortening internal names/feature columns, and hoisting stateless helpers out of class scope.
 - Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic/scenario helper plumbing, and any remaining verbose setup code that does not affect the final submission.
 - Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this remains a backup path, not the leading one.
 
@@ -60,4 +60,8 @@ Workload constraints:
 - Kept: shortened several internal engineered feature/column names (`device_family`, hard-rule/scenario feature names, residual-calibration prefixes, etc.) with no behavior change. This brought `main.py` to 87,820 chars while preserving the exact hash.
 - Kept: shortened another batch of internal identifiers (feature-ratio names, helper args, cross-validation and integrity variables, etc.) with no behavior change. This brought `main.py` to 84,931 chars while preserving the exact hash.
 - Kept: removed the dead earlier `tune_threshold` definition and shortened another broad batch of helper names, constants, and internal feature-column names with no behavior change. This brought `main.py` to 81,646 chars while preserving the exact hash.
-- Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path; duplicated or one-off naming surface is still paying off.
+- Kept: shortened another broad batch of residual/scenario/curve feature names plus remaining helper, attribute, and local identifiers with no behavior change. This brought `main.py` to 77,940 chars while preserving the exact hash.
+- Kept: shortened another batch of remaining hard-rule names, tuning locals, fold-feature columns, and residual/freqdroop feature names with no behavior change. This brought `main.py` to 75,888 chars while preserving the exact hash.
+- Crash/reverted: the first attempt to hoist stateless helpers to module scope used an over-broad prefix replacement and broke `self._nsm`/`self._ncm` into undefined globals. The idea was still sound, but the replacement needed exact name boundaries.
+- Kept: hoisted the stateless math/selection helpers out of class scope with an exact replacement pass, which safely reduced indentation/decorator overhead and brought `main.py` to 74,686 chars while preserving the exact hash.
+- Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path; naming surface and class-scoped boilerplate are still paying off.
