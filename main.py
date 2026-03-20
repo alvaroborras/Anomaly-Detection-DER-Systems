@@ -301,9 +301,9 @@ def _hf(frame):
     return pd.util.hash_pandas_object(frame, index=False).to_numpy(np.uint64)
 
 def _lss(keys, sum_map, count_map):
-    key_series = pd.Series(keys)
-    sv = key_series.map(sum_map).fillna(0.0).to_numpy(np.float32)
-    cv = key_series.map(count_map).fillna(0).to_numpy(np.int32)
+    ks = pd.Series(keys)
+    sv = ks.map(sum_map).fillna(0.0).to_numpy(np.float32)
+    cv = ks.map(count_map).fillna(0).to_numpy(np.int32)
     return (sv, cv)
 
 def _asf(out, *, fp, sr, sc, so, oc):
@@ -433,23 +433,23 @@ class R:
             raw_id = df[id_col].to_numpy(float)
             raw_len = df[len_col].to_numpy(float)
             id_missing = ~np.isfinite(raw_id)
-            len_missing = ~np.isfinite(raw_len)
+            lms = ~np.isfinite(raw_len)
             id_match = np.isclose(raw_id, expected_id, equal_nan=False)
             len_match = np.isclose(raw_len, expected_len, equal_nan=False)
             data[f'{bn}_model_id_missing'] = id_missing.astype(np.int8)
-            data[f'{bn}_model_len_missing'] = len_missing.astype(np.int8)
+            data[f'{bn}_model_len_missing'] = lms.astype(np.int8)
             data[f'{bn}_model_id_match'] = id_match.astype(np.int8)
             data[f'{bn}_model_len_match'] = len_match.astype(np.int8)
             data[f'{bn}_model_integrity_ok'] = (id_match & len_match).astype(np.int8)
-            mismatch = ~id_missing & ~id_match | ~len_missing & ~len_match
+            mismatch = ~id_missing & ~id_match | ~lms & ~len_match
             data[f'{bn}_ms0_anomaly'] = mismatch.astype(np.int8)
             as0 += mismatch.astype(np.int16)
-            msm += (id_missing | len_missing).astype(np.int16)
+            msm += (id_missing | lms).astype(np.int16)
         data['msac'] = as0.astype(np.int8)
         data['msmc'] = msm.astype(np.int8)
         data['msa'] = (as0 > 0).astype(np.int8)
 
-    def _ace(self, data, *, wmaxrtg, wmax, vamaxrtg, vamax, varmaxinjrtg, vmi, varmaxabsrtg, vma, vnomrtg, vnom, vmaxrtg, vmax, vminrtg, vmin, amaxrtg, amax, wcha_rtg, wdis_rtg, vacha_rtg, vadis_rtg, wcha, wdis, vacha, vadis, por, pfover, pur, pfunder):
+    def _ace(self, data, *, wmaxrtg, wmax, vamaxrtg, vamax, viri, vmi, vart, vma, vnomrtg, vnom, vmaxrtg, vmax, vminrtg, vmin, amaxrtg, amax, wcha_rtg, wdis_rtg, vcr, vdr, wcha, wdis, vacha, vadis, por, pfover, pur, pfunder):
         data['vnsd'] = (vnom - vnomrtg).astype(np.float32)
         data['vxsd'] = (vmax - vmaxrtg).astype(np.float32)
         data['vmsd'] = (vmin - vminrtg).astype(np.float32)
@@ -458,13 +458,13 @@ class R:
         data['pfud'] = (pfunder - pur).astype(np.float32)
         data['crsr'] = _d(wcha_rtg, wmaxrtg)
         data['drsr'] = _d(wdis_rtg, wmaxrtg)
-        data['cvsr'] = _d(vacha_rtg, vamaxrtg)
-        data['dvsr'] = _d(vadis_rtg, vamaxrtg)
+        data['cvsr'] = _d(vcr, vamaxrtg)
+        data['dvsr'] = _d(vdr, vamaxrtg)
         data['crss'] = _d(wcha, wmax)
         data['drss'] = _d(wdis, wmax)
         data['cvss'] = _d(vacha, vamax)
         data['dvss'] = _d(vadis, vamax)
-        rating_pairs = [(wmaxrtg, wmax), (vamaxrtg, vamax), (varmaxinjrtg, vmi), (varmaxabsrtg, vma), (vnomrtg, vnom), (vmaxrtg, vmax), (vminrtg, vmin), (amaxrtg, amax)]
+        rating_pairs = [(wmaxrtg, wmax), (vamaxrtg, vamax), (viri, vmi), (vart, vma), (vnomrtg, vnom), (vmaxrtg, vmax), (vminrtg, vmin), (amaxrtg, amax)]
         gap_count = np.zeros(len(wmaxrtg), dtype=np.int16)
         for rating, setting in rating_pairs:
             tol = np.maximum(1.0, 0.01 * np.nan_to_num(np.abs(rating), nan=0.0)).astype(np.float32)
@@ -501,7 +501,7 @@ class R:
         enabled = np.isfinite(es) & (es == 1.0)
         saz = np.isfinite(es) & (es >= 1.5)
         sidl = ~enabled | ~iwin
-        current_tol = np.maximum(1.0, 0.02 * np.nan_to_num(amax, nan=0.0))
+        ct0 = np.maximum(1.0, 0.02 * np.nan_to_num(amax, nan=0.0))
         data['ese'] = enabled.astype(np.int8)
         data['esa'] = saz.astype(np.int8)
         data['esiw'] = iwin.astype(np.int8)
@@ -519,7 +519,7 @@ class R:
         data['esda'] = (np.nan_to_num(es_delay_rem, nan=0.0) > 0).astype(np.int8)
         bpwr = sidl & (abs_w > tolw)
         blocked_va = sidl & (va > tolva)
-        bcur = sidl & (a > current_tol)
+        bcur = sidl & (a > ct0)
         data['ebp'] = bpwr.astype(np.int8)
         data['esbv'] = blocked_va.astype(np.int8)
         data['ebc'] = bcur.astype(np.int8)
@@ -563,13 +563,13 @@ class R:
         mom_t = gp('MomCess', 'Tms')
         may_present = np.column_stack([df[f'{prefix}.Crv[{curve}].MayTrip.Pt[{point}].{an}'].to_numpy(float) for curve in range(2) for point in range(5)])
         enabled = np.nan_to_num(df[f'{prefix}.Ena'].to_numpy(float), nan=0.0) > 0
-        must_count = _ppc(must_x, must_t)
+        mc0 = _ppc(must_x, must_t)
         mom_count = _ppc(mom_x, mom_t)
         must_x_min = _n(must_x)
         must_x_max = _x(must_x)
         must_t_min = _n(must_t)
         must_t_max = _x(must_t)
-        mom_x_min = _n(mom_x)
+        mxm = _n(mom_x)
         mom_x_max = _x(mom_x)
         mom_t_min = _n(mom_t)
         mom_t_max = _x(mom_t)
@@ -579,12 +579,12 @@ class R:
             margin = must_x_min - mv
         outside = enabled & np.isfinite(margin) & (margin < 0)
         pwo = outside & (abs_w > tolw)
-        envelope_gap = np.where(np.isfinite(mom_x_min) & np.isfinite(must_x_max), np.abs(mom_x_min - must_x_max), np.nan)
+        envelope_gap = np.where(np.isfinite(mxm) & np.isfinite(must_x_max), np.abs(mxm - must_x_max), np.nan)
         data[f'trip_{sn}_ci'] = adpt_idx.astype(np.int8)
         data[f'trip_{sn}_enabled'] = enabled.astype(np.int8)
         data[f'trip_{sn}_crg'] = (df[f'{prefix}.AdptCrvReq'].to_numpy(float) - df[f'{prefix}.AdptCrvRslt'].to_numpy(float)).astype(np.float32)
-        data[f'trip_{sn}_mt_count'] = must_count
-        data[f'trip_{sn}_mt_actpt_gap'] = (must_actpt - must_count).astype(np.float32)
+        data[f'trip_{sn}_mt_count'] = mc0
+        data[f'trip_{sn}_mt_actpt_gap'] = (must_actpt - mc0).astype(np.float32)
         data[f'trip_{sn}_mt_axis_min'] = must_x_min
         data[f'trip_{sn}_mt_axis_max'] = must_x_max
         data[f'trip_{sn}_mt_axis_span'] = (must_x_max - must_x_min).astype(np.float32)
@@ -592,7 +592,7 @@ class R:
         data[f'trip_{sn}_mt_reverse_steps'] = _crs(must_x)
         data[f'trip_{sn}_mc_count'] = mom_count
         data[f'trip_{sn}_mc_actpt_gap'] = (mom_actpt - mom_count).astype(np.float32)
-        data[f'trip_{sn}_mc_axis_span'] = (mom_x_max - mom_x_min).astype(np.float32)
+        data[f'trip_{sn}_mc_axis_span'] = (mom_x_max - mxm).astype(np.float32)
         data[f'trip_{sn}_mc_tms_span'] = (mom_t_max - mom_t_min).astype(np.float32)
         data[f'trip_{sn}_mc_reverse_steps'] = _crs(mom_x)
         data[f'trip_{sn}_mpa'] = np.isfinite(may_present).any(axis=1).astype(np.int8)
@@ -602,7 +602,7 @@ class R:
         data[f'trip_{sn}_mc_mt_gap'] = envelope_gap.astype(np.float32)
         return (outside.astype(np.int8), pwo.astype(np.int8))
 
-    def _acb(self, data, *, name, raw_idx, curve_x, curve_y, capt, curve_meta, mv, ov=None):
+    def _acb(self, data, *, name, raw_idx, curve_x, curve_y, capt, cmx, mv, ov=None):
         adpt_idx = _ci(raw_idx, len(curve_x))
         sx = _cp(curve_x, adpt_idx)
         sy = _cp(curve_y, adpt_idx)
@@ -627,33 +627,33 @@ class R:
             ev = _pwi(mv, sx, sy)
             data[f'{name}_ce'] = ev.astype(np.float32)
             data[f'{name}_cer'] = (ov - ev).astype(np.float32)
-        for mn, curves in curve_meta.items():
+        for mn, curves in cmx.items():
             data[f'{name}_curve_{mn}'] = _cs(curves, adpt_idx).astype(np.float32)
 
     def _afd(self, data, df, *, hz, w_pct):
         raw_idx = df['DERFreqDroop[0].AdptCtlRslt'].to_numpy(float)
         ctl_idx = _ci(raw_idx, 3)
-        dbof_curves = [df[f'DERFreqDroop[0].Ctl[{i}].DbOf'].to_numpy(float) for i in range(3)]
-        dbuf_curves = [df[f'DERFreqDroop[0].Ctl[{i}].DbUf'].to_numpy(float) for i in range(3)]
+        dbc = [df[f'DERFreqDroop[0].Ctl[{i}].DbOf'].to_numpy(float) for i in range(3)]
+        duc = [df[f'DERFreqDroop[0].Ctl[{i}].DbUf'].to_numpy(float) for i in range(3)]
         kof_curves = [df[f'DERFreqDroop[0].Ctl[{i}].KOf'].to_numpy(float) for i in range(3)]
         kuf_curves = [df[f'DERFreqDroop[0].Ctl[{i}].KUf'].to_numpy(float) for i in range(3)]
         rsp_curves = [df[f'DERFreqDroop[0].Ctl[{i}].RspTms'].to_numpy(float) for i in range(3)]
-        pmin_curves = [df[f'DERFreqDroop[0].Ctl[{i}].PMin'].to_numpy(float) for i in range(3)]
+        pmc = [df[f'DERFreqDroop[0].Ctl[{i}].PMin'].to_numpy(float) for i in range(3)]
         ro_curves = [df[f'DERFreqDroop[0].Ctl[{i}].ReadOnly'].to_numpy(float) for i in range(3)]
-        dbof = _cs(dbof_curves, ctl_idx)
-        dbuf = _cs(dbuf_curves, ctl_idx)
+        dbof = _cs(dbc, ctl_idx)
+        dbuf = _cs(duc, ctl_idx)
         kof = _cs(kof_curves, ctl_idx)
         kuf = _cs(kuf_curves, ctl_idx)
         rsp = _cs(rsp_curves, ctl_idx)
-        pmin = _cs(pmin_curves, ctl_idx)
-        readonly = _cs(ro_curves, ctl_idx)
+        pmin = _cs(pmc, ctl_idx)
+        rdo = _cs(ro_curves, ctl_idx)
         oa2 = np.maximum(hz - (60.0 + dbof), 0.0)
         ua = np.maximum(60.0 - dbuf - hz, 0.0)
         edp = 100.0 * _d(oa2, kof) - 100.0 * _d(ua, kuf)
-        dbof_stack = np.column_stack(dbof_curves)
-        dbuf_stack = np.column_stack(dbuf_curves)
+        dbof_stack = np.column_stack(dbc)
+        dbuf_stack = np.column_stack(duc)
         k_stack = np.column_stack(kof_curves + kuf_curves)
-        pmin_stack = np.column_stack(pmin_curves)
+        pmin_stack = np.column_stack(pmc)
         data['fdci'] = ctl_idx.astype(np.int8)
         data['fdof'] = dbof.astype(np.float32)
         data['fduf'] = dbuf.astype(np.float32)
@@ -661,7 +661,7 @@ class R:
         data['fdku'] = kuf.astype(np.float32)
         data['fdrs'] = rsp.astype(np.float32)
         data['fdpm'] = pmin.astype(np.float32)
-        data['fdro'] = readonly.astype(np.float32)
+        data['fdro'] = rdo.astype(np.float32)
         data['fdbw'] = (dbof + dbuf).astype(np.float32)
         data['fdoa'] = oa2.astype(np.float32)
         data['fdua'] = ua.astype(np.float32)
@@ -724,8 +724,8 @@ class R:
         hz = df['DERMeasureAC[0].Hz'].to_numpy(float)
         wmaxrtg = df['DERCapacity[0].WMaxRtg'].to_numpy(float)
         vamaxrtg = df['DERCapacity[0].VAMaxRtg'].to_numpy(float)
-        varmaxinjrtg = df['DERCapacity[0].VarMaxInjRtg'].to_numpy(float)
-        varmaxabsrtg = df['DERCapacity[0].VarMaxAbsRtg'].to_numpy(float)
+        viri = df['DERCapacity[0].VarMaxInjRtg'].to_numpy(float)
+        vart = df['DERCapacity[0].VarMaxAbsRtg'].to_numpy(float)
         wmax = df['DERCapacity[0].WMax'].to_numpy(float)
         vamax = df['DERCapacity[0].VAMax'].to_numpy(float)
         vmi = df['DERCapacity[0].VarMaxInj'].to_numpy(float)
@@ -765,7 +765,7 @@ class R:
         wsetena = np.nan_to_num(df['DERCtlAC[0].WSetEna'].to_numpy(float), nan=0.0)
         wset = df['DERCtlAC[0].WSet'].to_numpy(float)
         wsetpct = df['DERCtlAC[0].WSetPct'].to_numpy(float)
-        wmaxlimena = np.nan_to_num(df['DERCtlAC[0].WMaxLimPctEna'].to_numpy(float), nan=0.0)
+        wle = np.nan_to_num(df['DERCtlAC[0].WMaxLimPctEna'].to_numpy(float), nan=0.0)
         wmaxlimpct = df['DERCtlAC[0].WMaxLimPct'].to_numpy(float)
         varsetena = np.nan_to_num(df['DERCtlAC[0].VarSetEna'].to_numpy(float), nan=0.0)
         varset = df['DERCtlAC[0].VarSet'].to_numpy(float)
@@ -774,7 +774,7 @@ class R:
         wspt = wmaxrtg * (wsetpct / 100.0)
         wspe = np.where(wsetena > 0, np.abs(w - wspt), np.nan)
         wltg = wmaxrtg * (wmaxlimpct / 100.0)
-        wlex = np.where(wmaxlimena > 0, w - wltg, np.nan)
+        wlex = np.where(wle > 0, w - wltg, np.nan)
         vsae = np.where(varsetena > 0, np.abs(var - varset), np.nan)
         vspt = vmi * (varsetpct / 100.0)
         vspe = np.where(varsetena > 0, np.abs(var - vspt), np.nan)
@@ -788,9 +788,9 @@ class R:
         data['vspe'] = vspe.astype(np.float32)
         data['wf'] = ((wsetena > 0) & (wsae > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
         data['wef'] = ((wsetena > 0) & (wspe > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
-        data['wmf'] = ((wmaxlimena > 0) & (wlex > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
+        data['wmf'] = ((wle > 0) & (wlex > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
         data['vef'] = ((varsetena > 0) & (vspe > np.maximum(20.0, 0.05 * np.nan_to_num(vmi, nan=0.0)))).astype(np.int8)
-        self._ace(data, wmaxrtg=wmaxrtg, wmax=wmax, vamaxrtg=vamaxrtg, vamax=vamax, varmaxinjrtg=varmaxinjrtg, vmi=vmi, varmaxabsrtg=varmaxabsrtg, vma=vma, vnomrtg=df['DERCapacity[0].VNomRtg'].to_numpy(float), vnom=vnom, vmaxrtg=df['DERCapacity[0].VMaxRtg'].to_numpy(float), vmax=vmax, vminrtg=df['DERCapacity[0].VMinRtg'].to_numpy(float), vmin=vmin, amaxrtg=df['DERCapacity[0].AMaxRtg'].to_numpy(float), amax=amax, wcha_rtg=df['DERCapacity[0].WChaRteMaxRtg'].to_numpy(float), wdis_rtg=df['DERCapacity[0].WDisChaRteMaxRtg'].to_numpy(float), vacha_rtg=df['DERCapacity[0].VAChaRteMaxRtg'].to_numpy(float), vadis_rtg=df['DERCapacity[0].VADisChaRteMaxRtg'].to_numpy(float), wcha=df['DERCapacity[0].WChaRteMax'].to_numpy(float), wdis=df['DERCapacity[0].WDisChaRteMax'].to_numpy(float), vacha=df['DERCapacity[0].VAChaRteMax'].to_numpy(float), vadis=df['DERCapacity[0].VADisChaRteMax'].to_numpy(float), por=df['DERCapacity[0].PFOvrExtRtg'].to_numpy(float), pfover=df['DERCapacity[0].PFOvrExt'].to_numpy(float), pur=df['DERCapacity[0].PFUndExtRtg'].to_numpy(float), pfunder=df['DERCapacity[0].PFUndExt'].to_numpy(float))
+        self._ace(data, wmaxrtg=wmaxrtg, wmax=wmax, vamaxrtg=vamaxrtg, vamax=vamax, viri=viri, vmi=vmi, vart=vart, vma=vma, vnomrtg=df['DERCapacity[0].VNomRtg'].to_numpy(float), vnom=vnom, vmaxrtg=df['DERCapacity[0].VMaxRtg'].to_numpy(float), vmax=vmax, vminrtg=df['DERCapacity[0].VMinRtg'].to_numpy(float), vmin=vmin, amaxrtg=df['DERCapacity[0].AMaxRtg'].to_numpy(float), amax=amax, wcha_rtg=df['DERCapacity[0].WChaRteMaxRtg'].to_numpy(float), wdis_rtg=df['DERCapacity[0].WDisChaRteMaxRtg'].to_numpy(float), vcr=df['DERCapacity[0].VAChaRteMaxRtg'].to_numpy(float), vdr=df['DERCapacity[0].VADisChaRteMaxRtg'].to_numpy(float), wcha=df['DERCapacity[0].WChaRteMax'].to_numpy(float), wdis=df['DERCapacity[0].WDisChaRteMax'].to_numpy(float), vacha=df['DERCapacity[0].VAChaRteMax'].to_numpy(float), vadis=df['DERCapacity[0].VADisChaRteMax'].to_numpy(float), por=df['DERCapacity[0].PFOvrExtRtg'].to_numpy(float), pfover=df['DERCapacity[0].PFOvrExt'].to_numpy(float), pur=df['DERCapacity[0].PFUndExtRtg'].to_numpy(float), pfunder=df['DERCapacity[0].PFUndExt'].to_numpy(float))
         vp = 100.0 * _d(llv, vnom)
         lnp = 100.0 * _d(lnv * SQRT3, vnom)
         w_pct = 100.0 * _d(w, wmaxrtg)
@@ -818,9 +818,9 @@ class R:
         data['tpo'] = tpo
         csc0 = lambda prefix, field: [df[f'{prefix}.Crv[{curve}].{field}'].to_numpy(float) for curve in range(3)]
         cpt0 = lambda prefix, field, pc: [np.column_stack([df[f'{prefix}.Crv[{curve}].Pt[{point}].{field}'].to_numpy(float) for point in range(pc)]) for curve in range(3)]
-        curve_specs = [('voltvar', 'DERVoltVar[0]', 4, 'V', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'vref': 'VRef', 'vref_auto': 'VRefAuto', 'vref_auto_ena': 'VRefAutoEna', 'vref_auto_tms': 'VRefAutoTms', 'rsp': 'RspTms', 'readonly': 'ReadOnly'}, vp - 100.0 + df['DERVoltVar[0].Crv[0].VRef'].fillna(100.0).to_numpy(float), var_pct), ('voltwatt', 'DERVoltWatt[0]', 2, 'V', 'W', {'deptref': 'DeptRef', 'rsp': 'RspTms', 'readonly': 'ReadOnly'}, vp, w_pct), ('wattvar', 'DERWattVar[0]', 6, 'W', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'readonly': 'ReadOnly'}, w_pct, var_pct)]
+        curve_specs = [('voltvar', 'DERVoltVar[0]', 4, 'V', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'vref': 'VRef', 'vref_auto': 'VRefAuto', 'vref_auto_ena': 'VRefAutoEna', 'vref_auto_tms': 'VRefAutoTms', 'rsp': 'RspTms', 'rdo': 'ReadOnly'}, vp - 100.0 + df['DERVoltVar[0].Crv[0].VRef'].fillna(100.0).to_numpy(float), var_pct), ('voltwatt', 'DERVoltWatt[0]', 2, 'V', 'W', {'deptref': 'DeptRef', 'rsp': 'RspTms', 'rdo': 'ReadOnly'}, vp, w_pct), ('wattvar', 'DERWattVar[0]', 6, 'W', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'rdo': 'ReadOnly'}, w_pct, var_pct)]
         for name, prefix, pc, x_field, y_field, meta_fields, mv, ov in curve_specs:
-            self._acb(data, name=name, raw_idx=df[f'{prefix}.AdptCrvRslt'].to_numpy(float), curve_x=cpt0(prefix, x_field, pc), curve_y=cpt0(prefix, y_field, pc), capt=csc0(prefix, 'ActPt'), curve_meta={mn: csc0(prefix, field) for mn, field in meta_fields.items()}, mv=mv, ov=ov)
+            self._acb(data, name=name, raw_idx=df[f'{prefix}.AdptCrvRslt'].to_numpy(float), curve_x=cpt0(prefix, x_field, pc), curve_y=cpt0(prefix, y_field, pc), capt=csc0(prefix, 'ActPt'), cmx={mn: csc0(prefix, field) for mn, field in meta_fields.items()}, mv=mv, ov=ov)
         self._afd(data, df, hz=hz, w_pct=w_pct)
         dpr = self._adc(data, df, w=w, abs_w=abs_w)
         ac_type = df['DERMeasureAC[0].ACType'].to_numpy(float)
@@ -841,11 +841,11 @@ class R:
         yielded = 0
         for chunk in pd.read_csv(SCRIPT_DIR / member, usecols=list(usecols), chunksize=self.chunksize, low_memory=False):
             if limit_rows > 0:
-                remaining = limit_rows - yielded
-                if remaining <= 0:
+                rm = limit_rows - yielded
+                if rm <= 0:
                     break
-                if len(chunk) > remaining:
-                    chunk = chunk.iloc[:remaining].copy()
+                if len(chunk) > rm:
+                    chunk = chunk.iloc[:rm].copy()
             yielded += len(chunk)
             yield chunk
             if limit_rows > 0 and yielded >= limit_rows:
@@ -883,10 +883,10 @@ class R:
             sc[vm] = vc
             so[vm] = (vos + SM * prior) / (voc + SM)
             oc[vm] = voc
-        full_stats = pd.DataFrame({'key': keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
+        fst = pd.DataFrame({'key': keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
         fos = pd.DataFrame({'key': ok, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
-        self.ssm = {int(idx): float(val) for idx, val in full_stats['sum'].items()}
-        self.scm = {int(idx): int(val) for idx, val in full_stats['count'].items()}
+        self.ssm = {int(idx): float(val) for idx, val in fst['sum'].items()}
+        self.scm = {int(idx): int(val) for idx, val in fst['count'].items()}
         self.sosm = {int(idx): float(val) for idx, val in fos['sum'].items()}
         self.socm = {int(idx): int(val) for idx, val in fos['count'].items()}
         fp = fs.map(self.fbr).fillna(gr).to_numpy(np.float32)
@@ -928,9 +928,9 @@ class R:
             if fd.empty:
                 continue
             xs = _edf(fd[self.sur_cols])
-            for tg, (target_col, _) in STG.items():
+            for tg, (tc, _) in STG.items():
                 model = self._nsm()
-                y_target = fd[target_col].to_numpy(np.float32)
+                y_target = fd[tc].to_numpy(np.float32)
                 print(f'[surrogate] training {family}/{tg} on {len(fd):,} normal rows')
                 model.fit(xs, y_target)
                 self.sgm[family, tg] = model
@@ -955,12 +955,12 @@ class R:
             if not fm.any():
                 continue
             x_family = xs.loc[fm]
-            for tg, (target_col, scale_col) in STG.items():
+            for tg, (tc, scale_col) in STG.items():
                 model = self.sgm.get((family, tg))
                 if model is None:
                     continue
                 pred = model.predict(x_family).astype(np.float32)
-                actual = out.loc[fm, target_col].to_numpy(np.float32)
+                actual = out.loc[fm, tc].to_numpy(np.float32)
                 resid = actual - pred
                 out.loc[fm, f'pred_{tg}'] = pred
                 out.loc[fm, f'resid_{tg}'] = resid
@@ -1024,28 +1024,28 @@ class R:
                 out.loc[fm, f'er_{tg}'] = extreme.astype(np.int8)
                 out.loc[fm, f'ur_{tg}'] = ultra.astype(np.int8)
                 out.loc[fm, f'q9r_{tg}'] = q99_ratio.astype(np.float32)
-        abs_norm_w = np.nan_to_num(out['anr_w'].to_numpy(np.float32), nan=0.0)
-        abs_norm_var = np.nan_to_num(out['anr_var'].to_numpy(np.float32), nan=0.0)
-        abs_norm_pf = np.nan_to_num(out['anr_pf'].to_numpy(np.float32), nan=0.0)
-        abs_norm_a = np.nan_to_num(out['anr_a'].to_numpy(np.float32), nan=0.0)
+        anw = np.nan_to_num(out['anr_w'].to_numpy(np.float32), nan=0.0)
+        anv = np.nan_to_num(out['anr_var'].to_numpy(np.float32), nan=0.0)
+        anp = np.nan_to_num(out['anr_pf'].to_numpy(np.float32), nan=0.0)
+        ana = np.nan_to_num(out['anr_a'].to_numpy(np.float32), nan=0.0)
         pf_mode = np.nan_to_num(out['pcae'].to_numpy(np.float32), nan=0.0) > 0
-        voltvar_mode = (np.nan_to_num(out['DERVoltVar_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['voltvar_ce'].to_numpy(np.float32))
-        voltwatt_mode = (np.nan_to_num(out['DERVoltWatt_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['voltwatt_ce'].to_numpy(np.float32))
-        wattvar_mode = (np.nan_to_num(out['DERWattVar_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['wattvar_ce'].to_numpy(np.float32))
-        droop_mode = np.nan_to_num(out['fod'].to_numpy(np.float32), nan=0.0) > 0
+        vvm = (np.nan_to_num(out['DERVoltVar_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['voltvar_ce'].to_numpy(np.float32))
+        vwm = (np.nan_to_num(out['DERVoltWatt_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['voltwatt_ce'].to_numpy(np.float32))
+        wvm = (np.nan_to_num(out['DERWattVar_0_Ena'].to_numpy(np.float32), nan=0.0) > 0) & np.isfinite(out['wattvar_ce'].to_numpy(np.float32))
+        drm = np.nan_to_num(out['fod'].to_numpy(np.float32), nan=0.0) > 0
         eim = np.nan_to_num(out['esi'].to_numpy(np.float32), nan=0.0) > 0
-        out['mrpp'] = (abs_norm_pf * pf_mode).astype(np.float32)
-        out['mrvp'] = (abs_norm_var * pf_mode).astype(np.float32)
-        out['mrvv'] = (abs_norm_var * voltvar_mode).astype(np.float32)
-        out['mrwv'] = (abs_norm_w * voltwatt_mode).astype(np.float32)
-        out['mrvw'] = (abs_norm_var * wattvar_mode).astype(np.float32)
-        out['mrwd'] = (abs_norm_w * droop_mode).astype(np.float32)
-        out['mrwe'] = (abs_norm_w * eim).astype(np.float32)
-        out['mrae'] = (abs_norm_a * eim).astype(np.float32)
-        out['mcvr'] = (abs_norm_var * (voltvar_mode | wattvar_mode | pf_mode)).astype(np.float32)
-        out['mdwr'] = (abs_norm_w * (voltwatt_mode | droop_mode | eim)).astype(np.float32)
-        out['mevc'] = (np.nan_to_num(out['er_var'].to_numpy(np.float32), nan=0.0) * (voltvar_mode | wattvar_mode | pf_mode)).astype(np.int8)
-        out['mewd'] = (np.nan_to_num(out['er_w'].to_numpy(np.float32), nan=0.0) * (voltwatt_mode | droop_mode | eim)).astype(np.int8)
+        out['mrpp'] = (anp * pf_mode).astype(np.float32)
+        out['mrvp'] = (anv * pf_mode).astype(np.float32)
+        out['mrvv'] = (anv * vvm).astype(np.float32)
+        out['mrwv'] = (anw * vwm).astype(np.float32)
+        out['mrvw'] = (anv * wvm).astype(np.float32)
+        out['mrwd'] = (anw * drm).astype(np.float32)
+        out['mrwe'] = (anw * eim).astype(np.float32)
+        out['mrae'] = (ana * eim).astype(np.float32)
+        out['mcvr'] = (anv * (vvm | wvm | pf_mode)).astype(np.float32)
+        out['mdwr'] = (anw * (vwm | drm | eim)).astype(np.float32)
+        out['mevc'] = (np.nan_to_num(out['er_var'].to_numpy(np.float32), nan=0.0) * (vvm | wvm | pf_mode)).astype(np.int8)
+        out['mewd'] = (np.nan_to_num(out['er_w'].to_numpy(np.float32), nan=0.0) * (vwm | drm | eim)).astype(np.int8)
         out['mtc'] = out[['mevc', 'mewd']].sum(axis=1).astype(np.int8)
         out['rtc'] = out[['tr_w', 'tr_va', 'tr_var', 'tr_pf', 'tr_a']].sum(axis=1).astype(np.int8)
         out['rec'] = out[['er_w', 'er_va', 'er_var', 'er_pf', 'er_a']].sum(axis=1).astype(np.int8)
