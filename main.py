@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 import gc
 import json
-import hashlib
 import math
 import random
 import re
 import shutil
-import zipfile
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
-from sklearn.metrics import fbeta_score, precision_score, recall_score
+from sklearn.metrics import fbeta_score
 from xgboost import XGBClassifier, XGBRegressor
 try:
     from catboost import CatBoostClassifier
@@ -111,17 +109,7 @@ CANON2 = 'DERSec|DER Simulator 100 kW|1.2.3.1|1.0.0|1100058974'
 SAFE_RAW = {c: re.sub('[^0-9A-Za-z_]+', '_', c) for c in RAW_NUMERIC}
 SAFE_STR = {c: re.sub('[^0-9A-Za-z_]+', '_', c) for c in RAW_STRING_COLUMNS}
 SCRIPT_DIR = Path(__file__).resolve().parent
-DATASET_ARCHIVE_NAME = 'cyber-physical-anomaly-detection-for-der-systems.zip'
 DEFAULT_SEED = 42
-MODEL_FILENAME = 'semantic_full_data_xgb.json'
-REPORT_FILENAME = 'semantic_full_data_validation.json'
-
-def default_zip_path():
-    local_zip_path = SCRIPT_DIR / DATASET_ARCHIVE_NAME
-    if local_zip_path.exists():
-        return local_zip_path
-    return Path('/mnt/data') / DATASET_ARCHIVE_NAME
-DEFAULT_ZIP_PATH = default_zip_path()
 DEFAULT_OUTPUT_DIR = SCRIPT_DIR / 'outputs' / 'full_data_hybrid'
 SQRT3 = math.sqrt(3.0)
 DEVICE_FAMILY_MAP = {'canon10': 0, 'canon100': 1}
@@ -144,14 +132,6 @@ CAT_ENGINEERED_COLUMNS = ['device_fingerprint', 'common_missing_pattern', 'enter
 EXPECTED_MODEL_META = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'measure_ac': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'measure_dc': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
 
 @dataclass
-class MetricSummary:
-    f2: float
-    precision: float
-    recall: float
-    positive_rate: float
-    rows: int
-
-@dataclass
 class FamilySemanticContext:
     family: str
     surrogate_feature_cols: List[str]
@@ -163,62 +143,14 @@ class FamilySemanticContext:
     scenario_output_sum_map: Dict[int, float]
     scenario_output_count_map: Dict[int, int]
 
-@dataclass
-class TrainingReport:
-    primary_metrics: Dict[str, MetricSummary]
-    audit_metrics: Dict[str, MetricSummary]
-    family_thresholds: Dict[str, float]
-    family_blend_weights: Dict[str, float]
-    semantic_feature_counts: Dict[str, int]
-    cat_feature_counts: Dict[str, int]
-    active_hard_override_names: List[str]
-    demoted_hard_override_names: List[str]
-    hard_override_rule_stats: Dict[str, Dict[str, float]]
-    artifact_row_counts: Dict[str, int]
-    artifact_dir: str
-
-    def as_dict(self):
-        return {'primary_metrics': {name: asdict(metric) for name, metric in self.primary_metrics.items()}, 'audit_metrics': {name: asdict(metric) for name, metric in self.audit_metrics.items()}, 'family_thresholds': self.family_thresholds, 'family_blend_weights': self.family_blend_weights, 'semantic_feature_counts': self.semantic_feature_counts, 'cat_feature_counts': self.cat_feature_counts, 'active_hard_override_names': self.active_hard_override_names, 'demoted_hard_override_names': self.demoted_hard_override_names, 'hard_override_rule_stats': self.hard_override_rule_stats, 'artifact_row_counts': self.artifact_row_counts, 'artifact_dir': self.artifact_dir}
-
-@dataclass(frozen=True)
-class RunConfig:
-    zip_path: Path = DEFAULT_ZIP_PATH
-    output_dir: Path = DEFAULT_OUTPUT_DIR
-    artifact_dir: Path = DEFAULT_OUTPUT_DIR / 'artifacts'
-    write_test_predictions: bool = True
-    rebuild_artifacts: bool = False
-    chunksize: int = 5000
-    cv_folds: int = 5
-    xgb_n_estimators: int = 180
-    xgb_max_depth: int = 8
-    xgb_learning_rate: float = 0.05
-    xgb_subsample: float = 0.8
-    xgb_colsample_bytree: float = 0.8
-    cat_iterations: int = 400
-    cat_depth: int = 8
-    cat_learning_rate: float = 0.05
-    n_jobs: int = 4
-    seed: int = DEFAULT_SEED
-
-    def create_baseline(self):
-        return ResearchBaseline(artifact_dir=self.artifact_dir, rebuild_artifacts=self.rebuild_artifacts, chunksize=self.chunksize, cv_folds=self.cv_folds, n_estimators=self.xgb_n_estimators, max_depth=self.xgb_max_depth, learning_rate=self.xgb_learning_rate, subsample=self.xgb_subsample, colsample_bytree=self.xgb_colsample_bytree, cat_iterations=self.cat_iterations, cat_depth=self.cat_depth, cat_learning_rate=self.cat_learning_rate, n_jobs=self.n_jobs, seed=self.seed)
-
 def seed_everything(seed):
     random.seed(seed)
     np.random.seed(seed)
 
-def file_sha256(path):
-    digest = hashlib.sha256()
-    with path.open('rb') as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b''):
-            digest.update(chunk)
-    return digest.hexdigest()
-
 class ResearchBaseline:
 
-    def __init__(self, *, artifact_dir=DEFAULT_OUTPUT_DIR / 'artifacts', rebuild_artifacts=False, chunksize=5000, cv_folds=5, n_estimators=150, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cat_iterations=400, cat_depth=8, cat_learning_rate=0.05, n_jobs=4, seed=DEFAULT_SEED):
+    def __init__(self, *, artifact_dir=DEFAULT_OUTPUT_DIR / 'artifacts', chunksize=5000, cv_folds=5, n_estimators=180, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cat_iterations=400, cat_depth=8, cat_learning_rate=0.05, n_jobs=4, seed=DEFAULT_SEED):
         self.artifact_dir = artifact_dir
-        self.rebuild_artifacts = rebuild_artifacts
         self.chunksize = chunksize
         self.cv_folds = cv_folds
         self.n_estimators = n_estimators
@@ -232,18 +164,13 @@ class ResearchBaseline:
         self.n_jobs = n_jobs
         self.seed = seed
         self.hard_override_names = list(DEFAULT_HARD_OVERRIDE_NAMES)
-        self.hard_override_rule_stats: Dict[str, Dict[str, float]] = {}
-        self.row_counts_by_family: Dict[str, int] = {}
-        self.model: Optional[XGBClassifier] = None
         self.semantic_models: Dict[str, XGBClassifier] = {}
         self.cat_models: Dict[str, Any] = {}
         self.semantic_contexts: Dict[str, FamilySemanticContext] = {}
         self.family_thresholds: Dict[str, float] = {'canon10': 0.5, 'canon100': 0.5}
         self.family_blend_weights: Dict[str, float] = {'canon10': 1.0, 'canon100': 1.0}
-        self.feature_cols: Optional[List[str]] = None
         self.semantic_feature_cols_by_family: Dict[str, List[str]] = {}
         self.cat_feature_cols_by_family: Dict[str, List[str]] = {}
-        self.cat_categorical_cols_by_family: Dict[str, List[str]] = {}
         self.surrogate_feature_cols: Optional[List[str]] = None
         self.surrogate_models: Dict[Tuple[str, str], XGBRegressor] = {}
         self.residual_quantiles: Dict[str, Dict[str, Dict[str, float]]] = {}
@@ -252,7 +179,6 @@ class ResearchBaseline:
         self.scenario_count_map: Dict[int, int] = {}
         self.scenario_output_sum_map: Dict[int, float] = {}
         self.scenario_output_count_map: Dict[int, int] = {}
-        self.training_report: Optional[TrainingReport] = None
 
     @staticmethod
     def _safe_div(a, b):
@@ -818,21 +744,19 @@ class ResearchBaseline:
         data['hard_override_anomaly'] = hard_override_flags.any(axis=1).astype(np.int8)
         return pd.DataFrame(data)
 
-    def iter_raw_chunks(self, zip_path, member, usecols, limit_rows=0):
+    def iter_raw_chunks(self, member, usecols, limit_rows=0):
         yielded = 0
-        with zipfile.ZipFile(zip_path) as zf:
-            with zf.open(member) as fh:
-                for chunk in pd.read_csv(fh, usecols=list(usecols), chunksize=self.chunksize, low_memory=False):
-                    if limit_rows > 0:
-                        remaining = limit_rows - yielded
-                        if remaining <= 0:
-                            break
-                        if len(chunk) > remaining:
-                            chunk = chunk.iloc[:remaining].copy()
-                    yielded += len(chunk)
-                    yield chunk
-                    if limit_rows > 0 and yielded >= limit_rows:
-                        break
+        for chunk in pd.read_csv(SCRIPT_DIR / member, usecols=list(usecols), chunksize=self.chunksize, low_memory=False):
+            if limit_rows > 0:
+                remaining = limit_rows - yielded
+                if remaining <= 0:
+                    break
+                if len(chunk) > remaining:
+                    chunk = chunk.iloc[:remaining].copy()
+            yielded += len(chunk)
+            yield chunk
+            if limit_rows > 0 and yielded >= limit_rows:
+                break
 
     @staticmethod
     def tune_threshold(y_true, prob):
@@ -1141,12 +1065,6 @@ class ResearchBaseline:
         return (best_thr, best_f2)
 
     @staticmethod
-    def _metric_summary_from_pred(y_true, pred):
-        if len(y_true) == 0:
-            return MetricSummary(f2=0.0, precision=0.0, recall=0.0, positive_rate=0.0, rows=0)
-        return MetricSummary(f2=float(fbeta_score(y_true, pred, beta=2)), precision=float(precision_score(y_true, pred, zero_division=0)), recall=float(recall_score(y_true, pred, zero_division=0)), positive_rate=float(np.mean(pred)), rows=int(len(y_true)))
-
-    @staticmethod
     def _blend_probs(primary, secondary, weight):
         if secondary is None:
             return primary.astype(np.float32)
@@ -1166,10 +1084,6 @@ class ResearchBaseline:
             keep.append(col)
         return keep
 
-    @staticmethod
-    def _report_rows_to_metric(rows, pred_col):
-        return ResearchBaseline._metric_summary_from_pred(rows['Label'].to_numpy(np.int8), rows[pred_col].to_numpy(np.int8))
-
     def _ensure_catboost_available(self):
         if CatBoostClassifier is None:
             raise RuntimeError('CatBoost is required for the full-data hybrid pipeline. Install dependencies from pyproject.toml before training.')
@@ -1178,48 +1092,31 @@ class ResearchBaseline:
         self._ensure_catboost_available()
         return CatBoostClassifier(iterations=self.cat_iterations, depth=self.cat_depth, learning_rate=self.cat_learning_rate, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.n_jobs, allow_writing_files=False, verbose=False)
 
-    def _artifact_metadata_path(self):
-        return self.artifact_dir / 'metadata.json'
-
-    def _build_train_artifacts(self, zip_path):
-        metadata_path = self._artifact_metadata_path()
-        if metadata_path.exists() and (not self.rebuild_artifacts):
-            metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
-            self.row_counts_by_family = {k: int(v) for k, v in metadata.get('row_counts', {}).items()}
-            return metadata
-        if self.artifact_dir.exists() and self.rebuild_artifacts:
-            shutil.rmtree(self.artifact_dir)
+    def _build_train_artifacts(self):
+        shutil.rmtree(self.artifact_dir, ignore_errors=True)
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
         train_root = self.artifact_dir / 'train'
         row_counts = {'canon10': 0, 'canon100': 0, 'other': 0}
         part_counts = {'canon10': 0, 'canon100': 0, 'other': 0}
-        for chunk_idx, chunk in enumerate(self.iter_raw_chunks(zip_path, 'train.csv', USECOLS_TRAIN, 0)):
+        for chunk_idx, chunk in enumerate(self.iter_raw_chunks('train.csv', USECOLS_TRAIN)):
             labels = chunk['Label'].astype(np.int8).to_numpy()
             feats = self.build_features(chunk.drop(columns=['Label']))
             feats['Label'] = labels
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
-            scenario_keys = self._build_scenario_keys(feats)
-            feats['audit_fold_id'] = (scenario_keys % self.cv_folds).astype(np.int8)
+            feats['audit_fold_id'] = (self._build_scenario_keys(feats) % self.cv_folds).astype(np.int8)
             for family in row_counts:
                 family_mask = feats['device_family'] == family
-                if not family_mask.any():
-                    continue
-                family_dir = train_root / family
-                family_dir.mkdir(parents=True, exist_ok=True)
-                family_df = feats.loc[family_mask].copy()
-                out_path = family_dir / f'part_{part_counts[family]:05d}.parquet'
-                family_df.to_parquet(out_path, index=False)
-                part_counts[family] += 1
-                row_counts[family] += int(len(family_df))
+                if family_mask.any():
+                    family_dir = train_root / family
+                    family_dir.mkdir(parents=True, exist_ok=True)
+                    family_df = feats.loc[family_mask].copy()
+                    family_df.to_parquet(family_dir / f'part_{part_counts[family]:05d}.parquet', index=False)
+                    part_counts[family] += 1
+                    row_counts[family] += int(len(family_df))
             if chunk_idx % 10 == 0:
-                built = sum(row_counts.values())
-                print(f'[artifacts] materialized {built:,} training rows')
+                print(f"[artifacts] materialized {sum(row_counts.values()):,} training rows")
             del feats
             gc.collect()
-        metadata = {'row_counts': row_counts, 'part_counts': part_counts, 'cv_folds': self.cv_folds}
-        metadata_path.write_text(json.dumps(metadata, indent=2), encoding='utf-8')
-        self.row_counts_by_family = row_counts
-        return metadata
 
     def _load_family_artifact(self, family, columns=None):
         family_dir = self.artifact_dir / 'train' / family
@@ -1241,34 +1138,19 @@ class ResearchBaseline:
         return out
 
     def _audit_hard_override_rules(self):
-        unique_rule_cols = sorted({RULE_COLUMN_MAP[name] for name in DEFAULT_HARD_OVERRIDE_NAMES})
-        total_positive = 0
-        per_rule_counts = {name: {'count': 0, 'positives': 0} for name in DEFAULT_HARD_OVERRIDE_NAMES}
+        cols = sorted({RULE_COLUMN_MAP[name] for name in DEFAULT_HARD_OVERRIDE_NAMES})
+        counts = {name: [0, 0] for name in DEFAULT_HARD_OVERRIDE_NAMES}
         for family in ['canon10', 'canon100', 'other']:
-            frame = self._load_family_artifact(family, columns=['Label', *unique_rule_cols])
+            frame = self._load_family_artifact(family, columns=['Label', *cols])
             if frame.empty:
                 continue
             labels = frame['Label'].to_numpy(np.int8)
-            total_positive += int(labels.sum())
-            for rule_name in DEFAULT_HARD_OVERRIDE_NAMES:
-                mask = pd.to_numeric(frame[RULE_COLUMN_MAP[rule_name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1
-                if not mask.any():
-                    continue
-                per_rule_counts[rule_name]['count'] += int(mask.sum())
-                per_rule_counts[rule_name]['positives'] += int(labels[mask].sum())
-        stats: Dict[str, Dict[str, float]] = {}
-        demoted: List[str] = []
-        for rule_name, counts in per_rule_counts.items():
-            count = counts['count']
-            positives = counts['positives']
-            precision = float(positives / count) if count else 1.0
-            recall = float(positives / total_positive) if total_positive else 0.0
-            stats[rule_name] = {'count': int(count), 'positives': int(positives), 'precision': precision, 'recall': recall}
-            if count > 0 and precision < MIN_OVERRIDE_PRECISION:
-                demoted.append(rule_name)
-        self.hard_override_rule_stats = stats
-        self.hard_override_names = [name for name in DEFAULT_HARD_OVERRIDE_NAMES if name not in demoted]
-        return demoted
+            for name in DEFAULT_HARD_OVERRIDE_NAMES:
+                mask = pd.to_numeric(frame[RULE_COLUMN_MAP[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1
+                if mask.any():
+                    counts[name][0] += int(mask.sum())
+                    counts[name][1] += int(labels[mask].sum())
+        self.hard_override_names = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MIN_OVERRIDE_PRECISION]
 
     def _capture_semantic_context(self, family):
         return FamilySemanticContext(family=family, surrogate_feature_cols=list(self.surrogate_feature_cols or []), surrogate_models=dict(self.surrogate_models), residual_quantiles=json.loads(json.dumps(self.residual_quantiles)), family_base_rates=dict(self.family_base_rates), scenario_sum_map=dict(self.scenario_sum_map), scenario_count_map=dict(self.scenario_count_map), scenario_output_sum_map=dict(self.scenario_output_sum_map), scenario_output_count_map=dict(self.scenario_output_count_map))
@@ -1394,14 +1276,10 @@ class ResearchBaseline:
                 best_audit_for_best = audit_score
         return (best_weight, best_thr, best_primary_pred.astype(np.int8), best_audit_pred.astype(np.int8))
 
-    def fit(self, zip_path):
-        metadata = self._build_train_artifacts(zip_path)
-        demoted_rules = self._audit_hard_override_rules()
-        primary_metrics: Dict[str, MetricSummary] = {}
-        audit_metrics: Dict[str, MetricSummary] = {}
-        semantic_feature_counts: Dict[str, int] = {}
-        cat_feature_counts: Dict[str, int] = {}
-        prediction_rows: List[pd.DataFrame] = []
+    def fit(self):
+        self._build_train_artifacts()
+        self._audit_hard_override_rules()
+        trained = 0
         for family in DEVICE_FAMILY_MAP:
             base_df = self._load_family_artifact(family)
             if base_df.empty:
@@ -1411,54 +1289,29 @@ class ResearchBaseline:
             self.semantic_contexts[family] = context
             semantic_feature_cols = self._select_nonconstant_columns(semantic_df, self._semantic_feature_candidates(semantic_df))
             self.semantic_feature_cols_by_family[family] = semantic_feature_cols
-            semantic_feature_counts[family] = len(semantic_feature_cols)
             cat_df = self._prepare_cat_frame(base_df.copy())
             cat_feature_cols = self._select_nonconstant_columns(cat_df, self._cat_feature_candidates(cat_df))
-            cat_categorical_cols = [col for col in [*SAFE_STR.values(), 'device_fingerprint'] if col in cat_feature_cols]
             self.cat_feature_cols_by_family[family] = cat_feature_cols
-            self.cat_categorical_cols_by_family[family] = cat_categorical_cols
-            cat_feature_counts[family] = len(cat_feature_cols)
+            cat_categorical_cols = [col for col in [*SAFE_STR.values(), 'device_fingerprint'] if col in cat_feature_cols]
             y = y_series.to_numpy(np.int8)
             hard_override = semantic_df['hard_override_anomaly'].to_numpy(np.int8) == 1
             semantic_primary_prob, semantic_model = self._train_semantic_oof(semantic_df, y, semantic_feature_cols, fold_col='fold_id', fit_final=True)
             semantic_audit_prob, _ = self._train_semantic_oof(semantic_df, y, semantic_feature_cols, fold_col='audit_fold_id', fit_final=False)
             self.semantic_models[family] = semantic_model
-            cat_primary_prob: Optional[np.ndarray] = None
-            cat_audit_prob: Optional[np.ndarray] = None
-            cat_model: Optional['CatBoostClassifier'] = None
+            cat_primary_prob = cat_audit_prob = cat_model = None
             if cat_feature_cols:
                 cat_primary_prob, cat_model = self._train_cat_oof(cat_df, y, cat_feature_cols, cat_categorical_cols, fold_col='fold_id', fit_final=True)
                 cat_audit_prob, _ = self._train_cat_oof(cat_df, y, cat_feature_cols, cat_categorical_cols, fold_col='audit_fold_id', fit_final=False)
             self.cat_models[family] = cat_model
-            weight, threshold, primary_pred, audit_pred = self._select_family_blend(y, hard_override, semantic_primary_prob, semantic_audit_prob, cat_primary_prob, cat_audit_prob)
+            weight, threshold, _, _ = self._select_family_blend(y, hard_override, semantic_primary_prob, semantic_audit_prob, cat_primary_prob, cat_audit_prob)
             self.family_blend_weights[family] = weight
             self.family_thresholds[family] = threshold
-            family_rows = pd.DataFrame({'Id': semantic_df['Id'].to_numpy(np.int64), 'Label': y, 'family': family, 'pred_primary': primary_pred, 'pred_audit': audit_pred})
-            prediction_rows.append(family_rows)
-            primary_metrics[family] = self._report_rows_to_metric(family_rows, 'pred_primary')
-            audit_metrics[family] = self._report_rows_to_metric(family_rows, 'pred_audit')
-            print(f'[fit] {family} primary F2={primary_metrics[family].f2:.6f}, audit F2={audit_metrics[family].f2:.6f}, threshold={threshold:.3f}, blend_weight={weight:.2f}')
-            del base_df, semantic_df, cat_df, family_rows
+            trained += 1
+            print(f'[fit] {family} threshold={threshold:.3f}, blend_weight={weight:.2f}')
+            del base_df, semantic_df, cat_df
             gc.collect()
-        other_df = self._load_family_artifact('other', columns=['Id', 'Label'])
-        if not other_df.empty:
-            other_rows = other_df.copy()
-            other_rows['family'] = 'other'
-            other_rows['pred_primary'] = 1
-            other_rows['pred_audit'] = 1
-            prediction_rows.append(other_rows[['Id', 'Label', 'family', 'pred_primary', 'pred_audit']])
-            primary_metrics['other'] = self._report_rows_to_metric(other_rows, 'pred_primary')
-            audit_metrics['other'] = self._report_rows_to_metric(other_rows, 'pred_audit')
-        if not prediction_rows:
+        if not trained:
             raise RuntimeError('No training artifacts were available for model fitting.')
-        all_predictions = pd.concat(prediction_rows, ignore_index=True)
-        primary_metrics['overall'] = self._report_rows_to_metric(all_predictions, 'pred_primary')
-        audit_metrics['overall'] = self._report_rows_to_metric(all_predictions, 'pred_audit')
-        report = TrainingReport(primary_metrics=primary_metrics, audit_metrics=audit_metrics, family_thresholds=dict(self.family_thresholds), family_blend_weights=dict(self.family_blend_weights), semantic_feature_counts=semantic_feature_counts, cat_feature_counts=cat_feature_counts, active_hard_override_names=list(self.hard_override_names), demoted_hard_override_names=demoted_rules, hard_override_rule_stats=dict(self.hard_override_rule_stats), artifact_row_counts={k: int(v) for k, v in metadata.get('row_counts', {}).items()}, artifact_dir=str(self.artifact_dir))
-        self.training_report = report
-        print(f"[fit] overall primary F2={report.primary_metrics['overall'].f2:.6f}, precision={report.primary_metrics['overall'].precision:.4f}, recall={report.primary_metrics['overall'].recall:.4f}")
-        print(f"[fit] overall audit F2={report.audit_metrics['overall'].f2:.6f}, precision={report.audit_metrics['overall'].precision:.4f}, recall={report.audit_metrics['overall'].recall:.4f}")
-        return report
 
     def _predict_family_chunk(self, family, base_df):
         if family not in self.semantic_contexts or family not in self.semantic_models:
@@ -1488,24 +1341,21 @@ class ResearchBaseline:
         pred[hard_override] = 1
         return pred
 
-    def predict_test(self, zip_path, out_csv):
-        if self.training_report is None:
+    def predict_test(self, out_csv):
+        if not self.semantic_models:
             raise RuntimeError('Model is not fitted.')
         out_csv.parent.mkdir(parents=True, exist_ok=True)
         total_rows = 0
         positive_rows = 0
         with out_csv.open('w', encoding='utf-8') as fh:
             fh.write('Id,Label\n')
-            for chunk_idx, chunk in enumerate(self.iter_raw_chunks(zip_path, 'test.csv', USECOLS_TEST, 0)):
+            for chunk_idx, chunk in enumerate(self.iter_raw_chunks('test.csv', USECOLS_TEST)):
                 feats = self.build_features(chunk)
                 pred = feats['hard_override_anomaly'].astype(np.int8).to_numpy()
                 for family in DEVICE_FAMILY_MAP:
                     family_mask = feats['device_family'] == family
-                    if not family_mask.any():
-                        continue
-                    family_df = feats.loc[family_mask].copy()
-                    family_pred = self._predict_family_chunk(family, family_df)
-                    pred[np.flatnonzero(family_mask.to_numpy())] = family_pred
+                    if family_mask.any():
+                        pred[np.flatnonzero(family_mask.to_numpy())] = self._predict_family_chunk(family, feats.loc[family_mask].copy())
                 out = pd.DataFrame({'Id': feats['Id'].astype(np.int64), 'Label': pred.astype(np.int8)})
                 out.to_csv(fh, index=False, header=False)
                 total_rows += len(out)
@@ -1514,58 +1364,13 @@ class ResearchBaseline:
                     print(f'[test] wrote {total_rows:,} predictions')
         print(f'[test] done; total_rows={total_rows:,}, positive_rows={positive_rows:,}, positive_rate={positive_rows / max(total_rows, 1):.6f}')
 
-    def save(self, model_path, report_path):
-        if self.training_report is None:
-            raise RuntimeError('Nothing to save; fit the model first.')
-        model_path.parent.mkdir(parents=True, exist_ok=True)
-        model_dir = model_path.parent / 'models'
-        model_dir.mkdir(parents=True, exist_ok=True)
-        manifest: Dict[str, Any] = {'semantic_models': {}, 'cat_models': {}, 'surrogates': {}, 'active_hard_override_names': self.hard_override_names}
-        for family, model in self.semantic_models.items():
-            if model is None:
-                continue
-            path = model_dir / f'semantic_{family}.json'
-            model.save_model(path)
-            manifest['semantic_models'][family] = path.name
-        for family, model in self.cat_models.items():
-            if model is None:
-                continue
-            path = model_dir / f'cat_{family}.cbm'
-            model.save_model(path)
-            manifest['cat_models'][family] = path.name
-        surrogate_dir = model_dir / 'surrogates'
-        surrogate_dir.mkdir(parents=True, exist_ok=True)
-        for family, context in self.semantic_contexts.items():
-            for (ctx_family, target_name), model in context.surrogate_models.items():
-                path = surrogate_dir / f'{ctx_family}_{target_name}.json'
-                model.save_model(path)
-                manifest['surrogates'].setdefault(family, {})[target_name] = path.name
-        model_path.write_text(json.dumps(manifest, indent=2), encoding='utf-8')
-        payload = self.training_report.as_dict()
-        payload['semantic_feature_cols_by_family'] = self.semantic_feature_cols_by_family
-        payload['cat_feature_cols_by_family'] = self.cat_feature_cols_by_family
-        payload['cat_categorical_cols_by_family'] = self.cat_categorical_cols_by_family
-        payload['semantic_context_metadata'] = {family: {'surrogate_feature_cols': context.surrogate_feature_cols, 'residual_quantiles': context.residual_quantiles, 'family_base_rates': context.family_base_rates} for family, context in self.semantic_contexts.items()}
-        report_path.write_text(json.dumps(payload, indent=2), encoding='utf-8')
-DEFAULT_RUN_CONFIG = RunConfig()
-
-def run_pipeline(config=DEFAULT_RUN_CONFIG):
-    seed_everything(config.seed)
-    baseline = config.create_baseline()
-    report = baseline.fit(config.zip_path)
-    config.output_dir.mkdir(parents=True, exist_ok=True)
-    model_path = config.output_dir / MODEL_FILENAME
-    report_path = config.output_dir / REPORT_FILENAME
-    baseline.save(model_path, report_path)
-    final_solution_path = report_path
-    final_solution_label = 'validation_report'
-    if config.write_test_predictions:
-        submission_path = config.output_dir / 'submission_full_data.csv'
-        baseline.predict_test(config.zip_path, submission_path)
-        final_solution_path = submission_path
-        final_solution_label = 'submission'
-    print(f'[solution] {final_solution_label}_sha256={file_sha256(final_solution_path)} path={final_solution_path}')
-    return report
+def run_pipeline():
+    seed_everything(DEFAULT_SEED)
+    baseline = ResearchBaseline()
+    baseline.fit()
+    out = DEFAULT_OUTPUT_DIR / 'submission_full_data.csv'
+    baseline.predict_test(out)
+    print(f'[solution] path={out}')
 
 def main():
     run_pipeline()

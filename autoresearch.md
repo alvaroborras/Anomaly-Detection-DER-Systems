@@ -40,13 +40,14 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- The current kept `main.py` is ~112k chars after safe syntax-preserving stripping, down from ~130k.
-- Large remaining opportunities still appear to be: reporting/config dataclasses, model/report persistence, zip-path indirection, and audit/report surface area that does not affect the final submission.
-- The safest path is still to preserve predictor logic while deleting non-essential code and simplifying I/O around `train.csv`/`test.csv`.
+- The current kept `main.py` is ~100k chars, down from ~130k.
+- The most productive safe reductions so far have come from deleting non-essential surface area rather than changing the predictor itself.
+- Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic-context plumbing that may be representable more compactly, and any training/report code that is only needed for diagnostics rather than the final submission.
 - Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this remains a backup path, not the leading one.
 
 ## What's Been Tried
 - Baseline hash identified from the reference submission: `f49de9a5b433a55ea49da611334ec0326b817d80140d2016fc67f7c5d2763196`.
 - Explored distillation offline: exact matches were possible with engineered-feature trees/boosters, but model representations stayed too large to obviously beat a direct code-pruning refactor.
 - Kept: AST-based syntax-preserving minification (drop docstrings/comments via unparse, remove function annotations) reduced `main.py` from 130,112 chars to 112,003 chars and also slightly improved runtime while preserving the exact hash.
-- Best current direction: aggressively remove code not needed for final prediction while preserving the original training/inference behavior.
+- Kept: removed unused report/config/save machinery, switched the runtime to direct `train.csv` / `test.csv` reads, simplified artifact rebuilding to always start fresh, and collapsed `run_pipeline()` to the minimum needed for final prediction. This reduced `main.py` further to 99,978 chars while preserving the exact hash.
+- Best current direction: continue deleting helper/reporting structures and collapsing verbose bookkeeping without changing the trained decision path.

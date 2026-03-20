@@ -1,2 +1,3 @@
 {"type":"config","name":"Minimize main.py while preserving exact submission hash","metricName":"score","metricUnit":"","bestDirection":"lower"}
 {"run":1,"commit":"05036c0","metric":130113886783,"metrics":{},"status":"keep","description":"baseline: current full pipeline with exact hash; added run_pipeline.sh/autoresearch.sh/autoresearch.md benchmark harness","timestamp":1774007958740,"segment":0,"confidence":null}
+{"run":2,"commit":"7d0232a","metric":112004758481,"metrics":{},"status":"keep","description":"AST-based syntax-preserving minification: removed docstrings/comments via unparse and stripped function annotations; main.py 130112→112003 chars with exact hash and slightly faster runtime","timestamp":1774009830693,"segment":0,"confidence":null}
