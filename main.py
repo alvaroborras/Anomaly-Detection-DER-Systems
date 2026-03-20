@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 import gc
-import json
 import math
 import random
 import re
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.metrics import fbeta_score
@@ -1137,19 +1135,12 @@ class ResearchBaseline:
         self.hard_override_names = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MIN_OVERRIDE_PRECISION]
 
     def _capture_semantic_context(self):
-        return (list(self.surrogate_feature_cols or []), dict(self.surrogate_models), json.loads(json.dumps(self.residual_quantiles)), dict(self.family_base_rates), dict(self.scenario_sum_map), dict(self.scenario_count_map), dict(self.scenario_output_sum_map), dict(self.scenario_output_count_map))
+        return (self.surrogate_feature_cols, self.surrogate_models, self.residual_quantiles, self.family_base_rates, self.scenario_sum_map, self.scenario_count_map, self.scenario_output_sum_map, self.scenario_output_count_map)
 
     def _activate_semantic_context(self, context):
-        self.surrogate_feature_cols = list(context[0])
-        self.surrogate_models = dict(context[1])
-        self.residual_quantiles = json.loads(json.dumps(context[2]))
-        self.family_base_rates = dict(context[3])
-        self.scenario_sum_map = dict(context[4])
-        self.scenario_count_map = dict(context[5])
-        self.scenario_output_sum_map = dict(context[6])
-        self.scenario_output_count_map = dict(context[7])
+        self.surrogate_feature_cols, self.surrogate_models, self.residual_quantiles, self.family_base_rates, self.scenario_sum_map, self.scenario_count_map, self.scenario_output_sum_map, self.scenario_output_count_map = context
 
-    def _prepare_family_semantic_frame(self, base_df, y, family):
+    def _prepare_family_semantic_frame(self, base_df, y):
         work = self._refresh_override_columns(base_df)
         no_valid = pd.Series(np.zeros(len(work), dtype=bool), index=work.index)
         self._fit_surrogate_models(work, y, no_valid)
@@ -1269,7 +1260,7 @@ class ResearchBaseline:
             if base_df.empty:
                 continue
             y_series = base_df['Label'].astype(np.int8)
-            semantic_df, context = self._prepare_family_semantic_frame(base_df.copy(), y_series, family)
+            semantic_df, context = self._prepare_family_semantic_frame(base_df.copy(), y_series)
             self.semantic_contexts[family] = context
             semantic_feature_cols = self._select_nonconstant_columns(semantic_df, self._semantic_feature_candidates(semantic_df))
             self.semantic_feature_cols_by_family[family] = semantic_feature_cols
