@@ -23,28 +23,28 @@ def prefixed(prefix, fields):
 def build_volt_var_columns(prefix):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCrvReq', f'{prefix}.AdptCrvRslt', f'{prefix}.NPt', f'{prefix}.NCrv', f'{prefix}.RvrtTms', f'{prefix}.RvrtRem', f'{prefix}.RvrtCrv']
     for curve in range(3):
-        curve_prefix = f'{prefix}.Crv[{curve}]'
-        cols.extend([f'{curve_prefix}.ActPt', f'{curve_prefix}.DeptRef', f'{curve_prefix}.Pri', f'{curve_prefix}.VRef', f'{curve_prefix}.VRefAuto', f'{curve_prefix}.VRefAutoEna', f'{curve_prefix}.VRefAutoTms', f'{curve_prefix}.RspTms', f'{curve_prefix}.ReadOnly'])
+        cp = f'{prefix}.Crv[{curve}]'
+        cols.extend([f'{cp}.ActPt', f'{cp}.DeptRef', f'{cp}.Pri', f'{cp}.VRef', f'{cp}.VRefAuto', f'{cp}.VRefAutoEna', f'{cp}.VRefAutoTms', f'{cp}.RspTms', f'{cp}.ReadOnly'])
         for point in range(4):
-            cols.extend([f'{curve_prefix}.Pt[{point}].V', f'{curve_prefix}.Pt[{point}].Var'])
+            cols.extend([f'{cp}.Pt[{point}].V', f'{cp}.Pt[{point}].Var'])
     return cols
 
 def build_volt_watt_columns(prefix):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCrvReq', f'{prefix}.AdptCrvRslt', f'{prefix}.NPt', f'{prefix}.NCrv', f'{prefix}.RvrtTms', f'{prefix}.RvrtRem', f'{prefix}.RvrtCrv']
     for curve in range(3):
-        curve_prefix = f'{prefix}.Crv[{curve}]'
-        cols.extend([f'{curve_prefix}.ActPt', f'{curve_prefix}.DeptRef', f'{curve_prefix}.RspTms', f'{curve_prefix}.ReadOnly'])
+        cp = f'{prefix}.Crv[{curve}]'
+        cols.extend([f'{cp}.ActPt', f'{cp}.DeptRef', f'{cp}.RspTms', f'{cp}.ReadOnly'])
         for point in range(2):
-            cols.extend([f'{curve_prefix}.Pt[{point}].V', f'{curve_prefix}.Pt[{point}].W'])
+            cols.extend([f'{cp}.Pt[{point}].V', f'{cp}.Pt[{point}].W'])
     return cols
 
 def build_watt_var_columns(prefix):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCrvReq', f'{prefix}.AdptCrvRslt', f'{prefix}.NPt', f'{prefix}.NCrv', f'{prefix}.RvrtTms', f'{prefix}.RvrtRem', f'{prefix}.RvrtCrv']
     for curve in range(3):
-        curve_prefix = f'{prefix}.Crv[{curve}]'
-        cols.extend([f'{curve_prefix}.ActPt', f'{curve_prefix}.DeptRef', f'{curve_prefix}.Pri', f'{curve_prefix}.ReadOnly'])
+        cp = f'{prefix}.Crv[{curve}]'
+        cols.extend([f'{cp}.ActPt', f'{cp}.DeptRef', f'{cp}.Pri', f'{cp}.ReadOnly'])
         for point in range(6):
-            cols.extend([f'{curve_prefix}.Pt[{point}].W', f'{curve_prefix}.Pt[{point}].Var'])
+            cols.extend([f'{cp}.Pt[{point}].W', f'{cp}.Pt[{point}].Var'])
     return cols
 
 def build_freq_droop_columns(prefix):
@@ -57,10 +57,10 @@ def build_freq_droop_columns(prefix):
 def build_trip_columns(prefix, axis_name):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCrvReq', f'{prefix}.AdptCrvRslt', f'{prefix}.NPt', f'{prefix}.NCrvSet']
     for curve in range(2):
-        curve_prefix = f'{prefix}.Crv[{curve}]'
-        cols.append(f'{curve_prefix}.ReadOnly')
+        cp = f'{prefix}.Crv[{curve}]'
+        cols.append(f'{cp}.ReadOnly')
         for group in ['MustTrip', 'MayTrip', 'MomCess']:
-            group_prefix = f'{curve_prefix}.{group}'
+            group_prefix = f'{cp}.{group}'
             cols.append(f'{group_prefix}.ActPt')
             for point in range(5):
                 cols.extend([f'{group_prefix}.Pt[{point}].{axis_name}', f'{group_prefix}.Pt[{point}].Tms'])
@@ -81,12 +81,12 @@ VOLT_WATT_COLUMNS = build_volt_watt_columns('DERVoltWatt[0]')
 FREQ_DROOP_COLUMNS = build_freq_droop_columns('DERFreqDroop[0]')
 WATT_VAR_COLUMNS = build_watt_var_columns('DERWattVar[0]')
 TS = {'lv': ('DERTripLV[0]', 'V', 'low'), 'hv': ('DERTripHV[0]', 'V', 'high'), 'lf': ('DERTripLF[0]', 'Hz', 'low'), 'hf': ('DERTripHF[0]', 'Hz', 'high')}
-TRIP_COLUMNS = {short_name: build_trip_columns(prefix, axis_name) for short_name, (prefix, axis_name, _) in TS.items()}
+TRIP_COLUMNS = {sn: build_trip_columns(prefix, axis_name) for sn, (prefix, axis_name, _) in TS.items()}
 MEASURE_DC_FIELDS = '\nID L NPrt DCA DCW Prt[0].PrtTyp Prt[0].ID Prt[0].DCA Prt[0].DCV Prt[0].DCW\nPrt[0].Tmp Prt[1].PrtTyp Prt[1].ID Prt[1].DCA Prt[1].DCV Prt[1].DCW Prt[1].Tmp\n'.split()
 MEASURE_DC_COLUMNS = prefixed('DERMeasureDC[0]', MEASURE_DC_FIELDS)
 BSC = {'common': COMMON_COLUMNS, 'measure_ac': MEASURE_AC_COLUMNS, 'capacity': CAPACITY_COLUMNS, 'enter_service': ENTER_SERVICE_COLUMNS, 'ctl_ac': CTL_AC_COLUMNS, 'volt_var': VOLT_VAR_COLUMNS, 'volt_watt': VOLT_WATT_COLUMNS, 'freq_droop': FREQ_DROOP_COLUMNS, 'watt_var': WATT_VAR_COLUMNS, 'measure_dc': MEASURE_DC_COLUMNS}
-for short_name, cols in TRIP_COLUMNS.items():
-    BSC[f'trip_{short_name}'] = cols
+for sn, cols in TRIP_COLUMNS.items():
+    BSC[f'trip_{sn}'] = cols
 CURVE_BLOCK_META_FIELDS = 'Ena AdptCrvReq AdptCrvRslt NPt NCrv RvrtTms RvrtRem RvrtCrv'.split()
 FREQ_DROOP_META_FIELDS = 'Ena AdptCtlReq AdptCtlRslt NCtl RvrtTms RvrtRem RvrtCtl'.split()
 TRIP_META_FIELDS = 'Ena AdptCrvReq AdptCrvRslt NPt NCrvSet'.split()
@@ -166,7 +166,7 @@ class ResearchBaseline:
         self.socm = {}
 
     @staticmethod
-    def _safe_div(a, b):
+    def _d(a, b):
         a = np.asarray(a, dtype=np.float32)
         b = np.asarray(b, dtype=np.float32)
         out = np.full_like(a, np.nan)
@@ -175,7 +175,7 @@ class ResearchBaseline:
         return out
 
     @staticmethod
-    def _nanmin_rows(arr):
+    def _n(arr):
         arr = np.asarray(arr, dtype=np.float32)
         mask = np.isfinite(arr)
         out = np.full(arr.shape[0], np.nan, dtype=np.float32)
@@ -187,7 +187,7 @@ class ResearchBaseline:
         return out
 
     @staticmethod
-    def _nanmax_rows(arr):
+    def _x(arr):
         arr = np.asarray(arr, dtype=np.float32)
         mask = np.isfinite(arr)
         out = np.full(arr.shape[0], np.nan, dtype=np.float32)
@@ -218,12 +218,12 @@ class ResearchBaseline:
         return idx.astype(np.int8)
 
     @staticmethod
-    def _select_curve_scalar(curves, idx):
+    def _cs(curves, idx):
         stacked = np.stack(curves, axis=1)
         return np.take_along_axis(stacked, idx[:, None], axis=1)[:, 0]
 
     @staticmethod
-    def _select_curve_points(curves, idx):
+    def _cp(curves, idx):
         stacked = np.stack(curves, axis=1)
         return np.take_along_axis(stacked, idx[:, None, None], axis=1)[:, 0, :]
 
@@ -246,7 +246,7 @@ class ResearchBaseline:
         valid = np.isfinite(x_points[:, :-1]) & np.isfinite(x_points[:, 1:]) & np.isfinite(y_points[:, :-1]) & np.isfinite(y_points[:, 1:]) & (np.abs(dx) > 1e-06)
         slopes = np.full(dx.shape, np.nan, dtype=np.float32)
         slopes[valid] = dy[valid] / dx[valid]
-        return (ResearchBaseline._nanmean_rows(slopes), ResearchBaseline._nanmax_rows(np.abs(slopes)))
+        return (ResearchBaseline._nanmean_rows(slopes), ResearchBaseline._x(np.abs(slopes)))
 
     @staticmethod
     def _piecewise_interp(x, x_points, y_points):
@@ -292,7 +292,7 @@ class ResearchBaseline:
     def _var_pct(var, varmaxinj, varmaxabs):
         var = np.asarray(var, dtype=np.float32)
         denom = np.where(var >= 0, np.asarray(varmaxinj, dtype=np.float32), np.asarray(varmaxabs, dtype=np.float32))
-        return 100.0 * ResearchBaseline._safe_div(var, denom)
+        return 100.0 * ResearchBaseline._d(var, denom)
 
     def _coerce_numeric(self, df):
         for col in NSC:
@@ -302,11 +302,11 @@ class ResearchBaseline:
     def _add_block_missingness(self, data, df):
         block_missing_total = np.zeros(len(df), dtype=np.int16)
         block_missing_any = np.zeros(len(df), dtype=np.int16)
-        for block_name, cols in BSC.items():
+        for bn, cols in BSC.items():
             missing = df[cols].isna()
             missing_count = missing.sum(axis=1).astype(np.int16).to_numpy()
-            data[f'missing_{block_name}_count'] = missing_count
-            data[f'missing_{block_name}_any'] = (missing_count > 0).astype(np.int8)
+            data[f'missing_{bn}_count'] = missing_count
+            data[f'missing_{bn}_any'] = (missing_count > 0).astype(np.int8)
             block_missing_total += missing_count
             block_missing_any += (missing_count > 0).astype(np.int16)
         data['missing_selected_total'] = block_missing_total
@@ -321,20 +321,20 @@ class ResearchBaseline:
     def _add_model_integrity_features(self, data, df):
         anomaly_sum = np.zeros(len(df), dtype=np.int16)
         missing_sum = np.zeros(len(df), dtype=np.int16)
-        for block_name, (id_col, len_col, expected_id, expected_len) in EMM.items():
+        for bn, (id_col, len_col, expected_id, expected_len) in EMM.items():
             raw_id = df[id_col].to_numpy(float)
             raw_len = df[len_col].to_numpy(float)
             id_missing = ~np.isfinite(raw_id)
             len_missing = ~np.isfinite(raw_len)
             id_match = np.isclose(raw_id, expected_id, equal_nan=False)
             len_match = np.isclose(raw_len, expected_len, equal_nan=False)
-            data[f'{block_name}_model_id_missing'] = id_missing.astype(np.int8)
-            data[f'{block_name}_model_len_missing'] = len_missing.astype(np.int8)
-            data[f'{block_name}_model_id_match'] = id_match.astype(np.int8)
-            data[f'{block_name}_model_len_match'] = len_match.astype(np.int8)
-            data[f'{block_name}_model_integrity_ok'] = (id_match & len_match).astype(np.int8)
+            data[f'{bn}_model_id_missing'] = id_missing.astype(np.int8)
+            data[f'{bn}_model_len_missing'] = len_missing.astype(np.int8)
+            data[f'{bn}_model_id_match'] = id_match.astype(np.int8)
+            data[f'{bn}_model_len_match'] = len_match.astype(np.int8)
+            data[f'{bn}_model_integrity_ok'] = (id_match & len_match).astype(np.int8)
             mismatch = ~id_missing & ~id_match | ~len_missing & ~len_match
-            data[f'{block_name}_model_structure_anomaly'] = mismatch.astype(np.int8)
+            data[f'{bn}_model_structure_anomaly'] = mismatch.astype(np.int8)
             anomaly_sum += mismatch.astype(np.int16)
             missing_sum += (id_missing | len_missing).astype(np.int16)
         data['model_structure_anomaly_count'] = anomaly_sum.astype(np.int8)
@@ -348,14 +348,14 @@ class ResearchBaseline:
         data['amax_setting_delta'] = (amax - amaxrtg).astype(np.float32)
         data['pfover_setting_delta'] = (pfover - pfover_rtg).astype(np.float32)
         data['pfunder_setting_delta'] = (pfunder - pfunder_rtg).astype(np.float32)
-        data['charge_rate_share_rtg'] = self._safe_div(wcha_rtg, wmaxrtg)
-        data['discharge_rate_share_rtg'] = self._safe_div(wdis_rtg, wmaxrtg)
-        data['charge_va_share_rtg'] = self._safe_div(vacha_rtg, vamaxrtg)
-        data['discharge_va_share_rtg'] = self._safe_div(vadis_rtg, vamaxrtg)
-        data['charge_rate_share_setting'] = self._safe_div(wcha, wmax)
-        data['discharge_rate_share_setting'] = self._safe_div(wdis, wmax)
-        data['charge_va_share_setting'] = self._safe_div(vacha, vamax)
-        data['discharge_va_share_setting'] = self._safe_div(vadis, vamax)
+        data['charge_rate_share_rtg'] = self._d(wcha_rtg, wmaxrtg)
+        data['discharge_rate_share_rtg'] = self._d(wdis_rtg, wmaxrtg)
+        data['charge_va_share_rtg'] = self._d(vacha_rtg, vamaxrtg)
+        data['discharge_va_share_rtg'] = self._d(vadis_rtg, vamaxrtg)
+        data['charge_rate_share_setting'] = self._d(wcha, wmax)
+        data['discharge_rate_share_setting'] = self._d(wdis, wmax)
+        data['charge_va_share_setting'] = self._d(vacha, vamax)
+        data['discharge_va_share_setting'] = self._d(vadis, vamax)
         rating_pairs = [(wmaxrtg, wmax), (vamaxrtg, vamax), (varmaxinjrtg, varmaxinj), (varmaxabsrtg, varmaxabs), (vnomrtg, vnom), (vmaxrtg, vmax), (vminrtg, vmin), (amaxrtg, amax)]
         gap_count = np.zeros(len(wmaxrtg), dtype=np.int16)
         for rating, setting in rating_pairs:
@@ -367,8 +367,8 @@ class ResearchBaseline:
     def _add_temperature_features(self, data, df):
         temp_cols = ['DERMeasureAC[0].TmpAmb', 'DERMeasureAC[0].TmpCab', 'DERMeasureAC[0].TmpSnk', 'DERMeasureAC[0].TmpTrns', 'DERMeasureAC[0].TmpSw', 'DERMeasureAC[0].TmpOt']
         temps = df[temp_cols].to_numpy(float)
-        temp_min = self._nanmin_rows(temps)
-        temp_max = self._nanmax_rows(temps)
+        temp_min = self._n(temps)
+        temp_max = self._x(temps)
         temp_mean = self._nanmean_rows(temps)
         amb = df['DERMeasureAC[0].TmpAmb'].to_numpy(float)
         data['temp_min'] = temp_min
@@ -443,10 +443,10 @@ class ResearchBaseline:
         data['pf_reactive_near_limit'] = (np.abs(observed_var_pct) >= 95.0).astype(np.int8)
         return (np.isfinite(pfabs_ext).astype(np.int8), np.isfinite(pfabs_rvrt_ext).astype(np.int8))
 
-    def _add_trip_block_features(self, data, df, *, short_name, prefix, axis_name, mode, measure_value, abs_w, tolw):
+    def _add_trip_block_features(self, data, df, *, sn, prefix, axis_name, mode, mv, abs_w, tolw):
         adpt_idx = self._curve_index(df[f'{prefix}.AdptCrvRslt'].to_numpy(float), 2)
-        group_scalar = lambda group, field: self._select_curve_scalar([df[f'{prefix}.Crv[{curve}].{group}.{field}'].to_numpy(float) for curve in range(2)], adpt_idx)
-        group_points = lambda group, field: self._select_curve_points([np.column_stack([df[f'{prefix}.Crv[{curve}].{group}.Pt[{i}].{field}'].to_numpy(float) for i in range(5)]) for curve in range(2)], adpt_idx)
+        group_scalar = lambda group, field: self._cs([df[f'{prefix}.Crv[{curve}].{group}.{field}'].to_numpy(float) for curve in range(2)], adpt_idx)
+        group_points = lambda group, field: self._cp([np.column_stack([df[f'{prefix}.Crv[{curve}].{group}.Pt[{i}].{field}'].to_numpy(float) for i in range(5)]) for curve in range(2)], adpt_idx)
         must_actpt = group_scalar('MustTrip', 'ActPt')
         mom_actpt = group_scalar('MomCess', 'ActPt')
         must_x = group_points('MustTrip', axis_name)
@@ -457,70 +457,70 @@ class ResearchBaseline:
         enabled = np.nan_to_num(df[f'{prefix}.Ena'].to_numpy(float), nan=0.0) > 0
         must_count = self._pair_point_count(must_x, must_t)
         mom_count = self._pair_point_count(mom_x, mom_t)
-        must_x_min = self._nanmin_rows(must_x)
-        must_x_max = self._nanmax_rows(must_x)
-        must_t_min = self._nanmin_rows(must_t)
-        must_t_max = self._nanmax_rows(must_t)
-        mom_x_min = self._nanmin_rows(mom_x)
-        mom_x_max = self._nanmax_rows(mom_x)
-        mom_t_min = self._nanmin_rows(mom_t)
-        mom_t_max = self._nanmax_rows(mom_t)
+        must_x_min = self._n(must_x)
+        must_x_max = self._x(must_x)
+        must_t_min = self._n(must_t)
+        must_t_max = self._x(must_t)
+        mom_x_min = self._n(mom_x)
+        mom_x_max = self._x(mom_x)
+        mom_t_min = self._n(mom_t)
+        mom_t_max = self._x(mom_t)
         if mode == 'low':
-            margin = measure_value - must_x_max
+            margin = mv - must_x_max
         else:
-            margin = must_x_min - measure_value
+            margin = must_x_min - mv
         outside = enabled & np.isfinite(margin) & (margin < 0)
         power_when_outside = outside & (abs_w > tolw)
         envelope_gap = np.where(np.isfinite(mom_x_min) & np.isfinite(must_x_max), np.abs(mom_x_min - must_x_max), np.nan)
-        data[f'trip_{short_name}_curve_idx'] = adpt_idx.astype(np.int8)
-        data[f'trip_{short_name}_enabled'] = enabled.astype(np.int8)
-        data[f'trip_{short_name}_curve_req_gap'] = (df[f'{prefix}.AdptCrvReq'].to_numpy(float) - df[f'{prefix}.AdptCrvRslt'].to_numpy(float)).astype(np.float32)
-        data[f'trip_{short_name}_musttrip_count'] = must_count
-        data[f'trip_{short_name}_musttrip_actpt_gap'] = (must_actpt - must_count).astype(np.float32)
-        data[f'trip_{short_name}_musttrip_axis_min'] = must_x_min
-        data[f'trip_{short_name}_musttrip_axis_max'] = must_x_max
-        data[f'trip_{short_name}_musttrip_axis_span'] = (must_x_max - must_x_min).astype(np.float32)
-        data[f'trip_{short_name}_musttrip_tms_span'] = (must_t_max - must_t_min).astype(np.float32)
-        data[f'trip_{short_name}_musttrip_reverse_steps'] = self._curve_reverse_steps(must_x)
-        data[f'trip_{short_name}_momcess_count'] = mom_count
-        data[f'trip_{short_name}_momcess_actpt_gap'] = (mom_actpt - mom_count).astype(np.float32)
-        data[f'trip_{short_name}_momcess_axis_span'] = (mom_x_max - mom_x_min).astype(np.float32)
-        data[f'trip_{short_name}_momcess_tms_span'] = (mom_t_max - mom_t_min).astype(np.float32)
-        data[f'trip_{short_name}_momcess_reverse_steps'] = self._curve_reverse_steps(mom_x)
-        data[f'trip_{short_name}_maytrip_present_any'] = np.isfinite(may_present).any(axis=1).astype(np.int8)
-        data[f'trip_{short_name}_musttrip_margin'] = margin.astype(np.float32)
-        data[f'trip_{short_name}_outside_musttrip'] = outside.astype(np.int8)
-        data[f'trip_{short_name}_power_when_outside'] = power_when_outside.astype(np.int8)
-        data[f'trip_{short_name}_momcess_musttrip_gap'] = envelope_gap.astype(np.float32)
+        data[f'trip_{sn}_curve_idx'] = adpt_idx.astype(np.int8)
+        data[f'trip_{sn}_enabled'] = enabled.astype(np.int8)
+        data[f'trip_{sn}_curve_req_gap'] = (df[f'{prefix}.AdptCrvReq'].to_numpy(float) - df[f'{prefix}.AdptCrvRslt'].to_numpy(float)).astype(np.float32)
+        data[f'trip_{sn}_musttrip_count'] = must_count
+        data[f'trip_{sn}_musttrip_actpt_gap'] = (must_actpt - must_count).astype(np.float32)
+        data[f'trip_{sn}_musttrip_axis_min'] = must_x_min
+        data[f'trip_{sn}_musttrip_axis_max'] = must_x_max
+        data[f'trip_{sn}_musttrip_axis_span'] = (must_x_max - must_x_min).astype(np.float32)
+        data[f'trip_{sn}_musttrip_tms_span'] = (must_t_max - must_t_min).astype(np.float32)
+        data[f'trip_{sn}_musttrip_reverse_steps'] = self._curve_reverse_steps(must_x)
+        data[f'trip_{sn}_momcess_count'] = mom_count
+        data[f'trip_{sn}_momcess_actpt_gap'] = (mom_actpt - mom_count).astype(np.float32)
+        data[f'trip_{sn}_momcess_axis_span'] = (mom_x_max - mom_x_min).astype(np.float32)
+        data[f'trip_{sn}_momcess_tms_span'] = (mom_t_max - mom_t_min).astype(np.float32)
+        data[f'trip_{sn}_momcess_reverse_steps'] = self._curve_reverse_steps(mom_x)
+        data[f'trip_{sn}_maytrip_present_any'] = np.isfinite(may_present).any(axis=1).astype(np.int8)
+        data[f'trip_{sn}_musttrip_margin'] = margin.astype(np.float32)
+        data[f'trip_{sn}_outside_musttrip'] = outside.astype(np.int8)
+        data[f'trip_{sn}_power_when_outside'] = power_when_outside.astype(np.int8)
+        data[f'trip_{sn}_momcess_musttrip_gap'] = envelope_gap.astype(np.float32)
         return (outside.astype(np.int8), power_when_outside.astype(np.int8))
 
-    def _add_curve_block_features(self, data, *, name, raw_idx, curve_x, curve_y, curve_actpt, curve_meta, measure_value, observed_value=None):
+    def _add_curve_block_features(self, data, *, name, raw_idx, curve_x, curve_y, curve_actpt, curve_meta, mv, observed_value=None):
         adpt_idx = self._curve_index(raw_idx, len(curve_x))
-        selected_x = self._select_curve_points(curve_x, adpt_idx)
-        selected_y = self._select_curve_points(curve_y, adpt_idx)
-        selected_actpt = self._select_curve_scalar(curve_actpt, adpt_idx)
+        selected_x = self._cp(curve_x, adpt_idx)
+        selected_y = self._cp(curve_y, adpt_idx)
+        selected_actpt = self._cs(curve_actpt, adpt_idx)
         data[f'{name}_curve_idx'] = adpt_idx.astype(np.int8)
         point_count = self._pair_point_count(selected_x, selected_y)
         data[f'{name}_curve_point_count'] = point_count
         data[f'{name}_curve_actpt_gap'] = (selected_actpt - point_count).astype(np.float32)
-        x_min = self._nanmin_rows(selected_x)
-        x_max = self._nanmax_rows(selected_x)
-        y_min = self._nanmin_rows(selected_y)
-        y_max = self._nanmax_rows(selected_y)
+        x_min = self._n(selected_x)
+        x_max = self._x(selected_x)
+        y_min = self._n(selected_y)
+        y_max = self._x(selected_y)
         mean_slope, max_abs_slope = self._curve_slope_stats(selected_x, selected_y)
         data[f'{name}_curve_x_span'] = (x_max - x_min).astype(np.float32)
         data[f'{name}_curve_y_span'] = (y_max - y_min).astype(np.float32)
         data[f'{name}_curve_reverse_steps'] = self._curve_reverse_steps(selected_x)
         data[f'{name}_curve_mean_slope'] = mean_slope
         data[f'{name}_curve_max_abs_slope'] = max_abs_slope
-        data[f'{name}_curve_measure_margin_low'] = (measure_value - x_min).astype(np.float32)
-        data[f'{name}_curve_measure_margin_high'] = (x_max - measure_value).astype(np.float32)
+        data[f'{name}_curve_measure_margin_low'] = (mv - x_min).astype(np.float32)
+        data[f'{name}_curve_measure_margin_high'] = (x_max - mv).astype(np.float32)
         if observed_value is not None:
-            expected_value = self._piecewise_interp(measure_value, selected_x, selected_y)
+            expected_value = self._piecewise_interp(mv, selected_x, selected_y)
             data[f'{name}_curve_expected'] = expected_value.astype(np.float32)
             data[f'{name}_curve_error'] = (observed_value - expected_value).astype(np.float32)
         for meta_name, curves in curve_meta.items():
-            data[f'{name}_curve_{meta_name}'] = self._select_curve_scalar(curves, adpt_idx).astype(np.float32)
+            data[f'{name}_curve_{meta_name}'] = self._cs(curves, adpt_idx).astype(np.float32)
 
     def _add_freq_droop_features(self, data, df, *, hz, w_pct):
         raw_idx = df['DERFreqDroop[0].AdptCtlRslt'].to_numpy(float)
@@ -532,16 +532,16 @@ class ResearchBaseline:
         rsp_curves = [df[f'DERFreqDroop[0].Ctl[{i}].RspTms'].to_numpy(float) for i in range(3)]
         pmin_curves = [df[f'DERFreqDroop[0].Ctl[{i}].PMin'].to_numpy(float) for i in range(3)]
         ro_curves = [df[f'DERFreqDroop[0].Ctl[{i}].ReadOnly'].to_numpy(float) for i in range(3)]
-        dbof = self._select_curve_scalar(dbof_curves, ctl_idx)
-        dbuf = self._select_curve_scalar(dbuf_curves, ctl_idx)
-        kof = self._select_curve_scalar(kof_curves, ctl_idx)
-        kuf = self._select_curve_scalar(kuf_curves, ctl_idx)
-        rsp = self._select_curve_scalar(rsp_curves, ctl_idx)
-        pmin = self._select_curve_scalar(pmin_curves, ctl_idx)
-        readonly = self._select_curve_scalar(ro_curves, ctl_idx)
+        dbof = self._cs(dbof_curves, ctl_idx)
+        dbuf = self._cs(dbuf_curves, ctl_idx)
+        kof = self._cs(kof_curves, ctl_idx)
+        kuf = self._cs(kuf_curves, ctl_idx)
+        rsp = self._cs(rsp_curves, ctl_idx)
+        pmin = self._cs(pmin_curves, ctl_idx)
+        readonly = self._cs(ro_curves, ctl_idx)
         over_activation = np.maximum(hz - (60.0 + dbof), 0.0)
         under_activation = np.maximum(60.0 - dbuf - hz, 0.0)
-        expected_delta_pct = 100.0 * self._safe_div(over_activation, kof) - 100.0 * self._safe_div(under_activation, kuf)
+        expected_delta_pct = 100.0 * self._d(over_activation, kof) - 100.0 * self._d(under_activation, kuf)
         dbof_stack = np.column_stack(dbof_curves)
         dbuf_stack = np.column_stack(dbuf_curves)
         k_stack = np.column_stack(kof_curves + kuf_curves)
@@ -560,9 +560,9 @@ class ResearchBaseline:
         data['freqdroop_expected_delta_pct'] = expected_delta_pct.astype(np.float32)
         data['freqdroop_outside_deadband'] = ((over_activation > 0) | (under_activation > 0)).astype(np.int8)
         data['freqdroop_w_over_pmin_pct'] = (w_pct - pmin).astype(np.float32)
-        data['freqdroop_db_span'] = (self._nanmax_rows(np.column_stack([dbof_stack, dbuf_stack])) - self._nanmin_rows(np.column_stack([dbof_stack, dbuf_stack]))).astype(np.float32)
-        data['freqdroop_k_span'] = (self._nanmax_rows(k_stack) - self._nanmin_rows(k_stack)).astype(np.float32)
-        data['freqdroop_pmin_span'] = (self._nanmax_rows(pmin_stack) - self._nanmin_rows(pmin_stack)).astype(np.float32)
+        data['freqdroop_db_span'] = (self._x(np.column_stack([dbof_stack, dbuf_stack])) - self._n(np.column_stack([dbof_stack, dbuf_stack]))).astype(np.float32)
+        data['freqdroop_k_span'] = (self._x(k_stack) - self._n(k_stack)).astype(np.float32)
+        data['freqdroop_pmin_span'] = (self._x(pmin_stack) - self._n(pmin_stack)).astype(np.float32)
 
     def _add_dc_features(self, data, df, *, w, abs_w):
         dcw = df['DERMeasureDC[0].DCW'].to_numpy(float)
@@ -575,19 +575,19 @@ class ResearchBaseline:
         prt1_a = df['DERMeasureDC[0].Prt[1].DCA'].to_numpy(float)
         prt0_t = df['DERMeasureDC[0].Prt[0].PrtTyp'].to_numpy(float)
         prt1_t = df['DERMeasureDC[0].Prt[1].PrtTyp'].to_numpy(float)
-        data['dcw_over_w'] = self._safe_div(dcw, w)
-        data['dcw_over_abs_w'] = self._safe_div(dcw, abs_w)
+        data['dcw_over_w'] = self._d(dcw, w)
+        data['dcw_over_abs_w'] = self._d(dcw, abs_w)
         data['dcw_minus_port_sum'] = (dcw - (prt0 + prt1)).astype(np.float32)
         data['dcv_spread'] = np.abs(prt0_v - prt1_v).astype(np.float32)
         data['dca_spread'] = np.abs(prt0_a - prt1_a).astype(np.float32)
-        data['dc_port0_share'] = self._safe_div(prt0, prt0 + prt1)
+        data['dc_port0_share'] = self._d(prt0, prt0 + prt1)
         data['dc_port_type_mismatch'] = (np.isfinite(prt0_t) & np.isfinite(prt1_t) & (prt0_t != prt1_t)).astype(np.int8)
         rare_type = (prt0_t == 7) | (prt1_t == 7)
         data['dc_port_type_rare_any'] = rare_type.astype(np.int8)
         data['ac_zero_dc_positive'] = ((np.abs(w) <= 1e-06) & (dcw > 0)).astype(np.int8)
         data['ac_positive_dc_zero'] = ((w > 0) & (np.abs(dcw) <= 1e-06)).astype(np.int8)
         data['ac_dc_same_sign'] = (np.sign(np.nan_to_num(w, nan=0.0)) == np.sign(np.nan_to_num(dcw, nan=0.0))).astype(np.int8)
-        data['dca_over_total'] = self._safe_div(dca, prt0_a + prt1_a)
+        data['dca_over_total'] = self._d(dca, prt0_a + prt1_a)
         return rare_type.astype(np.int8)
 
     def build_features(self, df):
@@ -627,7 +627,7 @@ class ResearchBaseline:
         vmax = df['DERCapacity[0].VMax'].to_numpy(float)
         vmin = df['DERCapacity[0].VMin'].to_numpy(float)
         for name, numerator, denominator in [('w_over_wmaxrtg', w, wmaxrtg), ('w_over_wmax', w, wmax), ('va_over_vamax', va, vamax), ('va_over_vamaxrtg', va, vamaxrtg), ('var_over_injmax', var, varmaxinj), ('var_over_absmax', var, varmaxabs), ('a_over_amax', a, amax), ('llv_over_vnom', llv, vnom), ('lnv_over_vnom', lnv * SQRT3, vnom)]:
-            data[name] = self._safe_div(numerator, denominator)
+            data[name] = self._d(numerator, denominator)
         for name, value in [('w_minus_wmax', w - wmax), ('w_minus_wmaxrtg', w - wmaxrtg), ('va_minus_vamax', va - vamax), ('var_minus_injmax', var - varmaxinj), ('var_plus_absmax', var + varmaxabs), ('llv_minus_lnv_sqrt3', llv - lnv * SQRT3), ('hz_delta_60', hz - 60.0)]:
             data[name] = value.astype(np.float32)
         for name, left, right in [('w_eq_wmaxrtg', w, wmaxrtg), ('w_eq_wmax', w, wmax), ('var_eq_varmaxinj', var, varmaxinj), ('var_eq_neg_varmaxabs', var, -varmaxabs)]:
@@ -642,8 +642,8 @@ class ResearchBaseline:
         data['var_lt_absmax_tol'] = (var < -varmaxabs - tolva2).astype(np.int8)
         pq = np.sqrt(np.square(w.astype(np.float32)) + np.square(var.astype(np.float32)))
         data['va_minus_pqmag'] = (va - pq).astype(np.float32)
-        data['va_over_pqmag'] = self._safe_div(va, pq)
-        pf_from_w_va = self._safe_div(w, va)
+        data['va_over_pqmag'] = self._d(va, pq)
+        pf_from_w_va = self._d(w, va)
         data['pf_from_w_va'] = pf_from_w_va
         data['pf_error'] = (pf - pf_from_w_va).astype(np.float32)
         for name, total, suffixes in [('w_phase_sum_error', w, ['WL1', 'WL2', 'WL3']), ('va_phase_sum_error', va, ['VAL1', 'VAL2', 'VAL3']), ('var_phase_sum_error', var, ['VarL1', 'VarL2', 'VarL3'])]:
@@ -651,9 +651,9 @@ class ResearchBaseline:
             data[name] = (total - phase_sum).astype(np.float32)
         for name, suffixes in [('phase_ll_spread', ['VL1L2', 'VL2L3', 'VL3L1']), ('phase_ln_spread', ['VL1', 'VL2', 'VL3']), ('phase_w_spread', ['WL1', 'WL2', 'WL3']), ('phase_var_spread', ['VarL1', 'VarL2', 'VarL3'])]:
             phase_values = df[[f'DERMeasureAC[0].{suffix}' for suffix in suffixes]].to_numpy(float)
-            data[name] = (self._nanmax_rows(phase_values) - self._nanmin_rows(phase_values)).astype(np.float32)
+            data[name] = (self._x(phase_values) - self._n(phase_values)).astype(np.float32)
         for name, numerator, denominator in [('wmax_over_wmaxrtg', wmax, wmaxrtg), ('vamax_over_vamaxrtg', vamax, vamaxrtg), ('vmax_over_vnom', vmax, vnom), ('vmin_over_vnom', vmin, vnom)]:
-            data[name] = self._safe_div(numerator, denominator)
+            data[name] = self._d(numerator, denominator)
         wsetena = np.nan_to_num(df['DERCtlAC[0].WSetEna'].to_numpy(float), nan=0.0)
         wset = df['DERCtlAC[0].WSet'].to_numpy(float)
         wsetpct = df['DERCtlAC[0].WSetPct'].to_numpy(float)
@@ -683,9 +683,9 @@ class ResearchBaseline:
         data['wmaxlim_enabled_far'] = ((wmaxlimena > 0) & (wmaxlim_excess > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
         data['varsetpct_enabled_far'] = ((varsetena > 0) & (varsetpct_abs_error > np.maximum(20.0, 0.05 * np.nan_to_num(varmaxinj, nan=0.0)))).astype(np.int8)
         self._add_capacity_extension_features(data, wmaxrtg=wmaxrtg, wmax=wmax, vamaxrtg=vamaxrtg, vamax=vamax, varmaxinjrtg=varmaxinjrtg, varmaxinj=varmaxinj, varmaxabsrtg=varmaxabsrtg, varmaxabs=varmaxabs, vnomrtg=df['DERCapacity[0].VNomRtg'].to_numpy(float), vnom=vnom, vmaxrtg=df['DERCapacity[0].VMaxRtg'].to_numpy(float), vmax=vmax, vminrtg=df['DERCapacity[0].VMinRtg'].to_numpy(float), vmin=vmin, amaxrtg=df['DERCapacity[0].AMaxRtg'].to_numpy(float), amax=amax, wcha_rtg=df['DERCapacity[0].WChaRteMaxRtg'].to_numpy(float), wdis_rtg=df['DERCapacity[0].WDisChaRteMaxRtg'].to_numpy(float), vacha_rtg=df['DERCapacity[0].VAChaRteMaxRtg'].to_numpy(float), vadis_rtg=df['DERCapacity[0].VADisChaRteMaxRtg'].to_numpy(float), wcha=df['DERCapacity[0].WChaRteMax'].to_numpy(float), wdis=df['DERCapacity[0].WDisChaRteMax'].to_numpy(float), vacha=df['DERCapacity[0].VAChaRteMax'].to_numpy(float), vadis=df['DERCapacity[0].VADisChaRteMax'].to_numpy(float), pfover_rtg=df['DERCapacity[0].PFOvrExtRtg'].to_numpy(float), pfover=df['DERCapacity[0].PFOvrExt'].to_numpy(float), pfunder_rtg=df['DERCapacity[0].PFUndExtRtg'].to_numpy(float), pfunder=df['DERCapacity[0].PFUndExt'].to_numpy(float))
-        voltage_pct = 100.0 * self._safe_div(llv, vnom)
-        line_neutral_voltage_pct = 100.0 * self._safe_div(lnv * SQRT3, vnom)
-        w_pct = 100.0 * self._safe_div(w, wmaxrtg)
+        voltage_pct = 100.0 * self._d(llv, vnom)
+        line_neutral_voltage_pct = 100.0 * self._d(lnv * SQRT3, vnom)
+        w_pct = 100.0 * self._d(w, wmaxrtg)
         var_pct = self._var_pct(var, varmaxinj, varmaxabs)
         data['voltage_pct'] = voltage_pct.astype(np.float32)
         data['line_neutral_voltage_pct'] = line_neutral_voltage_pct.astype(np.float32)
@@ -695,9 +695,9 @@ class ResearchBaseline:
         pf_abs_ext_present, pf_abs_rvrt_ext_present = self._add_pf_control_features(data, df, pf=pf, var=var, varmaxinj=varmaxinj, varmaxabs=varmaxabs)
         trip_outside_flags = []
         trip_power_flags = []
-        for short_name, (prefix, axis_name, mode) in TS.items():
-            measure_value = voltage_pct if axis_name == 'V' else hz
-            outside, power_when_outside = self._add_trip_block_features(data, df, short_name=short_name, prefix=prefix, axis_name=axis_name, mode=mode, measure_value=measure_value, abs_w=abs_w, tolw=tolw)
+        for sn, (prefix, axis_name, mode) in TS.items():
+            mv = voltage_pct if axis_name == 'V' else hz
+            outside, power_when_outside = self._add_trip_block_features(data, df, sn=sn, prefix=prefix, axis_name=axis_name, mode=mode, mv=mv, abs_w=abs_w, tolw=tolw)
             trip_outside_flags.append(outside)
             trip_power_flags.append(power_when_outside)
         if trip_outside_flags:
@@ -711,8 +711,8 @@ class ResearchBaseline:
         curve_scalars = lambda prefix, field: [df[f'{prefix}.Crv[{curve}].{field}'].to_numpy(float) for curve in range(3)]
         curve_points = lambda prefix, field, point_count: [np.column_stack([df[f'{prefix}.Crv[{curve}].Pt[{point}].{field}'].to_numpy(float) for point in range(point_count)]) for curve in range(3)]
         curve_specs = [('voltvar', 'DERVoltVar[0]', 4, 'V', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'vref': 'VRef', 'vref_auto': 'VRefAuto', 'vref_auto_ena': 'VRefAutoEna', 'vref_auto_tms': 'VRefAutoTms', 'rsp': 'RspTms', 'readonly': 'ReadOnly'}, voltage_pct - 100.0 + df['DERVoltVar[0].Crv[0].VRef'].fillna(100.0).to_numpy(float), var_pct), ('voltwatt', 'DERVoltWatt[0]', 2, 'V', 'W', {'deptref': 'DeptRef', 'rsp': 'RspTms', 'readonly': 'ReadOnly'}, voltage_pct, w_pct), ('wattvar', 'DERWattVar[0]', 6, 'W', 'Var', {'deptref': 'DeptRef', 'pri': 'Pri', 'readonly': 'ReadOnly'}, w_pct, var_pct)]
-        for name, prefix, point_count, x_field, y_field, meta_fields, measure_value, observed_value in curve_specs:
-            self._add_curve_block_features(data, name=name, raw_idx=df[f'{prefix}.AdptCrvRslt'].to_numpy(float), curve_x=curve_points(prefix, x_field, point_count), curve_y=curve_points(prefix, y_field, point_count), curve_actpt=curve_scalars(prefix, 'ActPt'), curve_meta={meta_name: curve_scalars(prefix, field) for meta_name, field in meta_fields.items()}, measure_value=measure_value, observed_value=observed_value)
+        for name, prefix, point_count, x_field, y_field, meta_fields, mv, observed_value in curve_specs:
+            self._add_curve_block_features(data, name=name, raw_idx=df[f'{prefix}.AdptCrvRslt'].to_numpy(float), curve_x=curve_points(prefix, x_field, point_count), curve_y=curve_points(prefix, y_field, point_count), curve_actpt=curve_scalars(prefix, 'ActPt'), curve_meta={meta_name: curve_scalars(prefix, field) for meta_name, field in meta_fields.items()}, mv=mv, observed_value=observed_value)
         self._add_freq_droop_features(data, df, hz=hz, w_pct=w_pct)
         dc_port_type_rare = self._add_dc_features(data, df, w=w, abs_w=abs_w)
         ac_type = df['DERMeasureAC[0].ACType'].to_numpy(float)
@@ -721,9 +721,9 @@ class ResearchBaseline:
         flag_map = {'noncanonical': data['noncanonical'] == 1, 'common_missing': data['common_missing_any'] == 1, 'w_gt_wmax': data['w_gt_wmax_tol'] == 1, 'w_gt_wmaxrtg': data['w_gt_wmaxrtg_tol'] == 1, 'va_gt_vamax': data['va_gt_vamax_tol'] == 1, 'var_gt_injmax': data['var_gt_injmax_tol'] == 1, 'var_lt_absmax': data['var_lt_absmax_tol'] == 1, 'wset_far': data['wset_enabled_far'] == 1, 'wsetpct_far': data['wsetpct_enabled_far'] == 1, 'wmaxlim_far': data['wmaxlim_enabled_far'] == 1, 'varsetpct_far': data['varsetpct_enabled_far'] == 1, 'model_structure': data['model_structure_anomaly_any'] == 1, 'ac_type_rare': ac_type_is_rare == 1, 'dc_type_rare': dc_port_type_rare == 1, 'enter_state': enter_state_anomaly == 1, 'enter_blocked_power': enter_blocked_power == 1, 'enter_blocked_current': enter_blocked_current == 1, 'pf_abs': pf_abs_ext_present == 1, 'pf_abs_rvrt': pf_abs_rvrt_ext_present == 1, 'trip_power': trip_any_power_when_outside == 1}
         hard_rule_flags = np.column_stack([flag_map[name] for name in HARD_RULE_NAMES])
         hard_override_flags = np.column_stack([flag_map[name] for name in self.ovr])
-        float_flags = {name: flag.astype(np.float32) for name, flag in flag_map.items()}
+        ff = {name: flag.astype(np.float32) for name, flag in flag_map.items()}
         data['hard_rule_count'] = hard_rule_flags.sum(axis=1).astype(np.int8)
-        data['hard_rule_score'] = 3.0 * float_flags['noncanonical'] + 2.5 * float_flags['common_missing'] + 2.0 * (float_flags['w_gt_wmax'] + float_flags['w_gt_wmaxrtg'] + float_flags['va_gt_vamax'] + float_flags['var_gt_injmax'] + float_flags['var_lt_absmax'] + float_flags['model_structure'] + float_flags['enter_state'] + float_flags['trip_power']) + 1.5 * (float_flags['wset_far'] + float_flags['wsetpct_far'] + float_flags['ac_type_rare'] + float_flags['dc_type_rare'] + float_flags['pf_abs'] + float_flags['pf_abs_rvrt']) + 1.0 * float_flags['varsetpct_far'] + 0.75 * float_flags['wmaxlim_far'] + 0.35 * (float_flags['enter_blocked_power'] + float_flags['enter_blocked_current'])
+        data['hard_rule_score'] = 3.0 * ff['noncanonical'] + 2.5 * ff['common_missing'] + 2.0 * (ff['w_gt_wmax'] + ff['w_gt_wmaxrtg'] + ff['va_gt_vamax'] + ff['var_gt_injmax'] + ff['var_lt_absmax'] + ff['model_structure'] + ff['enter_state'] + ff['trip_power']) + 1.5 * (ff['wset_far'] + ff['wsetpct_far'] + ff['ac_type_rare'] + ff['dc_type_rare'] + ff['pf_abs'] + ff['pf_abs_rvrt']) + 1.0 * ff['varsetpct_far'] + 0.75 * ff['wmaxlim_far'] + 0.35 * (ff['enter_blocked_power'] + ff['enter_blocked_current'])
         hard_rule_anomaly = hard_rule_flags.any(axis=1).astype(np.int8)
         data['hard_rule_anomaly'] = hard_rule_anomaly
         data['hard_override_anomaly'] = hard_override_flags.any(axis=1).astype(np.int8)
@@ -758,7 +758,7 @@ class ResearchBaseline:
         out['device_family'] = out['device_family'].map(FAM).fillna(-1).astype(np.int8)
         return out
 
-    def _get_surrogate_feature_cols(self, columns):
+    def _gsf(self, columns):
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'device_fingerprint', 'hard_rule_anomaly', 'hard_rule_count', 'hard_rule_score', 'hard_override_anomaly'}
         excluded.update(SS.values())
         return [col for col in columns if col not in excluded and col not in SLF]
@@ -772,60 +772,60 @@ class ResearchBaseline:
         return weights
 
     @staticmethod
-    def _bucketize(values, *, fill_value, dtype, scale=1.0, round_values=True):
+    def _b(values, *, fv, dtype, scale=1.0, round_values=True):
         out = pd.to_numeric(values, errors='coerce')
         if scale != 1.0:
             out = out / scale
         if round_values:
             out = out.round()
-        return out.fillna(fill_value).astype(dtype)
+        return out.fillna(fv).astype(dtype)
 
-    def _build_scenario_frame(self, x_df, *, include_output_bins):
-        frame = {'family': x_df['device_family'].astype(str), 'throt_src': self._bucketize(x_df['DERMeasureAC_0_ThrotSrc'], fill_value=-1, dtype=np.int16), 'throt_pct': self._bucketize(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'wmaxlim_pct': self._bucketize(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'wset_pct': self._bucketize(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'varset_pct': self._bucketize(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'pf_set': self._bucketize(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fill_value=-1, dtype=np.int16), 'fd_idx': self._bucketize(x_df['DERFreqDroop_0_AdptCtlRslt'], fill_value=-1, dtype=np.int16), 'vv_idx': self._bucketize(x_df['DERVoltVar_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'vw_idx': self._bucketize(x_df['DERVoltWatt_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'wv_idx': self._bucketize(x_df['DERWattVar_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'volt_bin': self._bucketize(x_df['voltage_pct'], fill_value=-999, dtype=np.int16), 'hz_bin': self._bucketize(x_df['DERMeasureAC_0_Hz'], scale=0.1, fill_value=-999, dtype=np.int16), 'enter_idle': self._bucketize(x_df['enter_service_should_idle'], fill_value=0, dtype=np.int8, round_values=False), 'droop_active': self._bucketize(x_df['freqdroop_outside_deadband'], fill_value=0, dtype=np.int8, round_values=False)}
+    def _bsf(self, x_df, *, include_output_bins):
+        frame = {'family': x_df['device_family'].astype(str), 'throt_src': self._b(x_df['DERMeasureAC_0_ThrotSrc'], fv=-1, dtype=np.int16), 'throt_pct': self._b(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fv=-1, dtype=np.int16), 'wmaxlim_pct': self._b(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fv=-1, dtype=np.int16), 'wset_pct': self._b(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'varset_pct': self._b(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'pf_set': self._b(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fv=-1, dtype=np.int16), 'fd_idx': self._b(x_df['DERFreqDroop_0_AdptCtlRslt'], fv=-1, dtype=np.int16), 'vv_idx': self._b(x_df['DERVoltVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'vw_idx': self._b(x_df['DERVoltWatt_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'wv_idx': self._b(x_df['DERWattVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'volt_bin': self._b(x_df['voltage_pct'], fv=-999, dtype=np.int16), 'hz_bin': self._b(x_df['DERMeasureAC_0_Hz'], scale=0.1, fv=-999, dtype=np.int16), 'enter_idle': self._b(x_df['enter_service_should_idle'], fv=0, dtype=np.int8, round_values=False), 'droop_active': self._b(x_df['freqdroop_outside_deadband'], fv=0, dtype=np.int8, round_values=False)}
         if include_output_bins:
-            frame['w_bin'] = self._bucketize(x_df['w_pct_of_rtg'], scale=5.0, fill_value=-999, dtype=np.int16)
-            frame['var_bin'] = self._bucketize(x_df['var_pct_of_limit'], scale=5.0, fill_value=-999, dtype=np.int16)
-            frame['pf_mode'] = self._bucketize(x_df['pf_control_any_enabled'], fill_value=0, dtype=np.int8, round_values=False)
+            frame['w_bin'] = self._b(x_df['w_pct_of_rtg'], scale=5.0, fv=-999, dtype=np.int16)
+            frame['var_bin'] = self._b(x_df['var_pct_of_limit'], scale=5.0, fv=-999, dtype=np.int16)
+            frame['pf_mode'] = self._b(x_df['pf_control_any_enabled'], fv=0, dtype=np.int8, round_values=False)
         return pd.DataFrame(frame)
 
     @staticmethod
     def _hash_frame(frame):
         return pd.util.hash_pandas_object(frame, index=False).to_numpy(np.uint64)
 
-    def _build_scenario_keys(self, x_df):
-        return self._hash_frame(self._build_scenario_frame(x_df, include_output_bins=False))
+    def _bsk(self, x_df):
+        return self._hash_frame(self._bsf(x_df, include_output_bins=False))
 
-    def _build_scenario_output_keys(self, x_df):
-        return self._hash_frame(self._build_scenario_frame(x_df, include_output_bins=True))
+    def _bok(self, x_df):
+        return self._hash_frame(self._bsf(x_df, include_output_bins=True))
 
     @staticmethod
-    def _lookup_scenario_stats(keys, sum_map, count_map):
+    def _lss(keys, sum_map, count_map):
         key_series = pd.Series(keys)
         sv = key_series.map(sum_map).fillna(0.0).to_numpy(np.float32)
         cv = key_series.map(count_map).fillna(0).to_numpy(np.int32)
         return (sv, cv)
 
     @staticmethod
-    def _assign_scenario_features(out, *, family_prior, scenario_rate, scenario_count, scenario_output_rate, scenario_output_count):
+    def _asf(out, *, fp, scenario_rate, scenario_count, scenario_output_rate, scenario_output_count):
         out['scenario_rate'] = scenario_rate.astype(np.float32)
-        out['scenario_rate_delta'] = (scenario_rate - family_prior).astype(np.float32)
+        out['scenario_rate_delta'] = (scenario_rate - fp).astype(np.float32)
         out['scenario_count'] = scenario_count.astype(np.int32)
         out['scenario_log_count'] = np.log1p(scenario_count).astype(np.float32)
         out['scenario_low_support'] = (scenario_count < 20).astype(np.int8)
         out['scenario_output_rate'] = scenario_output_rate.astype(np.float32)
-        out['scenario_output_rate_delta'] = (scenario_output_rate - family_prior).astype(np.float32)
+        out['scenario_output_rate_delta'] = (scenario_output_rate - fp).astype(np.float32)
         out['scenario_output_count'] = scenario_output_count.astype(np.int32)
         out['scenario_output_log_count'] = np.log1p(scenario_output_count).astype(np.float32)
         out['scenario_output_low_support'] = (scenario_output_count < 20).astype(np.int8)
         return out
 
-    def _fit_transform_scenario_features(self, x_train, y_train):
+    def _fts(self, x_train, y_train):
         out = x_train.copy()
         y_arr = y_train.to_numpy(np.float32)
         fs = out['device_family'].astype(str)
         self.family_base_rates = pd.DataFrame({'family': fs, 'y': y_arr}).groupby('family')['y'].mean().to_dict()
-        keys = self._build_scenario_keys(out)
-        ok = self._build_scenario_output_keys(out)
+        keys = self._bsk(out)
+        ok = self._bok(out)
         fold_ids = (out['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
         scenario_rate = np.zeros(len(out), dtype=np.float32)
         scenario_count = np.zeros(len(out), dtype=np.int32)
@@ -857,24 +857,24 @@ class ResearchBaseline:
         self.scm = {int(idx): int(val) for idx, val in full_stats['count'].items()}
         self.sosm = {int(idx): float(val) for idx, val in full_output_stats['sum'].items()}
         self.socm = {int(idx): int(val) for idx, val in full_output_stats['count'].items()}
-        family_prior = fs.map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
-        return self._assign_scenario_features(out, family_prior=family_prior, scenario_rate=scenario_rate, scenario_count=scenario_count, scenario_output_rate=scenario_output_rate, scenario_output_count=scenario_output_count)
+        fp = fs.map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
+        return self._asf(out, fp=fp, scenario_rate=scenario_rate, scenario_count=scenario_count, scenario_output_rate=scenario_output_rate, scenario_output_count=scenario_output_count)
 
-    def _apply_scenario_features(self, x_df):
+    def _apf(self, x_df):
         if not self.scm:
             return x_df
         out = x_df.copy()
-        keys = self._build_scenario_keys(out)
-        ok = self._build_scenario_output_keys(out)
-        sv, cv = self._lookup_scenario_stats(keys, self.ssm, self.scm)
-        output_sum_values, output_count_values = self._lookup_scenario_stats(ok, self.sosm, self.socm)
+        keys = self._bsk(out)
+        ok = self._bok(out)
+        sv, cv = self._lss(keys, self.ssm, self.scm)
+        output_sum_values, output_count_values = self._lss(ok, self.sosm, self.socm)
         gr = float(np.mean(list(self.family_base_rates.values()))) if self.family_base_rates else 0.5
-        family_prior = out['device_family'].astype(str).map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
-        scenario_rate = (sv + SCENARIO_SMOOTHING * family_prior) / (cv + SCENARIO_SMOOTHING)
-        scenario_output_rate = (output_sum_values + SCENARIO_SMOOTHING * family_prior) / (output_count_values + SCENARIO_SMOOTHING)
-        return self._assign_scenario_features(out, family_prior=family_prior, scenario_rate=scenario_rate, scenario_count=cv, scenario_output_rate=scenario_output_rate, scenario_output_count=output_count_values)
+        fp = out['device_family'].astype(str).map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
+        scenario_rate = (sv + SCENARIO_SMOOTHING * fp) / (cv + SCENARIO_SMOOTHING)
+        scenario_output_rate = (output_sum_values + SCENARIO_SMOOTHING * fp) / (output_count_values + SCENARIO_SMOOTHING)
+        return self._asf(out, fp=fp, scenario_rate=scenario_rate, scenario_count=cv, scenario_output_rate=scenario_output_rate, scenario_output_count=output_count_values)
 
-    def _add_family_interaction_features(self, x_df):
+    def _afi(self, x_df):
         out = x_df.copy()
         canon100_mask = out['device_family'].astype(str) == 'canon100'
         for feature_name in CIF:
@@ -898,8 +898,8 @@ class ResearchBaseline:
     def _new_classifier(self):
         return XGBClassifier(n_estimators=self.n_estimators, max_depth=self.max_depth, learning_rate=self.learning_rate, objective='binary:logistic', **self._xgb_shared_params(eval_metric='logloss', verbosity=1))
 
-    def _fit_surrogate_models(self, x_train, y_train, vm):
-        self.sur_cols = self._get_surrogate_feature_cols(x_train.columns)
+    def _fsm(self, x_train, y_train, vm):
+        self.sur_cols = self._gsf(x_train.columns)
         fit_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=True)
         normal_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~vm.to_numpy() & fit_partition
         surrogate_df = x_train.loc[normal_mask].copy()
@@ -911,57 +911,57 @@ class ResearchBaseline:
             if fd.empty:
                 continue
             x_surrogate = self._encode_device_family(fd[self.sur_cols])
-            for target_name, (target_col, _) in STG.items():
+            for tg, (target_col, _) in STG.items():
                 model = self._new_surrogate_model()
                 y_target = fd[target_col].to_numpy(np.float32)
-                print(f'[surrogate] training {family}/{target_name} on {len(fd):,} normal rows')
+                print(f'[surrogate] training {family}/{tg} on {len(fd):,} normal rows')
                 model.fit(x_surrogate, y_target)
-                self.surrogate_models[family, target_name] = model
+                self.surrogate_models[family, tg] = model
 
-    def _augment_with_surrogates(self, x_df):
+    def _aws(self, x_df):
         if self.sur_cols is None or not self.surrogate_models:
             return x_df
         out = x_df.copy()
-        for target_name in STG:
-            out[f'pred_{target_name}'] = np.nan
-            out[f'resid_{target_name}'] = np.nan
-            out[f'abs_resid_{target_name}'] = np.nan
-            out[f'norm_resid_{target_name}'] = np.nan
-            out[f'abs_norm_resid_{target_name}'] = np.nan
-            out[f'tail_resid_{target_name}'] = 0
-            out[f'extreme_resid_{target_name}'] = 0
-            out[f'ultra_resid_{target_name}'] = 0
-            out[f'q99_ratio_resid_{target_name}'] = np.nan
+        for tg in STG:
+            out[f'pred_{tg}'] = np.nan
+            out[f'resid_{tg}'] = np.nan
+            out[f'abs_resid_{tg}'] = np.nan
+            out[f'norm_resid_{tg}'] = np.nan
+            out[f'abs_norm_resid_{tg}'] = np.nan
+            out[f'tail_resid_{tg}'] = 0
+            out[f'extreme_resid_{tg}'] = 0
+            out[f'ultra_resid_{tg}'] = 0
+            out[f'q99_ratio_resid_{tg}'] = np.nan
         x_surrogate = self._encode_device_family(out[self.sur_cols])
         for family in FAM:
             fm = out['device_family'] == family
             if not fm.any():
                 continue
             x_family = x_surrogate.loc[fm]
-            for target_name, (target_col, scale_col) in STG.items():
-                model = self.surrogate_models.get((family, target_name))
+            for tg, (target_col, scale_col) in STG.items():
+                model = self.surrogate_models.get((family, tg))
                 if model is None:
                     continue
                 pred = model.predict(x_family).astype(np.float32)
                 actual = out.loc[fm, target_col].to_numpy(np.float32)
                 resid = actual - pred
-                out.loc[fm, f'pred_{target_name}'] = pred
-                out.loc[fm, f'resid_{target_name}'] = resid
-                out.loc[fm, f'abs_resid_{target_name}'] = np.abs(resid).astype(np.float32)
+                out.loc[fm, f'pred_{tg}'] = pred
+                out.loc[fm, f'resid_{tg}'] = resid
+                out.loc[fm, f'abs_resid_{tg}'] = np.abs(resid).astype(np.float32)
                 if scale_col is not None:
                     scale = out.loc[fm, scale_col].to_numpy(np.float32)
-                    norm_resid = self._safe_div(resid, scale)
+                    norm_resid = self._d(resid, scale)
                 else:
                     scale = np.maximum(0.05, np.abs(actual))
                     norm_resid = (resid / scale).astype(np.float32)
-                out.loc[fm, f'norm_resid_{target_name}'] = norm_resid.astype(np.float32)
-                out.loc[fm, f'abs_norm_resid_{target_name}'] = np.abs(norm_resid).astype(np.float32)
+                out.loc[fm, f'norm_resid_{tg}'] = norm_resid.astype(np.float32)
+                out.loc[fm, f'abs_norm_resid_{tg}'] = np.abs(norm_resid).astype(np.float32)
         out['resid_energy_total'] = out[['abs_resid_w', 'abs_resid_va', 'abs_resid_var', 'abs_resid_pf', 'abs_resid_a']].sum(axis=1).astype(np.float32)
         out['resid_va_minus_pq'] = (out['pred_va'] - np.sqrt(np.square(out['pred_w']) + np.square(out['pred_var']))).astype(np.float32)
-        out['resid_w_var_ratio'] = self._safe_div(out['abs_resid_w'].to_numpy(float), out['abs_resid_var'].to_numpy(float) + 0.001)
+        out['resid_w_var_ratio'] = self._d(out['abs_resid_w'].to_numpy(float), out['abs_resid_var'].to_numpy(float) + 0.001)
         return out
 
-    def _compute_residual_quantiles(self, x_train, y_train, vm):
+    def _crq(self, x_train, y_train, vm):
         calibration_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=False)
         base_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~vm.to_numpy()
         self.res_q = {}
@@ -971,42 +971,42 @@ class ResearchBaseline:
             if not family_calibration.any():
                 family_calibration = fm
             family_quantiles = {}
-            for target_name in STG:
-                series = x_train.loc[family_calibration, f'abs_norm_resid_{target_name}']
+            for tg in STG:
+                series = x_train.loc[family_calibration, f'abs_norm_resid_{tg}']
                 values = pd.to_numeric(series, errors='coerce').to_numpy(np.float32)
                 values = values[np.isfinite(values)]
                 quantiles = RESIDUAL_TAIL_FALLBACKS.copy()
                 if values.size > 0:
                     for level_name, q in RESIDUAL_TAIL_LEVELS.items():
                         quantiles[level_name] = float(np.quantile(values, q))
-                family_quantiles[target_name] = {key: max(1e-06, value) for key, value in quantiles.items()}
+                family_quantiles[tg] = {key: max(1e-06, value) for key, value in quantiles.items()}
             self.res_q[family] = family_quantiles
 
-    def _apply_residual_calibration_features(self, x_df):
+    def _arf(self, x_df):
         if not self.res_q:
             return x_df
         out = x_df.copy()
-        for target_name in STG:
-            out[f'tail_resid_{target_name}'] = 0
-            out[f'extreme_resid_{target_name}'] = 0
-            out[f'ultra_resid_{target_name}'] = 0
-            out[f'q99_ratio_resid_{target_name}'] = np.nan
+        for tg in STG:
+            out[f'tail_resid_{tg}'] = 0
+            out[f'extreme_resid_{tg}'] = 0
+            out[f'ultra_resid_{tg}'] = 0
+            out[f'q99_ratio_resid_{tg}'] = np.nan
         for family in FAM:
             fm = out['device_family'] == family
             if not fm.any():
                 continue
             family_quantiles = self.res_q.get(family, {})
-            for target_name in STG:
-                abs_norm = out.loc[fm, f'abs_norm_resid_{target_name}'].to_numpy(np.float32)
-                q = family_quantiles.get(target_name, RESIDUAL_TAIL_FALLBACKS)
+            for tg in STG:
+                abs_norm = out.loc[fm, f'abs_norm_resid_{tg}'].to_numpy(np.float32)
+                q = family_quantiles.get(tg, RESIDUAL_TAIL_FALLBACKS)
                 tail = abs_norm >= q['tail']
                 extreme = abs_norm >= q['extreme']
                 ultra = abs_norm >= q['ultra']
-                q99_ratio = self._safe_div(abs_norm, np.full_like(abs_norm, q['extreme'], dtype=np.float32))
-                out.loc[fm, f'tail_resid_{target_name}'] = tail.astype(np.int8)
-                out.loc[fm, f'extreme_resid_{target_name}'] = extreme.astype(np.int8)
-                out.loc[fm, f'ultra_resid_{target_name}'] = ultra.astype(np.int8)
-                out.loc[fm, f'q99_ratio_resid_{target_name}'] = q99_ratio.astype(np.float32)
+                q99_ratio = self._d(abs_norm, np.full_like(abs_norm, q['extreme'], dtype=np.float32))
+                out.loc[fm, f'tail_resid_{tg}'] = tail.astype(np.int8)
+                out.loc[fm, f'extreme_resid_{tg}'] = extreme.astype(np.int8)
+                out.loc[fm, f'ultra_resid_{tg}'] = ultra.astype(np.int8)
+                out.loc[fm, f'q99_ratio_resid_{tg}'] = q99_ratio.astype(np.float32)
         abs_norm_w = np.nan_to_num(out['abs_norm_resid_w'].to_numpy(np.float32), nan=0.0)
         abs_norm_var = np.nan_to_num(out['abs_norm_resid_var'].to_numpy(np.float32), nan=0.0)
         abs_norm_pf = np.nan_to_num(out['abs_norm_resid_pf'].to_numpy(np.float32), nan=0.0)
@@ -1086,7 +1086,7 @@ class ResearchBaseline:
             feats = self.build_features(chunk.drop(columns=['Label']))
             feats['Label'] = labels
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
-            feats['audit_fold_id'] = (self._build_scenario_keys(feats) % self.cv_folds).astype(np.int8)
+            feats['audit_fold_id'] = (self._bsk(feats) % self.cv_folds).astype(np.int8)
             for family in ('canon10', 'canon100', 'other'):
                 fm = feats['device_family'] == family
                 if fm.any():
@@ -1140,15 +1140,15 @@ class ResearchBaseline:
     def _activate_semantic_context(self, cx):
         self.sur_cols, self.surrogate_models, self.res_q, self.family_base_rates, self.ssm, self.scm, self.sosm, self.socm = cx
 
-    def _prepare_family_semantic_frame(self, bdf, y):
+    def _psf(self, bdf, y):
         work = self._refresh_override_columns(bdf)
         no_valid = pd.Series(np.zeros(len(work), dtype=bool), index=work.index)
-        self._fit_surrogate_models(work, y, no_valid)
-        work = self._augment_with_surrogates(work)
-        self._compute_residual_quantiles(work, y, no_valid)
-        work = self._apply_residual_calibration_features(work)
-        work = self._fit_transform_scenario_features(work, y)
-        work = self._add_family_interaction_features(work)
+        self._fsm(work, y, no_valid)
+        work = self._aws(work)
+        self._crq(work, y, no_valid)
+        work = self._arf(work)
+        work = self._fts(work, y)
+        work = self._afi(work)
         return (work, self._capture_semantic_context())
 
     def _semantic_feature_candidates(self, sdf):
@@ -1171,7 +1171,7 @@ class ResearchBaseline:
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'hard_rule_anomaly'}
         return [col for col in candidates if col in cat_df.columns and col not in excluded]
 
-    def _train_semantic_oof(self, sdf, y, fc, *, fold_col, fit_final):
+    def _tso(self, sdf, y, fc, *, fold_col, fit_final):
         probs = np.ones(len(sdf), dtype=np.float32)
         mm = sdf['hard_override_anomaly'].to_numpy(np.int8) == 0
         fold_ids = sdf[fold_col].to_numpy(np.int8)
@@ -1193,7 +1193,7 @@ class ResearchBaseline:
             final_model.fit(sdf.loc[mm, fc], y[mm], sample_weight=weights)
         return (probs, final_model)
 
-    def _train_cat_oof(self, cat_df, y, fc, cc, *, fold_col, fit_final):
+    def _tco(self, cat_df, y, fc, cc, *, fold_col, fit_final):
         probs = np.ones(len(cat_df), dtype=np.float32)
         mm = cat_df['hard_override_anomaly'].to_numpy(np.int8) == 0
         fold_ids = cat_df[fold_col].to_numpy(np.int8)
@@ -1213,7 +1213,7 @@ class ResearchBaseline:
             final_model.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights, verbose=False)
         return (probs, final_model)
 
-    def _select_family_blend(self, y, ho, semantic_primary, semantic_audit, cat_primary, cat_audit):
+    def _sfb(self, y, ho, semantic_primary, semantic_audit, cat_primary, cat_audit):
         baseline_primary_prob = semantic_primary.copy()
         baseline_primary_prob[ho] = 1.0
         baseline_thr, _ = self.tune_threshold(y, baseline_primary_prob)
@@ -1260,7 +1260,7 @@ class ResearchBaseline:
             if bdf.empty:
                 continue
             y_series = bdf['Label'].astype(np.int8)
-            sdf, cx = self._prepare_family_semantic_frame(bdf.copy(), y_series)
+            sdf, cx = self._psf(bdf.copy(), y_series)
             self.ctx[family] = cx
             semf = self._select_nonconstant_columns(sdf, self._semantic_feature_candidates(sdf))
             self.sem_cols[family] = semf
@@ -1270,15 +1270,15 @@ class ResearchBaseline:
             catc = [col for col in [*SS.values(), 'device_fingerprint'] if col in catf]
             y = y_series.to_numpy(np.int8)
             ho = sdf['hard_override_anomaly'].to_numpy(np.int8) == 1
-            sp1, sm = self._train_semantic_oof(sdf, y, semf, fold_col='fold_id', fit_final=True)
-            sa1, _ = self._train_semantic_oof(sdf, y, semf, fold_col='audit_fold_id', fit_final=False)
+            sp1, sm = self._tso(sdf, y, semf, fold_col='fold_id', fit_final=True)
+            sa1, _ = self._tso(sdf, y, semf, fold_col='audit_fold_id', fit_final=False)
             self.semantic_models[family] = sm
             cp1 = ca1 = cm = None
             if catf:
-                cp1, cm = self._train_cat_oof(cat_df, y, catf, catc, fold_col='fold_id', fit_final=True)
-                ca1, _ = self._train_cat_oof(cat_df, y, catf, catc, fold_col='audit_fold_id', fit_final=False)
+                cp1, cm = self._tco(cat_df, y, catf, catc, fold_col='fold_id', fit_final=True)
+                ca1, _ = self._tco(cat_df, y, catf, catc, fold_col='audit_fold_id', fit_final=False)
             self.cat_models[family] = cm
-            weight, threshold, _, _ = self._select_family_blend(y, ho, sp1, sa1, cp1, ca1)
+            weight, threshold, _, _ = self._sfb(y, ho, sp1, sa1, cp1, ca1)
             self.blend_w[family] = weight
             self.thr[family] = threshold
             trained += 1
@@ -1295,10 +1295,10 @@ class ResearchBaseline:
         self._activate_semantic_context(cx)
         work = self._refresh_override_columns(bdf.copy())
         ho = work['hard_override_anomaly'].to_numpy(np.int8) == 1
-        sdf = self._augment_with_surrogates(work.copy())
-        sdf = self._apply_residual_calibration_features(sdf)
-        sdf = self._apply_scenario_features(sdf)
-        sdf = self._add_family_interaction_features(sdf)
+        sdf = self._aws(work.copy())
+        sdf = self._arf(sdf)
+        sdf = self._apf(sdf)
+        sdf = self._afi(sdf)
         sp = np.ones(len(sdf), dtype=np.float32)
         if (~ho).any():
             sm = self.semantic_models[family]

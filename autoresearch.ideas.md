@@ -1,3 +1,2 @@
 - Distill the current predictor to a much smaller hand-coded model over engineered features from `build_features()`, but only if the exact-match representation ends up smaller than a direct refactor.
-- Investigate removing CatBoost and report/audit plumbing entirely if an equivalent threshold/blend decision can be reproduced from a simpler family-specific training path.
-- Convert the pipeline from zip/artifact/report oriented code into a direct `train.csv` / `test.csv` runner with only the minimum state needed for exact prediction parity.
+- Investigate whether CatBoost can be eliminated entirely if an XGBoost-only or simpler family-specific path can reproduce the exact final predictions.

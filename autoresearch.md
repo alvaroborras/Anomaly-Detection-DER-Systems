@@ -40,7 +40,7 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- The current kept `main.py` is ~94k chars, down from ~130k.
+- The current kept `main.py` is ~91k chars, down from ~130k.
 - The most productive safe reductions so far have come from deleting non-essential surface area and shortening internal names rather than changing the predictor itself.
 - Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic/scenario helper plumbing, and any remaining verbose setup code that does not affect the final submission.
 - Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this remains a backup path, not the leading one.
@@ -55,4 +55,5 @@ Workload constraints:
 - Kept: shortened a batch of long internal identifiers (`semantic_*`, scenario-map names, override/config names, etc.) with no behavior change. This cut `main.py` further to 95,974 chars while preserving the exact hash.
 - Kept: shortened another batch of long global constants/column-set identifiers (`USECOLS_*`, raw/string-column constants, map names, etc.) with no behavior change. This brought `main.py` to 95,192 chars while preserving the exact hash.
 - Kept: shortened another batch of common local variable names (`feature_cols`, masks, score/probability/temp names, output counters, etc.) with no behavior change. This brought `main.py` to 93,852 chars while preserving the exact hash.
+- Kept: shortened another batch of helper-method names plus common locals (`_apply_residual_calibration_features`, `_fit_transform_scenario_features`, `_train_*`, curve/scenario temp names, etc.) with no behavior change. This brought `main.py` to 90,596 chars while preserving the exact hash.
 - Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path.
