@@ -121,10 +121,10 @@ AT = 0.003
 MOP = 0.995
 CIF = ['rs', 'sr', 'so', 'rqs', 'mdwr']
 STG = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
-SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav va_over_vamaxrtg voi\n    voa aoa w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs pf_sign_mismatch gw gwr\n    gva gvi vla vmp\n    vop pfv pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error\n    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess\n    varset_abs_error varsetpct_target varsetpct_abs_error wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_pwo trip_hv_pwo\n    trip_lf_pwo trip_hf_pwo\n    tpo voltvar_cer voltwatt_cer\n    wattvar_ce wattvar_cer fdwp\n    dcw_over_w dcw_over_abs_w azdp apdz\n    ac_dc_same_sign\n    '.split()}
-HRN = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'wmaxlim_far', 'varsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'enter_blocked_power', 'enter_blocked_current', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
-OVR = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
-RCM = {'noncanonical': 'noncanonical', 'common_missing': 'cma', 'w_gt_wmax': 'gw', 'w_gt_wmaxrtg': 'gwr', 'va_gt_vamax': 'gva', 'var_gt_injmax': 'gvi', 'var_lt_absmax': 'vla', 'wset_far': 'wf', 'wsetpct_far': 'wef', 'wmaxlim_far': 'wmf', 'varsetpct_far': 'vef', 'model_structure': 'msa', 'ac_type_rare': 'ac_type_is_rare', 'dc_type_rare': 'dtr', 'enter_state': 'esa', 'enter_blocked_power': 'ebp', 'enter_blocked_current': 'ebc', 'pf_abs': 'pae', 'pf_abs_rvrt': 'pre', 'trip_power': 'tpo'}
+SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav va_over_vamaxrtg voi\n    voa aoa w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs psm gw gwr\n    gva gvi vla vmp\n    vop pfv pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wsae\n    wsetpct_target wspe wltg wlex\n    vsae vspt vspe wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_pwo trip_hv_pwo\n    trip_lf_pwo trip_hf_pwo\n    tpo voltvar_cer voltwatt_cer\n    wattvar_ce wattvar_cer fdwp\n    dcw_over_w dcw_over_abs_w azdp apdz\n    ac_dc_same_sign\n    '.split()}
+HRN = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wset_far', 'wsetpct_far', 'wmaxlim_far', 'varsetpct_far', 'ms0', 'atr2', 'dtr2', 'enter_state', 'eip', 'eic', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
+OVR = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wset_far', 'wsetpct_far', 'ms0', 'atr2', 'dtr2', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
+RCM = {'nc': 'nc', 'cmi': 'cma', 'gww': 'gw', 'gwrt': 'gwr', 'vgv': 'gva', 'vgi': 'gvi', 'vlm': 'vla', 'wset_far': 'wf', 'wsetpct_far': 'wef', 'wmaxlim_far': 'wmf', 'varsetpct_far': 'vef', 'ms0': 'msa', 'atr2': 'atr', 'dtr2': 'dtr', 'enter_state': 'esa', 'eip': 'ebp', 'eic': 'ebc', 'pf_abs': 'pae', 'pf_abs_rvrt': 'pre', 'trip_power': 'tpo'}
 CEC = ['dg', 'cmp', 'emp', 'mst', 'msb', 'cma', 'cmc', 'csd']
 EMM = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'measure_ac': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'measure_dc': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
 
@@ -134,7 +134,7 @@ def s(seed):
 
 class R:
 
-    def __init__(self, *, ad=DOD / 'artifacts', chunksize=5000, kf=5, n_estimators=180, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cat_iterations=400, cat_depth=8, cat_learning_rate=0.05, n_jobs=4, seed=DEFAULT_SEED):
+    def __init__(self, *, ad=DOD / 'artifacts', chunksize=5000, kf=5, n_estimators=180, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cti=400, cat_depth=8, clr=0.05, n_jobs=4, seed=DEFAULT_SEED):
         self.ad = ad
         self.chunksize = chunksize
         self.kf = kf
@@ -143,9 +143,9 @@ class R:
         self.learning_rate = learning_rate
         self.subsample = subsample
         self.colsample_bytree = colsample_bytree
-        self.cat_iterations = cat_iterations
+        self.cti = cti
         self.cat_depth = cat_depth
-        self.cat_learning_rate = cat_learning_rate
+        self.clr = clr
         self.n_jobs = n_jobs
         self.seed = seed
         self.ovr = list(OVR)
@@ -300,20 +300,20 @@ class R:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
     def _abm(self, data, df):
-        block_missing_total = np.zeros(len(df), dtype=np.int16)
-        block_missing_any = np.zeros(len(df), dtype=np.int16)
+        bmt = np.zeros(len(df), dtype=np.int16)
+        bma = np.zeros(len(df), dtype=np.int16)
         for bn, cols in BSC.items():
             missing = df[cols].isna()
             missing_count = missing.sum(axis=1).astype(np.int16).to_numpy()
             data[f'missing_{bn}_count'] = missing_count
             data[f'missing_{bn}_any'] = (missing_count > 0).astype(np.int8)
-            block_missing_total += missing_count
-            block_missing_any += (missing_count > 0).astype(np.int16)
-        data['mst'] = block_missing_total
-        data['msb'] = block_missing_any.astype(np.int8)
-        common_missing = df[[*CS, 'common[0].ID', 'common[0].L']].isna().to_numpy(dtype=np.uint16)
-        common_weights = (1 << np.arange(common_missing.shape[1], dtype=np.uint16)).reshape(1, -1)
-        data['cmp'] = (common_missing * common_weights).sum(axis=1).astype(np.int16)
+            bmt += missing_count
+            bma += (missing_count > 0).astype(np.int16)
+        data['mst'] = bmt
+        data['msb'] = bma.astype(np.int8)
+        cmi = df[[*CS, 'common[0].ID', 'common[0].L']].isna().to_numpy(dtype=np.uint16)
+        common_weights = (1 << np.arange(cmi.shape[1], dtype=np.uint16)).reshape(1, -1)
+        data['cmp'] = (cmi * common_weights).sum(axis=1).astype(np.int16)
         enter_missing = df[ESC].isna().to_numpy(dtype=np.uint16)
         enter_weights = (1 << np.arange(enter_missing.shape[1], dtype=np.uint16)).reshape(1, -1)
         data['emp'] = (enter_missing * enter_weights).sum(axis=1).astype(np.int16)
@@ -334,7 +334,7 @@ class R:
             data[f'{bn}_model_len_match'] = len_match.astype(np.int8)
             data[f'{bn}_model_integrity_ok'] = (id_match & len_match).astype(np.int8)
             mismatch = ~id_missing & ~id_match | ~len_missing & ~len_match
-            data[f'{bn}_model_structure_anomaly'] = mismatch.astype(np.int8)
+            data[f'{bn}_ms0_anomaly'] = mismatch.astype(np.int8)
             anomaly_sum += mismatch.astype(np.int16)
             missing_sum += (id_missing | len_missing).astype(np.int16)
         data['msac'] = anomaly_sum.astype(np.int8)
@@ -546,7 +546,7 @@ class R:
         dbuf_stack = np.column_stack(dbuf_curves)
         k_stack = np.column_stack(kof_curves + kuf_curves)
         pmin_stack = np.column_stack(pmin_curves)
-        data['freqdroop_ctl_idx'] = ctl_idx.astype(np.int8)
+        data['fdci'] = ctl_idx.astype(np.int8)
         data['freqdroop_dbof'] = dbof.astype(np.float32)
         data['freqdroop_dbuf'] = dbuf.astype(np.float32)
         data['freqdroop_kof'] = kof.astype(np.float32)
@@ -560,8 +560,8 @@ class R:
         data['fdep'] = expected_delta_pct.astype(np.float32)
         data['fod'] = ((oa2 > 0) | (ua > 0)).astype(np.int8)
         data['fdwp'] = (w_pct - pmin).astype(np.float32)
-        data['freqdroop_db_span'] = (self._x(np.column_stack([dbof_stack, dbuf_stack])) - self._n(np.column_stack([dbof_stack, dbuf_stack]))).astype(np.float32)
-        data['freqdroop_k_span'] = (self._x(k_stack) - self._n(k_stack)).astype(np.float32)
+        data['fdbs'] = (self._x(np.column_stack([dbof_stack, dbuf_stack])) - self._n(np.column_stack([dbof_stack, dbuf_stack]))).astype(np.float32)
+        data['fdks'] = (self._x(k_stack) - self._n(k_stack)).astype(np.float32)
         data['fdps'] = (self._x(pmin_stack) - self._n(pmin_stack)).astype(np.float32)
 
     def _adc(self, data, df, *, w, abs_w):
@@ -594,7 +594,7 @@ class R:
         self._coerce_numeric(df)
         fingerprint = df[CS].fillna('<NA>').agg('|'.join, axis=1)
         data = {'Id': df['Id'].to_numpy(), 'dg': fingerprint.to_numpy(dtype=object), 'df': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'cma': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'cmc': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'csd': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
-        data['noncanonical'] = (data['df'] == 'other').astype(np.int8)
+        data['nc'] = (data['df'] == 'other').astype(np.int8)
         for col in RN:
             arr = df[col].to_numpy()
             if np.issubdtype(arr.dtype, np.floating):
@@ -632,7 +632,7 @@ class R:
             data[name] = value.astype(np.float32)
         for name, left, right in [('w_eq_wmaxrtg', w, wmaxrtg), ('w_eq_wmax', w, wmax), ('var_eq_varmaxinj', var, vmi), ('var_eq_neg_varmaxabs', var, -vma)]:
             data[name] = np.isclose(left, right, equal_nan=False).astype(np.int8)
-        data['pf_sign_mismatch'] = ((np.sign(np.nan_to_num(pf)) != np.sign(np.nan_to_num(w))) & (np.nan_to_num(pf) != 0) & (np.nan_to_num(w) != 0)).astype(np.int8)
+        data['psm'] = ((np.sign(np.nan_to_num(pf)) != np.sign(np.nan_to_num(w))) & (np.nan_to_num(pf) != 0) & (np.nan_to_num(w) != 0)).astype(np.int8)
         tolw = np.maximum(50.0, 0.02 * np.nan_to_num(wmaxrtg, nan=0.0)).astype(np.float32)
         tolva = np.maximum(50.0, 0.02 * np.nan_to_num(vamax, nan=0.0)).astype(np.float32)
         tolvi = np.maximum(20.0, 0.02 * np.nan_to_num(vmi, nan=0.0)).astype(np.float32)
@@ -662,26 +662,26 @@ class R:
         varsetena = np.nan_to_num(df['DERCtlAC[0].VarSetEna'].to_numpy(float), nan=0.0)
         varset = df['DERCtlAC[0].VarSet'].to_numpy(float)
         varsetpct = df['DERCtlAC[0].VarSetPct'].to_numpy(float)
-        wset_abs_error = np.where(wsetena > 0, np.abs(w - wset), np.nan)
+        wsae = np.where(wsetena > 0, np.abs(w - wset), np.nan)
         wsetpct_target = wmaxrtg * (wsetpct / 100.0)
-        wsetpct_abs_error = np.where(wsetena > 0, np.abs(w - wsetpct_target), np.nan)
-        wmaxlim_target = wmaxrtg * (wmaxlimpct / 100.0)
-        wmaxlim_excess = np.where(wmaxlimena > 0, w - wmaxlim_target, np.nan)
-        varset_abs_error = np.where(varsetena > 0, np.abs(var - varset), np.nan)
-        varsetpct_target = vmi * (varsetpct / 100.0)
-        varsetpct_abs_error = np.where(varsetena > 0, np.abs(var - varsetpct_target), np.nan)
-        data['wset_abs_error'] = wset_abs_error.astype(np.float32)
+        wspe = np.where(wsetena > 0, np.abs(w - wsetpct_target), np.nan)
+        wltg = wmaxrtg * (wmaxlimpct / 100.0)
+        wlex = np.where(wmaxlimena > 0, w - wltg, np.nan)
+        vsae = np.where(varsetena > 0, np.abs(var - varset), np.nan)
+        vspt = vmi * (varsetpct / 100.0)
+        vspe = np.where(varsetena > 0, np.abs(var - vspt), np.nan)
+        data['wsae'] = wsae.astype(np.float32)
         data['wsetpct_target'] = wsetpct_target.astype(np.float32)
-        data['wsetpct_abs_error'] = wsetpct_abs_error.astype(np.float32)
-        data['wmaxlim_target'] = wmaxlim_target.astype(np.float32)
-        data['wmaxlim_excess'] = wmaxlim_excess.astype(np.float32)
-        data['varset_abs_error'] = varset_abs_error.astype(np.float32)
-        data['varsetpct_target'] = varsetpct_target.astype(np.float32)
-        data['varsetpct_abs_error'] = varsetpct_abs_error.astype(np.float32)
-        data['wf'] = ((wsetena > 0) & (wset_abs_error > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
-        data['wef'] = ((wsetena > 0) & (wsetpct_abs_error > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
-        data['wmf'] = ((wmaxlimena > 0) & (wmaxlim_excess > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
-        data['vef'] = ((varsetena > 0) & (varsetpct_abs_error > np.maximum(20.0, 0.05 * np.nan_to_num(vmi, nan=0.0)))).astype(np.int8)
+        data['wspe'] = wspe.astype(np.float32)
+        data['wltg'] = wltg.astype(np.float32)
+        data['wlex'] = wlex.astype(np.float32)
+        data['vsae'] = vsae.astype(np.float32)
+        data['vspt'] = vspt.astype(np.float32)
+        data['vspe'] = vspe.astype(np.float32)
+        data['wf'] = ((wsetena > 0) & (wsae > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
+        data['wef'] = ((wsetena > 0) & (wspe > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
+        data['wmf'] = ((wmaxlimena > 0) & (wlex > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0)))).astype(np.int8)
+        data['vef'] = ((varsetena > 0) & (vspe > np.maximum(20.0, 0.05 * np.nan_to_num(vmi, nan=0.0)))).astype(np.int8)
         self._ace(data, wmaxrtg=wmaxrtg, wmax=wmax, vamaxrtg=vamaxrtg, vamax=vamax, varmaxinjrtg=varmaxinjrtg, vmi=vmi, varmaxabsrtg=varmaxabsrtg, vma=vma, vnomrtg=df['DERCapacity[0].VNomRtg'].to_numpy(float), vnom=vnom, vmaxrtg=df['DERCapacity[0].VMaxRtg'].to_numpy(float), vmax=vmax, vminrtg=df['DERCapacity[0].VMinRtg'].to_numpy(float), vmin=vmin, amaxrtg=df['DERCapacity[0].AMaxRtg'].to_numpy(float), amax=amax, wcha_rtg=df['DERCapacity[0].WChaRteMaxRtg'].to_numpy(float), wdis_rtg=df['DERCapacity[0].WDisChaRteMaxRtg'].to_numpy(float), vacha_rtg=df['DERCapacity[0].VAChaRteMaxRtg'].to_numpy(float), vadis_rtg=df['DERCapacity[0].VADisChaRteMaxRtg'].to_numpy(float), wcha=df['DERCapacity[0].WChaRteMax'].to_numpy(float), wdis=df['DERCapacity[0].WDisChaRteMax'].to_numpy(float), vacha=df['DERCapacity[0].VAChaRteMax'].to_numpy(float), vadis=df['DERCapacity[0].VADisChaRteMax'].to_numpy(float), pfover_rtg=df['DERCapacity[0].PFOvrExtRtg'].to_numpy(float), pfover=df['DERCapacity[0].PFOvrExt'].to_numpy(float), pfunder_rtg=df['DERCapacity[0].PFUndExtRtg'].to_numpy(float), pfunder=df['DERCapacity[0].PFUndExt'].to_numpy(float))
         vp = 100.0 * self._d(llv, vnom)
         lnp = 100.0 * self._d(lnv * SQRT3, vnom)
@@ -691,22 +691,22 @@ class R:
         data['lnp'] = lnp.astype(np.float32)
         data['wpr'] = w_pct.astype(np.float32)
         data['vpl'] = var_pct.astype(np.float32)
-        enter_state_anomaly, enter_blocked_power, enter_blocked_current = self._aes(data, df, vp=vp, hz=hz, abs_w=abs_w, va=va, a=a, tolw=tolw, tolva=tolva, amax=amax)
+        enter_state_anomaly, eip, eic = self._aes(data, df, vp=vp, hz=hz, abs_w=abs_w, va=va, a=a, tolw=tolw, tolva=tolva, amax=amax)
         pae, pre = self._apc(data, df, pf=pf, var=var, vmi=vmi, vma=vma)
-        trip_outside_flags = []
-        trip_power_flags = []
+        tof = []
+        tpf = []
         for sn, (prefix, an, mode) in TS.items():
             mv = vp if an == 'V' else hz
             outside, pwo = self._atb(data, df, sn=sn, prefix=prefix, an=an, mode=mode, mv=mv, abs_w=abs_w, tolw=tolw)
-            trip_outside_flags.append(outside)
-            trip_power_flags.append(pwo)
-        if trip_outside_flags:
-            trip_any_outside = np.column_stack(trip_outside_flags).any(axis=1).astype(np.int8)
-            tpo = np.column_stack(trip_power_flags).any(axis=1).astype(np.int8)
+            tof.append(outside)
+            tpf.append(pwo)
+        if tof:
+            tao = np.column_stack(tof).any(axis=1).astype(np.int8)
+            tpo = np.column_stack(tpf).any(axis=1).astype(np.int8)
         else:
-            trip_any_outside = np.zeros(len(df), dtype=np.int8)
+            tao = np.zeros(len(df), dtype=np.int8)
             tpo = np.zeros(len(df), dtype=np.int8)
-        data['tom'] = trip_any_outside
+        data['tom'] = tao
         data['tpo'] = tpo
         curve_scalars = lambda prefix, field: [df[f'{prefix}.Crv[{curve}].{field}'].to_numpy(float) for curve in range(3)]
         curve_points = lambda prefix, field, pc: [np.column_stack([df[f'{prefix}.Crv[{curve}].Pt[{point}].{field}'].to_numpy(float) for point in range(pc)]) for curve in range(3)]
@@ -716,14 +716,14 @@ class R:
         self._afd(data, df, hz=hz, w_pct=w_pct)
         dc_port_type_rare = self._adc(data, df, w=w, abs_w=abs_w)
         ac_type = df['DERMeasureAC[0].ACType'].to_numpy(float)
-        ac_type_is_rare = np.isfinite(ac_type) & (ac_type == 3.0)
-        data['ac_type_is_rare'] = ac_type_is_rare.astype(np.int8)
-        flag_map = {'noncanonical': data['noncanonical'] == 1, 'common_missing': data['cma'] == 1, 'w_gt_wmax': data['gw'] == 1, 'w_gt_wmaxrtg': data['gwr'] == 1, 'va_gt_vamax': data['gva'] == 1, 'var_gt_injmax': data['gvi'] == 1, 'var_lt_absmax': data['vla'] == 1, 'wset_far': data['wf'] == 1, 'wsetpct_far': data['wef'] == 1, 'wmaxlim_far': data['wmf'] == 1, 'varsetpct_far': data['vef'] == 1, 'model_structure': data['msa'] == 1, 'ac_type_rare': ac_type_is_rare == 1, 'dc_type_rare': dc_port_type_rare == 1, 'enter_state': enter_state_anomaly == 1, 'enter_blocked_power': enter_blocked_power == 1, 'enter_blocked_current': enter_blocked_current == 1, 'pf_abs': pae == 1, 'pf_abs_rvrt': pre == 1, 'trip_power': tpo == 1}
+        atr = np.isfinite(ac_type) & (ac_type == 3.0)
+        data['atr'] = atr.astype(np.int8)
+        flag_map = {'nc': data['nc'] == 1, 'cmi': data['cma'] == 1, 'gww': data['gw'] == 1, 'gwrt': data['gwr'] == 1, 'vgv': data['gva'] == 1, 'vgi': data['gvi'] == 1, 'vlm': data['vla'] == 1, 'wset_far': data['wf'] == 1, 'wsetpct_far': data['wef'] == 1, 'wmaxlim_far': data['wmf'] == 1, 'varsetpct_far': data['vef'] == 1, 'ms0': data['msa'] == 1, 'atr2': atr == 1, 'dtr2': dc_port_type_rare == 1, 'enter_state': enter_state_anomaly == 1, 'eip': eip == 1, 'eic': eic == 1, 'pf_abs': pae == 1, 'pf_abs_rvrt': pre == 1, 'trip_power': tpo == 1}
         hrf = np.column_stack([flag_map[name] for name in HRN])
         hof = np.column_stack([flag_map[name] for name in self.ovr])
         ff = {name: flag.astype(np.float32) for name, flag in flag_map.items()}
-        data['hard_rule_count'] = hrf.sum(axis=1).astype(np.int8)
-        data['rs'] = 3.0 * ff['noncanonical'] + 2.5 * ff['common_missing'] + 2.0 * (ff['w_gt_wmax'] + ff['w_gt_wmaxrtg'] + ff['va_gt_vamax'] + ff['var_gt_injmax'] + ff['var_lt_absmax'] + ff['model_structure'] + ff['enter_state'] + ff['trip_power']) + 1.5 * (ff['wset_far'] + ff['wsetpct_far'] + ff['ac_type_rare'] + ff['dc_type_rare'] + ff['pf_abs'] + ff['pf_abs_rvrt']) + 1.0 * ff['varsetpct_far'] + 0.75 * ff['wmaxlim_far'] + 0.35 * (ff['enter_blocked_power'] + ff['enter_blocked_current'])
+        data['hrc'] = hrf.sum(axis=1).astype(np.int8)
+        data['rs'] = 3.0 * ff['nc'] + 2.5 * ff['cmi'] + 2.0 * (ff['gww'] + ff['gwrt'] + ff['vgv'] + ff['vgi'] + ff['vlm'] + ff['ms0'] + ff['enter_state'] + ff['trip_power']) + 1.5 * (ff['wset_far'] + ff['wsetpct_far'] + ff['atr2'] + ff['dtr2'] + ff['pf_abs'] + ff['pf_abs_rvrt']) + 1.0 * ff['varsetpct_far'] + 0.75 * ff['wmaxlim_far'] + 0.35 * (ff['eip'] + ff['eic'])
         ra = hrf.any(axis=1).astype(np.int8)
         data['ra'] = ra
         data['oa'] = hof.any(axis=1).astype(np.int8)
@@ -749,7 +749,7 @@ class R:
         return out
 
     def _gsf(self, columns):
-        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'dg', 'ra', 'hard_rule_count', 'rs', 'oa'}
+        excluded = {'Id', 'Label', 'fold_id', 'af', 'dg', 'ra', 'hrc', 'rs', 'oa'}
         excluded.update(SS.values())
         return [col for col in columns if col not in excluded and col not in SLF]
 
@@ -947,17 +947,17 @@ class R:
                 out.loc[fm, f'nr_{tg}'] = norm_resid.astype(np.float32)
                 out.loc[fm, f'anr_{tg}'] = np.abs(norm_resid).astype(np.float32)
         out['ret'] = out[['ar_w', 'ar_va', 'ar_var', 'ar_pf', 'ar_a']].sum(axis=1).astype(np.float32)
-        out['resid_va_minus_pq'] = (out['pred_va'] - np.sqrt(np.square(out['pred_w']) + np.square(out['pred_var']))).astype(np.float32)
-        out['resid_w_var_ratio'] = self._d(out['ar_w'].to_numpy(float), out['ar_var'].to_numpy(float) + 0.001)
+        out['rvp'] = (out['pred_va'] - np.sqrt(np.square(out['pred_w']) + np.square(out['pred_var']))).astype(np.float32)
+        out['rwr'] = self._d(out['ar_w'].to_numpy(float), out['ar_var'].to_numpy(float) + 0.001)
         return out
 
     def _crq(self, x_train, y_train, vm):
-        calibration_partition = self._spm(x_train['Id'], fp=False)
+        cpn = self._spm(x_train['Id'], fp=False)
         base_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy()
         self.res_q = {}
         for family in FAM:
             fm = base_mask & (x_train['df'] == family)
-            fc = fm & calibration_partition
+            fc = fm & cpn
             if not fc.any():
                 fc = fm
             fq = {}
@@ -1065,7 +1065,7 @@ class R:
 
     def _ncm(self):
         self._eca()
-        return C(iterations=self.cat_iterations, depth=self.cat_depth, learning_rate=self.cat_learning_rate, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.n_jobs, allow_writing_files=False, verbose=False)
+        return C(iterations=self.cti, depth=self.cat_depth, learning_rate=self.clr, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.n_jobs, allow_writing_files=False, verbose=False)
 
     def _bta(self):
         shutil.rmtree(self.ad, ignore_errors=True)
@@ -1076,7 +1076,7 @@ class R:
             feats = self.bf(chunk.drop(columns=['Label']))
             feats['Label'] = labels
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.kf).astype(np.int8)
-            feats['audit_fold_id'] = (self._bsk(feats) % self.kf).astype(np.int8)
+            feats['af'] = (self._bsk(feats) % self.kf).astype(np.int8)
             for family in ('canon10', 'canon100', 'other'):
                 fm = feats['df'] == family
                 if fm.any():
@@ -1142,7 +1142,7 @@ class R:
         return (work, self._csc())
 
     def _sfc(self, sdf):
-        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'oa', 'dg'}
+        excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'dg'}
         excluded.update(SS.values())
         return [col for col in sdf.columns if col not in excluded and pd.api.types.is_numeric_dtype(sdf[col])]
 
@@ -1158,7 +1158,7 @@ class R:
         missing_cols = [col for col in cat_df.columns if col.startswith('missing_')]
         cc = [SS[col] for col in RSC if SS[col] in cat_df.columns]
         candidates = dedupe([*raw_numeric_cols, *cc, 'dg', *CEC, *missing_cols])
-        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'oa', 'ra'}
+        excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'ra'}
         return [col for col in candidates if col in cat_df.columns and col not in excluded]
 
     def _tso(self, sdf, y, fc, *, fold_col, fit_final):
@@ -1203,43 +1203,43 @@ class R:
             fm.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights, verbose=False)
         return (probs, fm)
 
-    def _sfb(self, y, ho, semantic_primary, semantic_audit, cat_primary, cat_audit):
-        bpp = semantic_primary.copy()
+    def _sfb(self, y, ho, sp, sa, cp, ca):
+        bpp = sp.copy()
         bpp[ho] = 1.0
-        baseline_thr, _ = self._tt(y, bpp)
-        bpr = (bpp >= baseline_thr).astype(np.int8)
-        bap = semantic_audit.copy()
+        bth, _ = self._tt(y, bpp)
+        bpr = (bpp >= bth).astype(np.int8)
+        bap = sa.copy()
         bap[ho] = 1.0
-        bar = (bap >= baseline_thr).astype(np.int8)
+        bar = (bap >= bth).astype(np.int8)
         bps0 = float(fbeta_score(y, bpr, beta=2))
         bas0 = float(fbeta_score(y, bar, beta=2))
-        best_weight = 1.0
-        bt = baseline_thr
+        bw = 1.0
+        bt = bth
         bppd = bpr
         bapd = bar
         bps1 = bps0
         bafb = bas0
-        weight_grid = [round(step / 20.0, 2) for step in range(21)] if cat_primary is not None else [1.0]
+        weight_grid = [round(step / 20.0, 2) for step in range(21)] if cp is not None else [1.0]
         for weight in weight_grid:
-            blended_primary = self._bp(semantic_primary, cat_primary, weight)
-            blended_primary[ho] = 1.0
-            thr, _ = self._tt(y, blended_primary)
-            pred_primary = (blended_primary >= thr).astype(np.int8)
-            blended_audit = self._bp(semantic_audit, cat_audit, weight)
-            blended_audit[ho] = 1.0
-            pred_audit = (blended_audit >= thr).astype(np.int8)
-            ps = float(fbeta_score(y, pred_primary, beta=2))
-            as_ = float(fbeta_score(y, pred_audit, beta=2))
+            blp = self._bp(sp, cp, weight)
+            blp[ho] = 1.0
+            thr, _ = self._tt(y, blp)
+            pp = (blp >= thr).astype(np.int8)
+            bla = self._bp(sa, ca, weight)
+            bla[ho] = 1.0
+            pa = (bla >= thr).astype(np.int8)
+            ps = float(fbeta_score(y, pp, beta=2))
+            as_ = float(fbeta_score(y, pa, beta=2))
             if as_ < bas0 - AT:
                 continue
             if ps > bps1 + 1e-12 or (abs(ps - bps1) <= 1e-12 and as_ > bafb):
-                best_weight = weight
+                bw = weight
                 bt = thr
-                bppd = pred_primary
-                bapd = pred_audit
+                bppd = pp
+                bapd = pa
                 bps1 = ps
                 bafb = as_
-        return (best_weight, bt, bppd.astype(np.int8), bapd.astype(np.int8))
+        return (bw, bt, bppd.astype(np.int8), bapd.astype(np.int8))
 
     def fit(self):
         self._bta()
@@ -1261,12 +1261,12 @@ class R:
             y = y_series.to_numpy(np.int8)
             ho = sdf['oa'].to_numpy(np.int8) == 1
             sp1, sm = self._tso(sdf, y, semf, fold_col='fold_id', fit_final=True)
-            sa1, _ = self._tso(sdf, y, semf, fold_col='audit_fold_id', fit_final=False)
+            sa1, _ = self._tso(sdf, y, semf, fold_col='af', fit_final=False)
             self.smd[family] = sm
             cp1 = ca1 = cm = None
             if catf:
                 cp1, cm = self._tco(cat_df, y, catf, catc, fold_col='fold_id', fit_final=True)
-                ca1, _ = self._tco(cat_df, y, catf, catc, fold_col='audit_fold_id', fit_final=False)
+                ca1, _ = self._tco(cat_df, y, catf, catc, fold_col='af', fit_final=False)
             self.cmd[family] = cm
             weight, threshold, _, _ = self._sfb(y, ho, sp1, sa1, cp1, ca1)
             self.blend_w[family] = weight
