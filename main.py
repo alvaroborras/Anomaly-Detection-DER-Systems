@@ -801,9 +801,9 @@ class ResearchBaseline:
     @staticmethod
     def _lookup_scenario_stats(keys, sum_map, count_map):
         key_series = pd.Series(keys)
-        sum_values = key_series.map(sum_map).fillna(0.0).to_numpy(np.float32)
-        count_values = key_series.map(count_map).fillna(0).to_numpy(np.int32)
-        return (sum_values, count_values)
+        sv = key_series.map(sum_map).fillna(0.0).to_numpy(np.float32)
+        cv = key_series.map(count_map).fillna(0).to_numpy(np.int32)
+        return (sv, cv)
 
     @staticmethod
     def _assign_scenario_features(out, *, family_prior, scenario_rate, scenario_count, scenario_output_rate, scenario_output_count):
@@ -822,42 +822,42 @@ class ResearchBaseline:
     def _fit_transform_scenario_features(self, x_train, y_train):
         out = x_train.copy()
         y_arr = y_train.to_numpy(np.float32)
-        family_series = out['device_family'].astype(str)
-        self.family_base_rates = pd.DataFrame({'family': family_series, 'y': y_arr}).groupby('family')['y'].mean().to_dict()
+        fs = out['device_family'].astype(str)
+        self.family_base_rates = pd.DataFrame({'family': fs, 'y': y_arr}).groupby('family')['y'].mean().to_dict()
         keys = self._build_scenario_keys(out)
-        output_keys = self._build_scenario_output_keys(out)
+        ok = self._build_scenario_output_keys(out)
         fold_ids = (out['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
         scenario_rate = np.zeros(len(out), dtype=np.float32)
         scenario_count = np.zeros(len(out), dtype=np.int32)
         scenario_output_rate = np.zeros(len(out), dtype=np.float32)
         scenario_output_count = np.zeros(len(out), dtype=np.int32)
-        global_rate = float(np.mean(y_arr))
+        gr = float(np.mean(y_arr))
         for fold in range(self.cv_folds):
-            train_mask = fold_ids != fold
-            valid_mask = fold_ids == fold
-            if not valid_mask.any():
+            tm = fold_ids != fold
+            vm = fold_ids == fold
+            if not vm.any():
                 continue
-            stats = pd.DataFrame({'key': keys[train_mask], 'y': y_arr[train_mask]}).groupby('key')['y'].agg(['sum', 'count'])
-            output_stats = pd.DataFrame({'key': output_keys[train_mask], 'y': y_arr[train_mask]}).groupby('key')['y'].agg(['sum', 'count'])
-            valid_keys = pd.Series(keys[valid_mask])
+            stats = pd.DataFrame({'key': keys[tm], 'y': y_arr[tm]}).groupby('key')['y'].agg(['sum', 'count'])
+            output_stats = pd.DataFrame({'key': ok[tm], 'y': y_arr[tm]}).groupby('key')['y'].agg(['sum', 'count'])
+            valid_keys = pd.Series(keys[vm])
             valid_sum = valid_keys.map(stats['sum']).fillna(0.0).to_numpy(np.float32)
             valid_count = valid_keys.map(stats['count']).fillna(0).to_numpy(np.int32)
-            valid_output_keys = pd.Series(output_keys[valid_mask])
+            valid_output_keys = pd.Series(ok[vm])
             valid_output_sum = valid_output_keys.map(output_stats['sum']).fillna(0.0).to_numpy(np.float32)
             valid_output_count = valid_output_keys.map(output_stats['count']).fillna(0).to_numpy(np.int32)
-            valid_family = family_series.loc[valid_mask].tolist()
-            prior = np.array([self.family_base_rates.get(name, global_rate) for name in valid_family], dtype=np.float32)
-            scenario_rate[valid_mask] = (valid_sum + SCENARIO_SMOOTHING * prior) / (valid_count + SCENARIO_SMOOTHING)
-            scenario_count[valid_mask] = valid_count
-            scenario_output_rate[valid_mask] = (valid_output_sum + SCENARIO_SMOOTHING * prior) / (valid_output_count + SCENARIO_SMOOTHING)
-            scenario_output_count[valid_mask] = valid_output_count
+            valid_family = fs.loc[vm].tolist()
+            prior = np.array([self.family_base_rates.get(name, gr) for name in valid_family], dtype=np.float32)
+            scenario_rate[vm] = (valid_sum + SCENARIO_SMOOTHING * prior) / (valid_count + SCENARIO_SMOOTHING)
+            scenario_count[vm] = valid_count
+            scenario_output_rate[vm] = (valid_output_sum + SCENARIO_SMOOTHING * prior) / (valid_output_count + SCENARIO_SMOOTHING)
+            scenario_output_count[vm] = valid_output_count
         full_stats = pd.DataFrame({'key': keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
-        full_output_stats = pd.DataFrame({'key': output_keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
+        full_output_stats = pd.DataFrame({'key': ok, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
         self.ssm = {int(idx): float(val) for idx, val in full_stats['sum'].items()}
         self.scm = {int(idx): int(val) for idx, val in full_stats['count'].items()}
         self.sosm = {int(idx): float(val) for idx, val in full_output_stats['sum'].items()}
         self.socm = {int(idx): int(val) for idx, val in full_output_stats['count'].items()}
-        family_prior = family_series.map(self.family_base_rates).fillna(global_rate).to_numpy(np.float32)
+        family_prior = fs.map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
         return self._assign_scenario_features(out, family_prior=family_prior, scenario_rate=scenario_rate, scenario_count=scenario_count, scenario_output_rate=scenario_output_rate, scenario_output_count=scenario_output_count)
 
     def _apply_scenario_features(self, x_df):
@@ -865,14 +865,14 @@ class ResearchBaseline:
             return x_df
         out = x_df.copy()
         keys = self._build_scenario_keys(out)
-        output_keys = self._build_scenario_output_keys(out)
-        sum_values, count_values = self._lookup_scenario_stats(keys, self.ssm, self.scm)
-        output_sum_values, output_count_values = self._lookup_scenario_stats(output_keys, self.sosm, self.socm)
-        global_rate = float(np.mean(list(self.family_base_rates.values()))) if self.family_base_rates else 0.5
-        family_prior = out['device_family'].astype(str).map(self.family_base_rates).fillna(global_rate).to_numpy(np.float32)
-        scenario_rate = (sum_values + SCENARIO_SMOOTHING * family_prior) / (count_values + SCENARIO_SMOOTHING)
+        ok = self._build_scenario_output_keys(out)
+        sv, cv = self._lookup_scenario_stats(keys, self.ssm, self.scm)
+        output_sum_values, output_count_values = self._lookup_scenario_stats(ok, self.sosm, self.socm)
+        gr = float(np.mean(list(self.family_base_rates.values()))) if self.family_base_rates else 0.5
+        family_prior = out['device_family'].astype(str).map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
+        scenario_rate = (sv + SCENARIO_SMOOTHING * family_prior) / (cv + SCENARIO_SMOOTHING)
         scenario_output_rate = (output_sum_values + SCENARIO_SMOOTHING * family_prior) / (output_count_values + SCENARIO_SMOOTHING)
-        return self._assign_scenario_features(out, family_prior=family_prior, scenario_rate=scenario_rate, scenario_count=count_values, scenario_output_rate=scenario_output_rate, scenario_output_count=output_count_values)
+        return self._assign_scenario_features(out, family_prior=family_prior, scenario_rate=scenario_rate, scenario_count=cv, scenario_output_rate=scenario_output_rate, scenario_output_count=output_count_values)
 
     def _add_family_interaction_features(self, x_df):
         out = x_df.copy()
@@ -898,23 +898,23 @@ class ResearchBaseline:
     def _new_classifier(self):
         return XGBClassifier(n_estimators=self.n_estimators, max_depth=self.max_depth, learning_rate=self.learning_rate, objective='binary:logistic', **self._xgb_shared_params(eval_metric='logloss', verbosity=1))
 
-    def _fit_surrogate_models(self, x_train, y_train, valid_mask):
+    def _fit_surrogate_models(self, x_train, y_train, vm):
         self.sur_cols = self._get_surrogate_feature_cols(x_train.columns)
         fit_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=True)
-        normal_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~valid_mask.to_numpy() & fit_partition
+        normal_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~vm.to_numpy() & fit_partition
         surrogate_df = x_train.loc[normal_mask].copy()
         if surrogate_df.empty:
             raise RuntimeError('No rows available to train surrogate models.')
         self.surrogate_models = {}
         for family in FAM:
-            family_df = surrogate_df.loc[surrogate_df['device_family'] == family].copy()
-            if family_df.empty:
+            fd = surrogate_df.loc[surrogate_df['device_family'] == family].copy()
+            if fd.empty:
                 continue
-            x_surrogate = self._encode_device_family(family_df[self.sur_cols])
+            x_surrogate = self._encode_device_family(fd[self.sur_cols])
             for target_name, (target_col, _) in STG.items():
                 model = self._new_surrogate_model()
-                y_target = family_df[target_col].to_numpy(np.float32)
-                print(f'[surrogate] training {family}/{target_name} on {len(family_df):,} normal rows')
+                y_target = fd[target_col].to_numpy(np.float32)
+                print(f'[surrogate] training {family}/{target_name} on {len(fd):,} normal rows')
                 model.fit(x_surrogate, y_target)
                 self.surrogate_models[family, target_name] = model
 
@@ -961,9 +961,9 @@ class ResearchBaseline:
         out['resid_w_var_ratio'] = self._safe_div(out['abs_resid_w'].to_numpy(float), out['abs_resid_var'].to_numpy(float) + 0.001)
         return out
 
-    def _compute_residual_quantiles(self, x_train, y_train, valid_mask):
+    def _compute_residual_quantiles(self, x_train, y_train, vm):
         calibration_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=False)
-        base_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~valid_mask.to_numpy()
+        base_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~vm.to_numpy()
         self.res_q = {}
         for family in FAM:
             fm = base_mask & (x_train['device_family'] == family)
@@ -1081,7 +1081,7 @@ class ResearchBaseline:
         shutil.rmtree(self.artifact_dir, ignore_errors=True)
         train_root = self.artifact_dir / 'train'
         built = 0
-        for chunk_idx, chunk in enumerate(self.iter_raw_chunks('train.csv', UTR)):
+        for ci, chunk in enumerate(self.iter_raw_chunks('train.csv', UTR)):
             labels = chunk['Label'].astype(np.int8).to_numpy()
             feats = self.build_features(chunk.drop(columns=['Label']))
             feats['Label'] = labels
@@ -1092,10 +1092,10 @@ class ResearchBaseline:
                 if fm.any():
                     family_dir = train_root / family
                     family_dir.mkdir(parents=True, exist_ok=True)
-                    family_df = feats.loc[fm].copy()
-                    family_df.to_parquet(family_dir / f'{chunk_idx:05d}.parquet', index=False)
-                    built += len(family_df)
-            if chunk_idx % 10 == 0:
+                    fd = feats.loc[fm].copy()
+                    fd.to_parquet(family_dir / f'{ci:05d}.parquet', index=False)
+                    built += len(fd)
+            if ci % 10 == 0:
                 print(f'[artifacts] materialized {built:,} training rows')
             del feats
             gc.collect()
@@ -1166,51 +1166,51 @@ class ResearchBaseline:
     def _cat_feature_candidates(self, cat_df):
         raw_numeric_cols = [SR[col] for col in RN if SR[col] in cat_df.columns]
         missing_cols = [col for col in cat_df.columns if col.startswith('missing_')]
-        categorical_cols = [SS[col] for col in RSC if SS[col] in cat_df.columns]
-        candidates = dedupe([*raw_numeric_cols, *categorical_cols, 'device_fingerprint', *CEC, *missing_cols])
+        cc = [SS[col] for col in RSC if SS[col] in cat_df.columns]
+        candidates = dedupe([*raw_numeric_cols, *cc, 'device_fingerprint', *CEC, *missing_cols])
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'hard_rule_anomaly'}
         return [col for col in candidates if col in cat_df.columns and col not in excluded]
 
-    def _train_semantic_oof(self, sdf, y, feature_cols, *, fold_col, fit_final):
+    def _train_semantic_oof(self, sdf, y, fc, *, fold_col, fit_final):
         probs = np.ones(len(sdf), dtype=np.float32)
-        model_mask = sdf['hard_override_anomaly'].to_numpy(np.int8) == 0
+        mm = sdf['hard_override_anomaly'].to_numpy(np.int8) == 0
         fold_ids = sdf[fold_col].to_numpy(np.int8)
         final_model = None
         for fold in range(self.cv_folds):
-            train_mask = model_mask & (fold_ids != fold)
-            valid_mask = model_mask & (fold_ids == fold)
-            if not valid_mask.any():
+            tm = mm & (fold_ids != fold)
+            vm = mm & (fold_ids == fold)
+            if not vm.any():
                 continue
             model = self._new_classifier()
-            x_train = sdf.loc[train_mask, feature_cols]
-            y_train = y[train_mask]
-            weights = self._build_sample_weights(sdf.loc[train_mask], y_train)
+            x_train = sdf.loc[tm, fc]
+            y_train = y[tm]
+            weights = self._build_sample_weights(sdf.loc[tm], y_train)
             model.fit(x_train, y_train, sample_weight=weights)
-            probs[valid_mask] = model.predict_proba(sdf.loc[valid_mask, feature_cols])[:, 1].astype(np.float32)
-        if fit_final and model_mask.any():
+            probs[vm] = model.predict_proba(sdf.loc[vm, fc])[:, 1].astype(np.float32)
+        if fit_final and mm.any():
             final_model = self._new_classifier()
-            weights = self._build_sample_weights(sdf.loc[model_mask], y[model_mask])
-            final_model.fit(sdf.loc[model_mask, feature_cols], y[model_mask], sample_weight=weights)
+            weights = self._build_sample_weights(sdf.loc[mm], y[mm])
+            final_model.fit(sdf.loc[mm, fc], y[mm], sample_weight=weights)
         return (probs, final_model)
 
-    def _train_cat_oof(self, cat_df, y, feature_cols, categorical_cols, *, fold_col, fit_final):
+    def _train_cat_oof(self, cat_df, y, fc, cc, *, fold_col, fit_final):
         probs = np.ones(len(cat_df), dtype=np.float32)
-        model_mask = cat_df['hard_override_anomaly'].to_numpy(np.int8) == 0
+        mm = cat_df['hard_override_anomaly'].to_numpy(np.int8) == 0
         fold_ids = cat_df[fold_col].to_numpy(np.int8)
         final_model = None
         for fold in range(self.cv_folds):
-            train_mask = model_mask & (fold_ids != fold)
-            valid_mask = model_mask & (fold_ids == fold)
-            if not valid_mask.any():
+            tm = mm & (fold_ids != fold)
+            vm = mm & (fold_ids == fold)
+            if not vm.any():
                 continue
             model = self._new_cat_model()
-            weights = self._build_sample_weights(cat_df.loc[train_mask], y[train_mask])
-            model.fit(cat_df.loc[train_mask, feature_cols], y[train_mask], cat_features=list(categorical_cols), sample_weight=weights, verbose=False)
-            probs[valid_mask] = model.predict_proba(cat_df.loc[valid_mask, feature_cols])[:, 1].astype(np.float32)
-        if fit_final and model_mask.any():
+            weights = self._build_sample_weights(cat_df.loc[tm], y[tm])
+            model.fit(cat_df.loc[tm, fc], y[tm], cat_features=list(cc), sample_weight=weights, verbose=False)
+            probs[vm] = model.predict_proba(cat_df.loc[vm, fc])[:, 1].astype(np.float32)
+        if fit_final and mm.any():
             final_model = self._new_cat_model()
-            weights = self._build_sample_weights(cat_df.loc[model_mask], y[model_mask])
-            final_model.fit(cat_df.loc[model_mask, feature_cols], y[model_mask], cat_features=list(categorical_cols), sample_weight=weights, verbose=False)
+            weights = self._build_sample_weights(cat_df.loc[mm], y[mm])
+            final_model.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights, verbose=False)
         return (probs, final_model)
 
     def _select_family_blend(self, y, ho, semantic_primary, semantic_audit, cat_primary, cat_audit):
@@ -1238,17 +1238,17 @@ class ResearchBaseline:
             blended_audit = self._blend_probs(semantic_audit, cat_audit, weight)
             blended_audit[ho] = 1.0
             pred_audit = (blended_audit >= thr).astype(np.int8)
-            primary_score = float(fbeta_score(y, pred_primary, beta=2))
-            audit_score = float(fbeta_score(y, pred_audit, beta=2))
-            if audit_score < baseline_audit_score - AUDIT_TOLERANCE:
+            ps = float(fbeta_score(y, pred_primary, beta=2))
+            as_ = float(fbeta_score(y, pred_audit, beta=2))
+            if as_ < baseline_audit_score - AUDIT_TOLERANCE:
                 continue
-            if primary_score > best_primary_score + 1e-12 or (abs(primary_score - best_primary_score) <= 1e-12 and audit_score > best_audit_for_best):
+            if ps > best_primary_score + 1e-12 or (abs(ps - best_primary_score) <= 1e-12 and as_ > best_audit_for_best):
                 best_weight = weight
                 best_thr = thr
                 best_primary_pred = pred_primary
                 best_audit_pred = pred_audit
-                best_primary_score = primary_score
-                best_audit_for_best = audit_score
+                best_primary_score = ps
+                best_audit_for_best = as_
         return (best_weight, best_thr, best_primary_pred.astype(np.int8), best_audit_pred.astype(np.int8))
 
     def fit(self):
@@ -1270,15 +1270,15 @@ class ResearchBaseline:
             catc = [col for col in [*SS.values(), 'device_fingerprint'] if col in catf]
             y = y_series.to_numpy(np.int8)
             ho = sdf['hard_override_anomaly'].to_numpy(np.int8) == 1
-            semantic_primary_prob, semantic_model = self._train_semantic_oof(sdf, y, semf, fold_col='fold_id', fit_final=True)
-            semantic_audit_prob, _ = self._train_semantic_oof(sdf, y, semf, fold_col='audit_fold_id', fit_final=False)
-            self.semantic_models[family] = semantic_model
-            cat_primary_prob = cat_audit_prob = cat_model = None
+            sp1, sm = self._train_semantic_oof(sdf, y, semf, fold_col='fold_id', fit_final=True)
+            sa1, _ = self._train_semantic_oof(sdf, y, semf, fold_col='audit_fold_id', fit_final=False)
+            self.semantic_models[family] = sm
+            cp1 = ca1 = cm = None
             if catf:
-                cat_primary_prob, cat_model = self._train_cat_oof(cat_df, y, catf, catc, fold_col='fold_id', fit_final=True)
-                cat_audit_prob, _ = self._train_cat_oof(cat_df, y, catf, catc, fold_col='audit_fold_id', fit_final=False)
-            self.cat_models[family] = cat_model
-            weight, threshold, _, _ = self._select_family_blend(y, ho, semantic_primary_prob, semantic_audit_prob, cat_primary_prob, cat_audit_prob)
+                cp1, cm = self._train_cat_oof(cat_df, y, catf, catc, fold_col='fold_id', fit_final=True)
+                ca1, _ = self._train_cat_oof(cat_df, y, catf, catc, fold_col='audit_fold_id', fit_final=False)
+            self.cat_models[family] = cm
+            weight, threshold, _, _ = self._select_family_blend(y, ho, sp1, sa1, cp1, ca1)
             self.blend_w[family] = weight
             self.thr[family] = threshold
             trained += 1
@@ -1299,20 +1299,20 @@ class ResearchBaseline:
         sdf = self._apply_residual_calibration_features(sdf)
         sdf = self._apply_scenario_features(sdf)
         sdf = self._add_family_interaction_features(sdf)
-        semantic_prob = np.ones(len(sdf), dtype=np.float32)
+        sp = np.ones(len(sdf), dtype=np.float32)
         if (~ho).any():
-            semantic_model = self.semantic_models[family]
-            semantic_prob[~ho] = semantic_model.predict_proba(sdf.loc[~ho, self.sem_cols[family]])[:, 1].astype(np.float32)
+            sm = self.semantic_models[family]
+            sp[~ho] = sm.predict_proba(sdf.loc[~ho, self.sem_cols[family]])[:, 1].astype(np.float32)
         cat_prob = None
-        cat_model = self.cat_models.get(family)
-        if cat_model is not None and self.cat_cols.get(family):
+        cm = self.cat_models.get(family)
+        if cm is not None and self.cat_cols.get(family):
             cat_df = self._prepare_cat_frame(bdf.copy())
             cat_prob = np.ones(len(cat_df), dtype=np.float32)
             if (~ho).any():
-                cat_prob[~ho] = cat_model.predict_proba(cat_df.loc[~ho, self.cat_cols[family]])[:, 1].astype(np.float32)
-        blend_prob = self._blend_probs(semantic_prob, cat_prob, self.blend_w.get(family, 1.0))
-        blend_prob[ho] = 1.0
-        pred = (blend_prob >= self.thr.get(family, 0.5)).astype(np.int8)
+                cat_prob[~ho] = cm.predict_proba(cat_df.loc[~ho, self.cat_cols[family]])[:, 1].astype(np.float32)
+        bp = self._blend_probs(sp, cat_prob, self.blend_w.get(family, 1.0))
+        bp[ho] = 1.0
+        pred = (bp >= self.thr.get(family, 0.5)).astype(np.int8)
         pred[ho] = 1
         return pred
 
@@ -1320,11 +1320,11 @@ class ResearchBaseline:
         if not self.semantic_models:
             raise RuntimeError('Model is not fitted.')
         out_csv.parent.mkdir(parents=True, exist_ok=True)
-        total_rows = 0
-        positive_rows = 0
+        tr = 0
+        pr = 0
         with out_csv.open('w', encoding='utf-8') as fh:
             fh.write('Id,Label\n')
-            for chunk_idx, chunk in enumerate(self.iter_raw_chunks('test.csv', UTE)):
+            for ci, chunk in enumerate(self.iter_raw_chunks('test.csv', UTE)):
                 feats = self.build_features(chunk)
                 pred = feats['hard_override_anomaly'].astype(np.int8).to_numpy()
                 for family in FAM:
@@ -1333,11 +1333,11 @@ class ResearchBaseline:
                         pred[np.flatnonzero(fm.to_numpy())] = self._predict_family_chunk(family, feats.loc[fm].copy())
                 out = pd.DataFrame({'Id': feats['Id'].astype(np.int64), 'Label': pred.astype(np.int8)})
                 out.to_csv(fh, index=False, header=False)
-                total_rows += len(out)
-                positive_rows += int(out['Label'].sum())
-                if chunk_idx % 10 == 0:
-                    print(f'[test] wrote {total_rows:,} predictions')
-        print(f'[test] done; total_rows={total_rows:,}, positive_rows={positive_rows:,}, positive_rate={positive_rows / max(total_rows, 1):.6f}')
+                tr += len(out)
+                pr += int(out['Label'].sum())
+                if ci % 10 == 0:
+                    print(f'[test] wrote {tr:,} predictions')
+        print(f'[test] done; tr={tr:,}, pr={pr:,}, positive_rate={pr / max(tr, 1):.6f}')
 
 def run_pipeline():
     seed_everything(DEFAULT_SEED)
