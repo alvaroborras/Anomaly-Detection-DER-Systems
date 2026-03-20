@@ -66,7 +66,7 @@ def build_trip_columns(prefix, axis_name):
                 cols.extend([f'{group_prefix}.Pt[{point}].{axis_name}', f'{group_prefix}.Pt[{point}].Tms'])
     return cols
 COMMON_FIELDS = 'Mn Md Opt Vr SN'.split()
-COMMON_STR = prefixed('common[0]', COMMON_FIELDS)
+CS = prefixed('common[0]', COMMON_FIELDS)
 COMMON_COLUMNS = prefixed('common[0]', ['ID', 'L', *COMMON_FIELDS, 'DA'])
 MEASURE_AC_FIELDS = '\nID L ACType W VA Var PF A LLV LNV Hz TmpAmb TmpCab TmpSnk TmpTrns TmpSw TmpOt\nThrotPct ThrotSrc WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\nAL1 AL2 AL3 VL1L2 VL2L3 VL3L1 VL1 VL2 VL3\n'.split()
 MEASURE_AC_COLUMNS = prefixed('DERMeasureAC[0]', MEASURE_AC_FIELDS)
@@ -80,36 +80,36 @@ VOLT_VAR_COLUMNS = build_volt_var_columns('DERVoltVar[0]')
 VOLT_WATT_COLUMNS = build_volt_watt_columns('DERVoltWatt[0]')
 FREQ_DROOP_COLUMNS = build_freq_droop_columns('DERFreqDroop[0]')
 WATT_VAR_COLUMNS = build_watt_var_columns('DERWattVar[0]')
-TRIP_SPECS = {'lv': ('DERTripLV[0]', 'V', 'low'), 'hv': ('DERTripHV[0]', 'V', 'high'), 'lf': ('DERTripLF[0]', 'Hz', 'low'), 'hf': ('DERTripHF[0]', 'Hz', 'high')}
-TRIP_COLUMNS = {short_name: build_trip_columns(prefix, axis_name) for short_name, (prefix, axis_name, _) in TRIP_SPECS.items()}
+TS = {'lv': ('DERTripLV[0]', 'V', 'low'), 'hv': ('DERTripHV[0]', 'V', 'high'), 'lf': ('DERTripLF[0]', 'Hz', 'low'), 'hf': ('DERTripHF[0]', 'Hz', 'high')}
+TRIP_COLUMNS = {short_name: build_trip_columns(prefix, axis_name) for short_name, (prefix, axis_name, _) in TS.items()}
 MEASURE_DC_FIELDS = '\nID L NPrt DCA DCW Prt[0].PrtTyp Prt[0].ID Prt[0].DCA Prt[0].DCV Prt[0].DCW\nPrt[0].Tmp Prt[1].PrtTyp Prt[1].ID Prt[1].DCA Prt[1].DCV Prt[1].DCW Prt[1].Tmp\n'.split()
 MEASURE_DC_COLUMNS = prefixed('DERMeasureDC[0]', MEASURE_DC_FIELDS)
-BLOCK_SOURCE_COLUMNS = {'common': COMMON_COLUMNS, 'measure_ac': MEASURE_AC_COLUMNS, 'capacity': CAPACITY_COLUMNS, 'enter_service': ENTER_SERVICE_COLUMNS, 'ctl_ac': CTL_AC_COLUMNS, 'volt_var': VOLT_VAR_COLUMNS, 'volt_watt': VOLT_WATT_COLUMNS, 'freq_droop': FREQ_DROOP_COLUMNS, 'watt_var': WATT_VAR_COLUMNS, 'measure_dc': MEASURE_DC_COLUMNS}
+BSC = {'common': COMMON_COLUMNS, 'measure_ac': MEASURE_AC_COLUMNS, 'capacity': CAPACITY_COLUMNS, 'enter_service': ENTER_SERVICE_COLUMNS, 'ctl_ac': CTL_AC_COLUMNS, 'volt_var': VOLT_VAR_COLUMNS, 'volt_watt': VOLT_WATT_COLUMNS, 'freq_droop': FREQ_DROOP_COLUMNS, 'watt_var': WATT_VAR_COLUMNS, 'measure_dc': MEASURE_DC_COLUMNS}
 for short_name, cols in TRIP_COLUMNS.items():
-    BLOCK_SOURCE_COLUMNS[f'trip_{short_name}'] = cols
+    BSC[f'trip_{short_name}'] = cols
 CURVE_BLOCK_META_FIELDS = 'Ena AdptCrvReq AdptCrvRslt NPt NCrv RvrtTms RvrtRem RvrtCrv'.split()
 FREQ_DROOP_META_FIELDS = 'Ena AdptCtlReq AdptCtlRslt NCtl RvrtTms RvrtRem RvrtCtl'.split()
 TRIP_META_FIELDS = 'Ena AdptCrvReq AdptCrvRslt NPt NCrvSet'.split()
-RAW_NUMERIC = dedupe(['common[0].DA', *prefixed('DERMeasureAC[0]', MEASURE_AC_FIELDS[2:]), *prefixed('DERCapacity[0]', CAPACITY_FIELDS[2:]), *prefixed('DEREnterService[0]', ENTER_SERVICE_FIELDS[2:]), *prefixed('DERCtlAC[0]', CTL_AC_FIELDS[2:]), *prefixed('DERVoltVar[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERVoltWatt[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERFreqDroop[0]', FREQ_DROOP_META_FIELDS), *prefixed('DERWattVar[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERMeasureDC[0]', MEASURE_DC_FIELDS[2:])])
-TRIP_META_COLUMNS = [f'{prefix}.{field}' for prefix, _, _ in TRIP_SPECS.values() for field in TRIP_META_FIELDS]
+RN = dedupe(['common[0].DA', *prefixed('DERMeasureAC[0]', MEASURE_AC_FIELDS[2:]), *prefixed('DERCapacity[0]', CAPACITY_FIELDS[2:]), *prefixed('DEREnterService[0]', ENTER_SERVICE_FIELDS[2:]), *prefixed('DERCtlAC[0]', CTL_AC_FIELDS[2:]), *prefixed('DERVoltVar[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERVoltWatt[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERFreqDroop[0]', FREQ_DROOP_META_FIELDS), *prefixed('DERWattVar[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERMeasureDC[0]', MEASURE_DC_FIELDS[2:])])
+TRIP_META_COLUMNS = [f'{prefix}.{field}' for prefix, _, _ in TS.values() for field in TRIP_META_FIELDS]
 RAW_EXTRA_NUMERIC_COLUMNS = ['DERMeasureAC[0].A_SF', 'DERMeasureAC[0].V_SF', 'DERMeasureAC[0].Hz_SF', 'DERMeasureAC[0].W_SF', 'DERMeasureAC[0].PF_SF', 'DERMeasureAC[0].VA_SF', 'DERMeasureAC[0].Var_SF', 'DERCapacity[0].WOvrExtRtg', 'DERCapacity[0].WOvrExtRtgPF', 'DERCapacity[0].WUndExtRtg', 'DERCapacity[0].WUndExtRtgPF', 'DERCapacity[0].W_SF', 'DERCapacity[0].PF_SF', 'DERCapacity[0].VA_SF', 'DERCapacity[0].Var_SF', 'DERCapacity[0].V_SF', 'DERCapacity[0].A_SF', 'DERCtlAC[0].WSet_SF', 'DERMeasureDC[0].DCA_SF', 'DERMeasureDC[0].DCW_SF']
 RAW_EXTRA_STRING_COLUMNS = ['DERMeasureDC[0].Prt[0].IDStr', 'DERMeasureDC[0].Prt[1].IDStr']
-RAW_NUMERIC = dedupe([*RAW_NUMERIC, *TRIP_META_COLUMNS, *RAW_EXTRA_NUMERIC_COLUMNS])
-RAW_STRING_COLUMNS = dedupe([*COMMON_STR, *RAW_EXTRA_STRING_COLUMNS])
+RN = dedupe([*RN, *TRIP_META_COLUMNS, *RAW_EXTRA_NUMERIC_COLUMNS])
+RSC = dedupe([*CS, *RAW_EXTRA_STRING_COLUMNS])
 TRIP_SOURCE_COLUMNS = [col for cols in TRIP_COLUMNS.values() for col in cols]
 ALL_SOURCE_COLUMNS = dedupe([*COMMON_COLUMNS, *MEASURE_AC_COLUMNS, *CAPACITY_COLUMNS, *ENTER_SERVICE_COLUMNS, *CTL_AC_COLUMNS, *VOLT_VAR_COLUMNS, *VOLT_WATT_COLUMNS, *FREQ_DROOP_COLUMNS, *WATT_VAR_COLUMNS, *MEASURE_DC_COLUMNS, *TRIP_SOURCE_COLUMNS, *RAW_EXTRA_NUMERIC_COLUMNS, *RAW_EXTRA_STRING_COLUMNS])
-NUMERIC_SOURCE_COLUMNS = [c for c in ALL_SOURCE_COLUMNS if c not in RAW_STRING_COLUMNS]
-USECOLS_TRAIN = dedupe(['Id', 'Label', *ALL_SOURCE_COLUMNS])
-USECOLS_TEST = dedupe(['Id', *ALL_SOURCE_COLUMNS])
+NSC = [c for c in ALL_SOURCE_COLUMNS if c not in RSC]
+UTR = dedupe(['Id', 'Label', *ALL_SOURCE_COLUMNS])
+UTE = dedupe(['Id', *ALL_SOURCE_COLUMNS])
 CANON1 = 'DERSec|DER Simulator|10 kW DER|1.2.3|SN-Three-Phase'
 CANON2 = 'DERSec|DER Simulator 100 kW|1.2.3.1|1.0.0|1100058974'
-SAFE_RAW = {c: re.sub('[^0-9A-Za-z_]+', '_', c) for c in RAW_NUMERIC}
-SAFE_STR = {c: re.sub('[^0-9A-Za-z_]+', '_', c) for c in RAW_STRING_COLUMNS}
+SR = {c: re.sub('[^0-9A-Za-z_]+', '_', c) for c in RN}
+SS = {c: re.sub('[^0-9A-Za-z_]+', '_', c) for c in RSC}
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_SEED = 42
 DEFAULT_OUTPUT_DIR = SCRIPT_DIR / 'outputs' / 'full_data_hybrid'
 SQRT3 = math.sqrt(3.0)
-DEVICE_FAMILY_MAP = {'canon10': 0, 'canon100': 1}
+FAM = {'canon10': 0, 'canon100': 1}
 RESIDUAL_TAIL_LEVELS = {'tail': 0.95, 'extreme': 0.99, 'ultra': 0.999}
 RESIDUAL_TAIL_FALLBACKS = {'tail': 0.05, 'extreme': 0.1, 'ultra': 0.2}
 FAMILY_THRESHOLD_FLOOR = 0.02
@@ -119,14 +119,14 @@ HARD_OVERRIDE_TRAIN_WEIGHT = 0.35
 SCENARIO_SMOOTHING = 50.0
 AUDIT_TOLERANCE = 0.003
 MIN_OVERRIDE_PRECISION = 0.995
-CANON100_INTERACTION_FEATURES = ['hard_rule_score', 'scenario_rate', 'scenario_output_rate', 'resid_quantile_score', 'mode_dispatch_w_resid']
-SURROGATE_TARGETS = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
-SURROGATE_LEAKY_FEATURES = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    w_over_wmaxrtg w_over_wmax va_over_vamax va_over_vamaxrtg var_over_injmax\n    var_over_absmax a_over_amax w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs pf_sign_mismatch w_gt_wmax_tol w_gt_wmaxrtg_tol\n    va_gt_vamax_tol var_gt_injmax_tol var_lt_absmax_tol va_minus_pqmag\n    va_over_pqmag pf_from_w_va pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error\n    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess\n    varset_abs_error varsetpct_target varsetpct_abs_error wset_enabled_far\n    wsetpct_enabled_far wmaxlim_enabled_far varsetpct_enabled_far w_pct_of_rtg\n    var_pct_of_limit enter_service_blocked_power enter_service_blocked_va\n    enter_service_blocked_current pf_inj_target_error pf_inj_reversion_error\n    pf_reactive_near_limit trip_lv_power_when_outside trip_hv_power_when_outside\n    trip_lf_power_when_outside trip_hf_power_when_outside\n    trip_any_power_when_outside voltvar_curve_error voltwatt_curve_error\n    wattvar_curve_expected wattvar_curve_error freqdroop_w_over_pmin_pct\n    dcw_over_w dcw_over_abs_w ac_zero_dc_positive ac_positive_dc_zero\n    ac_dc_same_sign\n    '.split()}
+CIF = ['hard_rule_score', 'scenario_rate', 'scenario_output_rate', 'resid_quantile_score', 'mode_dispatch_w_resid']
+STG = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
+SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    w_over_wmaxrtg w_over_wmax va_over_vamax va_over_vamaxrtg var_over_injmax\n    var_over_absmax a_over_amax w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs pf_sign_mismatch w_gt_wmax_tol w_gt_wmaxrtg_tol\n    va_gt_vamax_tol var_gt_injmax_tol var_lt_absmax_tol va_minus_pqmag\n    va_over_pqmag pf_from_w_va pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error\n    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess\n    varset_abs_error varsetpct_target varsetpct_abs_error wset_enabled_far\n    wsetpct_enabled_far wmaxlim_enabled_far varsetpct_enabled_far w_pct_of_rtg\n    var_pct_of_limit enter_service_blocked_power enter_service_blocked_va\n    enter_service_blocked_current pf_inj_target_error pf_inj_reversion_error\n    pf_reactive_near_limit trip_lv_power_when_outside trip_hv_power_when_outside\n    trip_lf_power_when_outside trip_hf_power_when_outside\n    trip_any_power_when_outside voltvar_curve_error voltwatt_curve_error\n    wattvar_curve_expected wattvar_curve_error freqdroop_w_over_pmin_pct\n    dcw_over_w dcw_over_abs_w ac_zero_dc_positive ac_positive_dc_zero\n    ac_dc_same_sign\n    '.split()}
 HARD_RULE_NAMES = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'wmaxlim_far', 'varsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'enter_blocked_power', 'enter_blocked_current', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
 OVR = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
 RCM = {'noncanonical': 'noncanonical', 'common_missing': 'common_missing_any', 'w_gt_wmax': 'w_gt_wmax_tol', 'w_gt_wmaxrtg': 'w_gt_wmaxrtg_tol', 'va_gt_vamax': 'va_gt_vamax_tol', 'var_gt_injmax': 'var_gt_injmax_tol', 'var_lt_absmax': 'var_lt_absmax_tol', 'wset_far': 'wset_enabled_far', 'wsetpct_far': 'wsetpct_enabled_far', 'wmaxlim_far': 'wmaxlim_enabled_far', 'varsetpct_far': 'varsetpct_enabled_far', 'model_structure': 'model_structure_anomaly_any', 'ac_type_rare': 'ac_type_is_rare', 'dc_type_rare': 'dc_port_type_rare_any', 'enter_state': 'enter_service_state_anomaly', 'enter_blocked_power': 'enter_service_blocked_power', 'enter_blocked_current': 'enter_service_blocked_current', 'pf_abs': 'pf_abs_ext_present', 'pf_abs_rvrt': 'pf_abs_rvrt_ext_present', 'trip_power': 'trip_any_power_when_outside'}
-CAT_ENGINEERED_COLUMNS = ['device_fingerprint', 'common_missing_pattern', 'enter_service_missing_pattern', 'missing_selected_total', 'missing_selected_blocks', 'common_missing_any', 'common_missing_count', 'common_sn_has_decimal_suffix']
-EXPECTED_MODEL_META = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'measure_ac': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'measure_dc': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
+CEC = ['device_fingerprint', 'common_missing_pattern', 'enter_service_missing_pattern', 'missing_selected_total', 'missing_selected_blocks', 'common_missing_any', 'common_missing_count', 'common_sn_has_decimal_suffix']
+EMM = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'measure_ac': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'measure_dc': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
 
 def seed_everything(seed):
     random.seed(seed)
@@ -295,14 +295,14 @@ class ResearchBaseline:
         return 100.0 * ResearchBaseline._safe_div(var, denom)
 
     def _coerce_numeric(self, df):
-        for col in NUMERIC_SOURCE_COLUMNS:
+        for col in NSC:
             if df[col].dtype == object:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
 
     def _add_block_missingness(self, data, df):
         block_missing_total = np.zeros(len(df), dtype=np.int16)
         block_missing_any = np.zeros(len(df), dtype=np.int16)
-        for block_name, cols in BLOCK_SOURCE_COLUMNS.items():
+        for block_name, cols in BSC.items():
             missing = df[cols].isna()
             missing_count = missing.sum(axis=1).astype(np.int16).to_numpy()
             data[f'missing_{block_name}_count'] = missing_count
@@ -311,7 +311,7 @@ class ResearchBaseline:
             block_missing_any += (missing_count > 0).astype(np.int16)
         data['missing_selected_total'] = block_missing_total
         data['missing_selected_blocks'] = block_missing_any.astype(np.int8)
-        common_missing = df[[*COMMON_STR, 'common[0].ID', 'common[0].L']].isna().to_numpy(dtype=np.uint16)
+        common_missing = df[[*CS, 'common[0].ID', 'common[0].L']].isna().to_numpy(dtype=np.uint16)
         common_weights = (1 << np.arange(common_missing.shape[1], dtype=np.uint16)).reshape(1, -1)
         data['common_missing_pattern'] = (common_missing * common_weights).sum(axis=1).astype(np.int16)
         enter_missing = df[ENTER_SERVICE_COLUMNS].isna().to_numpy(dtype=np.uint16)
@@ -321,7 +321,7 @@ class ResearchBaseline:
     def _add_model_integrity_features(self, data, df):
         anomaly_sum = np.zeros(len(df), dtype=np.int16)
         missing_sum = np.zeros(len(df), dtype=np.int16)
-        for block_name, (id_col, len_col, expected_id, expected_len) in EXPECTED_MODEL_META.items():
+        for block_name, (id_col, len_col, expected_id, expected_len) in EMM.items():
             raw_id = df[id_col].to_numpy(float)
             raw_len = df[len_col].to_numpy(float)
             id_missing = ~np.isfinite(raw_id)
@@ -592,16 +592,16 @@ class ResearchBaseline:
 
     def build_features(self, df):
         self._coerce_numeric(df)
-        fingerprint = df[COMMON_STR].fillna('<NA>').agg('|'.join, axis=1)
-        data = {'Id': df['Id'].to_numpy(), 'device_fingerprint': fingerprint.to_numpy(dtype=object), 'device_family': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'common_missing_any': df[COMMON_STR].isna().any(axis=1).astype(np.int8).to_numpy(), 'common_missing_count': df[COMMON_STR].isna().sum(axis=1).astype(np.int16).to_numpy(), 'common_sn_has_decimal_suffix': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
+        fingerprint = df[CS].fillna('<NA>').agg('|'.join, axis=1)
+        data = {'Id': df['Id'].to_numpy(), 'device_fingerprint': fingerprint.to_numpy(dtype=object), 'device_family': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'common_missing_any': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'common_missing_count': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'common_sn_has_decimal_suffix': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
         data['noncanonical'] = (data['device_family'] == 'other').astype(np.int8)
-        for col in RAW_NUMERIC:
+        for col in RN:
             arr = df[col].to_numpy()
             if np.issubdtype(arr.dtype, np.floating):
                 arr = arr.astype(np.float32, copy=False)
-            data[SAFE_RAW[col]] = arr
-        for col in RAW_STRING_COLUMNS:
-            data[SAFE_STR[col]] = df[col].fillna('<NA>').astype(str).to_numpy(dtype=object)
+            data[SR[col]] = arr
+        for col in RSC:
+            data[SS[col]] = df[col].fillna('<NA>').astype(str).to_numpy(dtype=object)
         self._add_block_missingness(data, df)
         self._add_model_integrity_features(data, df)
         self._add_temperature_features(data, df)
@@ -695,7 +695,7 @@ class ResearchBaseline:
         pf_abs_ext_present, pf_abs_rvrt_ext_present = self._add_pf_control_features(data, df, pf=pf, var=var, varmaxinj=varmaxinj, varmaxabs=varmaxabs)
         trip_outside_flags = []
         trip_power_flags = []
-        for short_name, (prefix, axis_name, mode) in TRIP_SPECS.items():
+        for short_name, (prefix, axis_name, mode) in TS.items():
             measure_value = voltage_pct if axis_name == 'V' else hz
             outside, power_when_outside = self._add_trip_block_features(data, df, short_name=short_name, prefix=prefix, axis_name=axis_name, mode=mode, measure_value=measure_value, abs_w=abs_w, tolw=tolw)
             trip_outside_flags.append(outside)
@@ -755,13 +755,13 @@ class ResearchBaseline:
 
     def _encode_device_family(self, df):
         out = df.copy()
-        out['device_family'] = out['device_family'].map(DEVICE_FAMILY_MAP).fillna(-1).astype(np.int8)
+        out['device_family'] = out['device_family'].map(FAM).fillna(-1).astype(np.int8)
         return out
 
     def _get_surrogate_feature_cols(self, columns):
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'device_fingerprint', 'hard_rule_anomaly', 'hard_rule_count', 'hard_rule_score', 'hard_override_anomaly'}
-        excluded.update(SAFE_STR.values())
-        return [col for col in columns if col not in excluded and col not in SURROGATE_LEAKY_FEATURES]
+        excluded.update(SS.values())
+        return [col for col in columns if col not in excluded and col not in SLF]
 
     def _build_sample_weights(self, x_df, y):
         weights = np.ones(len(x_df), dtype=np.float32)
@@ -877,7 +877,7 @@ class ResearchBaseline:
     def _add_family_interaction_features(self, x_df):
         out = x_df.copy()
         canon100_mask = out['device_family'].astype(str) == 'canon100'
-        for feature_name in CANON100_INTERACTION_FEATURES:
+        for feature_name in CIF:
             if feature_name not in out.columns:
                 continue
             values = pd.to_numeric(out[feature_name], errors='coerce').to_numpy(np.float32)
@@ -906,12 +906,12 @@ class ResearchBaseline:
         if surrogate_df.empty:
             raise RuntimeError('No rows available to train surrogate models.')
         self.surrogate_models = {}
-        for family in DEVICE_FAMILY_MAP:
+        for family in FAM:
             family_df = surrogate_df.loc[surrogate_df['device_family'] == family].copy()
             if family_df.empty:
                 continue
             x_surrogate = self._encode_device_family(family_df[self.sur_cols])
-            for target_name, (target_col, _) in SURROGATE_TARGETS.items():
+            for target_name, (target_col, _) in STG.items():
                 model = self._new_surrogate_model()
                 y_target = family_df[target_col].to_numpy(np.float32)
                 print(f'[surrogate] training {family}/{target_name} on {len(family_df):,} normal rows')
@@ -922,7 +922,7 @@ class ResearchBaseline:
         if self.sur_cols is None or not self.surrogate_models:
             return x_df
         out = x_df.copy()
-        for target_name in SURROGATE_TARGETS:
+        for target_name in STG:
             out[f'pred_{target_name}'] = np.nan
             out[f'resid_{target_name}'] = np.nan
             out[f'abs_resid_{target_name}'] = np.nan
@@ -933,12 +933,12 @@ class ResearchBaseline:
             out[f'ultra_resid_{target_name}'] = 0
             out[f'q99_ratio_resid_{target_name}'] = np.nan
         x_surrogate = self._encode_device_family(out[self.sur_cols])
-        for family in DEVICE_FAMILY_MAP:
+        for family in FAM:
             fm = out['device_family'] == family
             if not fm.any():
                 continue
             x_family = x_surrogate.loc[fm]
-            for target_name, (target_col, scale_col) in SURROGATE_TARGETS.items():
+            for target_name, (target_col, scale_col) in STG.items():
                 model = self.surrogate_models.get((family, target_name))
                 if model is None:
                     continue
@@ -965,13 +965,13 @@ class ResearchBaseline:
         calibration_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=False)
         base_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~valid_mask.to_numpy()
         self.res_q = {}
-        for family in DEVICE_FAMILY_MAP:
+        for family in FAM:
             fm = base_mask & (x_train['device_family'] == family)
             family_calibration = fm & calibration_partition
             if not family_calibration.any():
                 family_calibration = fm
             family_quantiles = {}
-            for target_name in SURROGATE_TARGETS:
+            for target_name in STG:
                 series = x_train.loc[family_calibration, f'abs_norm_resid_{target_name}']
                 values = pd.to_numeric(series, errors='coerce').to_numpy(np.float32)
                 values = values[np.isfinite(values)]
@@ -986,17 +986,17 @@ class ResearchBaseline:
         if not self.res_q:
             return x_df
         out = x_df.copy()
-        for target_name in SURROGATE_TARGETS:
+        for target_name in STG:
             out[f'tail_resid_{target_name}'] = 0
             out[f'extreme_resid_{target_name}'] = 0
             out[f'ultra_resid_{target_name}'] = 0
             out[f'q99_ratio_resid_{target_name}'] = np.nan
-        for family in DEVICE_FAMILY_MAP:
+        for family in FAM:
             fm = out['device_family'] == family
             if not fm.any():
                 continue
             family_quantiles = self.res_q.get(family, {})
-            for target_name in SURROGATE_TARGETS:
+            for target_name in STG:
                 abs_norm = out.loc[fm, f'abs_norm_resid_{target_name}'].to_numpy(np.float32)
                 q = family_quantiles.get(target_name, RESIDUAL_TAIL_FALLBACKS)
                 tail = abs_norm >= q['tail']
@@ -1081,7 +1081,7 @@ class ResearchBaseline:
         shutil.rmtree(self.artifact_dir, ignore_errors=True)
         train_root = self.artifact_dir / 'train'
         built = 0
-        for chunk_idx, chunk in enumerate(self.iter_raw_chunks('train.csv', USECOLS_TRAIN)):
+        for chunk_idx, chunk in enumerate(self.iter_raw_chunks('train.csv', UTR)):
             labels = chunk['Label'].astype(np.int8).to_numpy()
             feats = self.build_features(chunk.drop(columns=['Label']))
             feats['Label'] = labels
@@ -1153,21 +1153,21 @@ class ResearchBaseline:
 
     def _semantic_feature_candidates(self, sdf):
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'device_fingerprint'}
-        excluded.update(SAFE_STR.values())
+        excluded.update(SS.values())
         return [col for col in sdf.columns if col not in excluded and pd.api.types.is_numeric_dtype(sdf[col])]
 
     def _prepare_cat_frame(self, bdf):
         out = self._refresh_override_columns(bdf)
-        for col in [*SAFE_STR.values(), 'device_fingerprint']:
+        for col in [*SS.values(), 'device_fingerprint']:
             if col in out.columns:
                 out[col] = out[col].fillna('<NA>').astype(str)
         return out
 
     def _cat_feature_candidates(self, cat_df):
-        raw_numeric_cols = [SAFE_RAW[col] for col in RAW_NUMERIC if SAFE_RAW[col] in cat_df.columns]
+        raw_numeric_cols = [SR[col] for col in RN if SR[col] in cat_df.columns]
         missing_cols = [col for col in cat_df.columns if col.startswith('missing_')]
-        categorical_cols = [SAFE_STR[col] for col in RAW_STRING_COLUMNS if SAFE_STR[col] in cat_df.columns]
-        candidates = dedupe([*raw_numeric_cols, *categorical_cols, 'device_fingerprint', *CAT_ENGINEERED_COLUMNS, *missing_cols])
+        categorical_cols = [SS[col] for col in RSC if SS[col] in cat_df.columns]
+        candidates = dedupe([*raw_numeric_cols, *categorical_cols, 'device_fingerprint', *CEC, *missing_cols])
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'hard_rule_anomaly'}
         return [col for col in candidates if col in cat_df.columns and col not in excluded]
 
@@ -1255,7 +1255,7 @@ class ResearchBaseline:
         self._build_train_artifacts()
         self._audit_hard_override_rules()
         trained = 0
-        for family in DEVICE_FAMILY_MAP:
+        for family in FAM:
             bdf = self._load_family_artifact(family)
             if bdf.empty:
                 continue
@@ -1267,7 +1267,7 @@ class ResearchBaseline:
             cat_df = self._prepare_cat_frame(bdf.copy())
             catf = self._select_nonconstant_columns(cat_df, self._cat_feature_candidates(cat_df))
             self.cat_cols[family] = catf
-            catc = [col for col in [*SAFE_STR.values(), 'device_fingerprint'] if col in catf]
+            catc = [col for col in [*SS.values(), 'device_fingerprint'] if col in catf]
             y = y_series.to_numpy(np.int8)
             ho = sdf['hard_override_anomaly'].to_numpy(np.int8) == 1
             semantic_primary_prob, semantic_model = self._train_semantic_oof(sdf, y, semf, fold_col='fold_id', fit_final=True)
@@ -1324,10 +1324,10 @@ class ResearchBaseline:
         positive_rows = 0
         with out_csv.open('w', encoding='utf-8') as fh:
             fh.write('Id,Label\n')
-            for chunk_idx, chunk in enumerate(self.iter_raw_chunks('test.csv', USECOLS_TEST)):
+            for chunk_idx, chunk in enumerate(self.iter_raw_chunks('test.csv', UTE)):
                 feats = self.build_features(chunk)
                 pred = feats['hard_override_anomaly'].astype(np.int8).to_numpy()
-                for family in DEVICE_FAMILY_MAP:
+                for family in FAM:
                     fm = feats['device_family'] == family
                     if fm.any():
                         pred[np.flatnonzero(fm.to_numpy())] = self._predict_family_chunk(family, feats.loc[fm].copy())
