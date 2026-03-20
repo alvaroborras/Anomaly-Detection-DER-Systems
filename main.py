@@ -281,6 +281,73 @@ def _snc(df, candidates):
     return keep
 
 
+def _edf(df):
+    out = df.copy()
+    out['df'] = out['df'].map(FAM).fillna(-1).astype(np.int8)
+    return out
+
+
+def _gsf(columns):
+    excluded = {'Id', 'Label', 'fold_id', 'af', 'dg', 'ra', 'hrc', 'rs', 'oa'}
+    excluded.update(SS.values())
+    return [col for col in columns if col not in excluded and col not in SLF]
+
+
+def _b(values, *, fv, dtype, scale=1.0, round_values=True):
+    out = pd.to_numeric(values, errors='coerce')
+    if scale != 1.0:
+        out = out / scale
+    if round_values:
+        out = out.round()
+    return out.fillna(fv).astype(dtype)
+
+
+def _hf(frame):
+    return pd.util.hash_pandas_object(frame, index=False).to_numpy(np.uint64)
+
+
+def _lss(keys, sum_map, count_map):
+    key_series = pd.Series(keys)
+    sv = key_series.map(sum_map).fillna(0.0).to_numpy(np.float32)
+    cv = key_series.map(count_map).fillna(0).to_numpy(np.int32)
+    return (sv, cv)
+
+
+def _asf(out, *, fp, sr, sc, so, oc):
+    out['sr'] = sr.astype(np.float32)
+    out['srd'] = (sr - fp).astype(np.float32)
+    out['sc'] = sc.astype(np.int32)
+    out['slc'] = np.log1p(sc).astype(np.float32)
+    out['sls'] = (sc < 20).astype(np.int8)
+    out['so'] = so.astype(np.float32)
+    out['sord'] = (so - fp).astype(np.float32)
+    out['oc'] = oc.astype(np.int32)
+    out['solc'] = np.log1p(oc).astype(np.float32)
+    out['sols'] = (oc < 20).astype(np.int8)
+    return out
+
+
+def _spm(ids, *, fp):
+    ids_arr = np.asarray(ids, dtype=np.int64)
+    fit_mask = ids_arr % 2 == 0
+    return fit_mask if fp else ~fit_mask
+
+
+def _sfc(sdf):
+    excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'dg'}
+    excluded.update(SS.values())
+    return [col for col in sdf.columns if col not in excluded and pd.api.types.is_numeric_dtype(sdf[col])]
+
+
+def _cfc(cat_df):
+    rnc = [SR[col] for col in RN if SR[col] in cat_df.columns]
+    missing_cols = [col for col in cat_df.columns if col.startswith('missing_')]
+    cc = [SS[col] for col in RSC if SS[col] in cat_df.columns]
+    candidates = dedupe([*rnc, *cc, 'dg', *CEC, *missing_cols])
+    excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'ra'}
+    return [col for col in candidates if col in cat_df.columns and col not in excluded]
+
+
 class R:
 
     def __init__(self, *, ad=DOD / 'artifacts', chunksize=5000, kf=5, n_estimators=180, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cti=400, cat_depth=8, clr=0.05, n_jobs=4, seed=DEFAULT_SEED):
@@ -763,16 +830,6 @@ class R:
             if limit_rows > 0 and yielded >= limit_rows:
                 break
 
-    def _edf(self, df):
-        out = df.copy()
-        out['df'] = out['df'].map(FAM).fillna(-1).astype(np.int8)
-        return out
-
-    def _gsf(self, columns):
-        excluded = {'Id', 'Label', 'fold_id', 'af', 'dg', 'ra', 'hrc', 'rs', 'oa'}
-        excluded.update(SS.values())
-        return [col for col in columns if col not in excluded and col not in SLF]
-
     def _bsw(self, x_df, y):
         weights = np.ones(len(x_df), dtype=np.float32)
         family = x_df['df'].to_numpy()
@@ -781,53 +838,19 @@ class R:
         weights[ho] *= HOTW
         return weights
 
-    @staticmethod
-    def _b(values, *, fv, dtype, scale=1.0, round_values=True):
-        out = pd.to_numeric(values, errors='coerce')
-        if scale != 1.0:
-            out = out / scale
-        if round_values:
-            out = out.round()
-        return out.fillna(fv).astype(dtype)
-
     def _bsf(self, x_df, *, iob):
-        frame = {'family': x_df['df'].astype(str), 'throt_src': self._b(x_df['DERMeasureAC_0_ThrotSrc'], fv=-1, dtype=np.int16), 'throt_pct': self._b(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fv=-1, dtype=np.int16), 'wmaxlim_pct': self._b(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fv=-1, dtype=np.int16), 'wset_pct': self._b(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'varset_pct': self._b(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'pf_set': self._b(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fv=-1, dtype=np.int16), 'fd_idx': self._b(x_df['DERFreqDroop_0_AdptCtlRslt'], fv=-1, dtype=np.int16), 'vv_idx': self._b(x_df['DERVoltVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'vw_idx': self._b(x_df['DERVoltWatt_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'wv_idx': self._b(x_df['DERWattVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'volt_bin': self._b(x_df['vp'], fv=-999, dtype=np.int16), 'hz_bin': self._b(x_df['DERMeasureAC_0_Hz'], scale=0.1, fv=-999, dtype=np.int16), 'enter_idle': self._b(x_df['esi'], fv=0, dtype=np.int8, round_values=False), 'droop_active': self._b(x_df['fod'], fv=0, dtype=np.int8, round_values=False)}
+        frame = {'family': x_df['df'].astype(str), 'throt_src': _b(x_df['DERMeasureAC_0_ThrotSrc'], fv=-1, dtype=np.int16), 'throt_pct': _b(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fv=-1, dtype=np.int16), 'wmaxlim_pct': _b(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fv=-1, dtype=np.int16), 'wset_pct': _b(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'varset_pct': _b(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'pf_set': _b(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fv=-1, dtype=np.int16), 'fd_idx': _b(x_df['DERFreqDroop_0_AdptCtlRslt'], fv=-1, dtype=np.int16), 'vv_idx': _b(x_df['DERVoltVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'vw_idx': _b(x_df['DERVoltWatt_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'wv_idx': _b(x_df['DERWattVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'volt_bin': _b(x_df['vp'], fv=-999, dtype=np.int16), 'hz_bin': _b(x_df['DERMeasureAC_0_Hz'], scale=0.1, fv=-999, dtype=np.int16), 'enter_idle': _b(x_df['esi'], fv=0, dtype=np.int8, round_values=False), 'droop_active': _b(x_df['fod'], fv=0, dtype=np.int8, round_values=False)}
         if iob:
-            frame['w_bin'] = self._b(x_df['wpr'], scale=5.0, fv=-999, dtype=np.int16)
-            frame['var_bin'] = self._b(x_df['vpl'], scale=5.0, fv=-999, dtype=np.int16)
-            frame['pf_mode'] = self._b(x_df['pcae'], fv=0, dtype=np.int8, round_values=False)
+            frame['w_bin'] = _b(x_df['wpr'], scale=5.0, fv=-999, dtype=np.int16)
+            frame['var_bin'] = _b(x_df['vpl'], scale=5.0, fv=-999, dtype=np.int16)
+            frame['pf_mode'] = _b(x_df['pcae'], fv=0, dtype=np.int8, round_values=False)
         return pd.DataFrame(frame)
 
-    @staticmethod
-    def _hf(frame):
-        return pd.util.hash_pandas_object(frame, index=False).to_numpy(np.uint64)
-
     def _bsk(self, x_df):
-        return self._hf(self._bsf(x_df, iob=False))
+        return _hf(self._bsf(x_df, iob=False))
 
     def _bok(self, x_df):
-        return self._hf(self._bsf(x_df, iob=True))
-
-    @staticmethod
-    def _lss(keys, sum_map, count_map):
-        key_series = pd.Series(keys)
-        sv = key_series.map(sum_map).fillna(0.0).to_numpy(np.float32)
-        cv = key_series.map(count_map).fillna(0).to_numpy(np.int32)
-        return (sv, cv)
-
-    @staticmethod
-    def _asf(out, *, fp, sr, sc, so, oc):
-        out['sr'] = sr.astype(np.float32)
-        out['srd'] = (sr - fp).astype(np.float32)
-        out['sc'] = sc.astype(np.int32)
-        out['slc'] = np.log1p(sc).astype(np.float32)
-        out['sls'] = (sc < 20).astype(np.int8)
-        out['so'] = so.astype(np.float32)
-        out['sord'] = (so - fp).astype(np.float32)
-        out['oc'] = oc.astype(np.int32)
-        out['solc'] = np.log1p(oc).astype(np.float32)
-        out['sols'] = (oc < 20).astype(np.int8)
-        return out
+        return _hf(self._bsf(x_df, iob=True))
 
     def _fts(self, x_train, y_train):
         out = x_train.copy()
@@ -868,7 +891,7 @@ class R:
         self.sosm = {int(idx): float(val) for idx, val in fos['sum'].items()}
         self.socm = {int(idx): int(val) for idx, val in fos['count'].items()}
         fp = fs.map(self.fbr).fillna(gr).to_numpy(np.float32)
-        return self._asf(out, fp=fp, sr=sr, sc=sc, so=so, oc=oc)
+        return _asf(out, fp=fp, sr=sr, sc=sc, so=so, oc=oc)
 
     def _apf(self, x_df):
         if not self.scm:
@@ -876,13 +899,13 @@ class R:
         out = x_df.copy()
         keys = self._bsk(out)
         ok = self._bok(out)
-        sv, cv = self._lss(keys, self.ssm, self.scm)
-        osv, ocv = self._lss(ok, self.sosm, self.socm)
+        sv, cv = _lss(keys, self.ssm, self.scm)
+        osv, ocv = _lss(ok, self.sosm, self.socm)
         gr = float(np.mean(list(self.fbr.values()))) if self.fbr else 0.5
         fp = out['df'].astype(str).map(self.fbr).fillna(gr).to_numpy(np.float32)
         sr = (sv + SM * fp) / (cv + SM)
         so = (osv + SM * fp) / (ocv + SM)
-        return self._asf(out, fp=fp, sr=sr, sc=cv, so=so, oc=ocv)
+        return _asf(out, fp=fp, sr=sr, sc=cv, so=so, oc=ocv)
 
     def _afi(self, x_df):
         out = x_df.copy()
@@ -894,11 +917,6 @@ class R:
             out[f'canon100_{fname}'] = np.where(c1m.to_numpy(), values, 0.0).astype(np.float32)
         return out
 
-    def _spm(self, ids, *, fp):
-        ids_arr = np.asarray(ids, dtype=np.int64)
-        fit_mask = ids_arr % 2 == 0
-        return fit_mask if fp else ~fit_mask
-
     def _xsp(self, *, eval_metric, verbosity):
         return {'subsample': self.subsample, 'colsample_bytree': self.colsample_bytree, 'eval_metric': eval_metric, 'tree_method': 'hist', 'n_jobs': self.n_jobs, 'random_state': self.seed, 'seed': self.seed, 'verbosity': verbosity}
 
@@ -909,8 +927,8 @@ class R:
         return X(n_estimators=self.n_estimators, max_depth=self.max_depth, learning_rate=self.learning_rate, objective='binary:logistic', **self._xsp(eval_metric='logloss', verbosity=1))
 
     def _fsm(self, x_train, y_train, vm):
-        self.sur_cols = self._gsf(x_train.columns)
-        fp = self._spm(x_train['Id'], fp=True)
+        self.sur_cols = _gsf(x_train.columns)
+        fp = _spm(x_train['Id'], fp=True)
         normal_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy() & fp
         sdf2 = x_train.loc[normal_mask].copy()
         if sdf2.empty:
@@ -920,7 +938,7 @@ class R:
             fd = sdf2.loc[sdf2['df'] == family].copy()
             if fd.empty:
                 continue
-            xs = self._edf(fd[self.sur_cols])
+            xs = _edf(fd[self.sur_cols])
             for tg, (target_col, _) in STG.items():
                 model = self._nsm()
                 y_target = fd[target_col].to_numpy(np.float32)
@@ -942,7 +960,7 @@ class R:
             out[f'er_{tg}'] = 0
             out[f'ur_{tg}'] = 0
             out[f'q9r_{tg}'] = np.nan
-        xs = self._edf(out[self.sur_cols])
+        xs = _edf(out[self.sur_cols])
         for family in FAM:
             fm = out['df'] == family
             if not fm.any():
@@ -972,7 +990,7 @@ class R:
         return out
 
     def _crq(self, x_train, y_train, vm):
-        cpn = self._spm(x_train['Id'], fp=False)
+        cpn = _spm(x_train['Id'], fp=False)
         base_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy()
         self.res_q = {}
         for family in FAM:
@@ -1128,25 +1146,12 @@ class R:
         work = self._afi(work)
         return (work, self._csc())
 
-    def _sfc(self, sdf):
-        excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'dg'}
-        excluded.update(SS.values())
-        return [col for col in sdf.columns if col not in excluded and pd.api.types.is_numeric_dtype(sdf[col])]
-
     def _pcf(self, bdf):
         out = self._roc(bdf)
         for col in [*SS.values(), 'dg']:
             if col in out.columns:
                 out[col] = out[col].fillna('<NA>').astype(str)
         return out
-
-    def _cfc(self, cat_df):
-        rnc = [SR[col] for col in RN if SR[col] in cat_df.columns]
-        missing_cols = [col for col in cat_df.columns if col.startswith('missing_')]
-        cc = [SS[col] for col in RSC if SS[col] in cat_df.columns]
-        candidates = dedupe([*rnc, *cc, 'dg', *CEC, *missing_cols])
-        excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'ra'}
-        return [col for col in candidates if col in cat_df.columns and col not in excluded]
 
     def _tso(self, sdf, y, fc, *, fc0, ff):
         probs = np.ones(len(sdf), dtype=np.float32)
@@ -1239,10 +1244,10 @@ class R:
             y_series = bdf['Label'].astype(np.int8)
             sdf, cx = self._psf(bdf.copy(), y_series)
             self.ctx[family] = cx
-            semf = _snc(sdf, self._sfc(sdf))
+            semf = _snc(sdf, _sfc(sdf))
             self.sem_cols[family] = semf
             cat_df = self._pcf(bdf.copy())
-            catf = _snc(cat_df, self._cfc(cat_df))
+            catf = _snc(cat_df, _cfc(cat_df))
             self.cat_cols[family] = catf
             catc = [col for col in [*SS.values(), 'dg'] if col in catf]
             y = y_series.to_numpy(np.int8)
