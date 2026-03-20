@@ -5,9 +5,8 @@ import math
 import random
 import re
 import shutil
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.metrics import fbeta_score
@@ -83,11 +82,11 @@ VOLT_VAR_COLUMNS = build_volt_var_columns('DERVoltVar[0]')
 VOLT_WATT_COLUMNS = build_volt_watt_columns('DERVoltWatt[0]')
 FREQ_DROOP_COLUMNS = build_freq_droop_columns('DERFreqDroop[0]')
 WATT_VAR_COLUMNS = build_watt_var_columns('DERWattVar[0]')
-TRIP_SPECS: Dict[str, Tuple[str, str, str]] = {'lv': ('DERTripLV[0]', 'V', 'low'), 'hv': ('DERTripHV[0]', 'V', 'high'), 'lf': ('DERTripLF[0]', 'Hz', 'low'), 'hf': ('DERTripHF[0]', 'Hz', 'high')}
+TRIP_SPECS = {'lv': ('DERTripLV[0]', 'V', 'low'), 'hv': ('DERTripHV[0]', 'V', 'high'), 'lf': ('DERTripLF[0]', 'Hz', 'low'), 'hf': ('DERTripHF[0]', 'Hz', 'high')}
 TRIP_COLUMNS = {short_name: build_trip_columns(prefix, axis_name) for short_name, (prefix, axis_name, _) in TRIP_SPECS.items()}
 MEASURE_DC_FIELDS = '\nID L NPrt DCA DCW Prt[0].PrtTyp Prt[0].ID Prt[0].DCA Prt[0].DCV Prt[0].DCW\nPrt[0].Tmp Prt[1].PrtTyp Prt[1].ID Prt[1].DCA Prt[1].DCV Prt[1].DCW Prt[1].Tmp\n'.split()
 MEASURE_DC_COLUMNS = prefixed('DERMeasureDC[0]', MEASURE_DC_FIELDS)
-BLOCK_SOURCE_COLUMNS: Dict[str, List[str]] = {'common': COMMON_COLUMNS, 'measure_ac': MEASURE_AC_COLUMNS, 'capacity': CAPACITY_COLUMNS, 'enter_service': ENTER_SERVICE_COLUMNS, 'ctl_ac': CTL_AC_COLUMNS, 'volt_var': VOLT_VAR_COLUMNS, 'volt_watt': VOLT_WATT_COLUMNS, 'freq_droop': FREQ_DROOP_COLUMNS, 'watt_var': WATT_VAR_COLUMNS, 'measure_dc': MEASURE_DC_COLUMNS}
+BLOCK_SOURCE_COLUMNS = {'common': COMMON_COLUMNS, 'measure_ac': MEASURE_AC_COLUMNS, 'capacity': CAPACITY_COLUMNS, 'enter_service': ENTER_SERVICE_COLUMNS, 'ctl_ac': CTL_AC_COLUMNS, 'volt_var': VOLT_VAR_COLUMNS, 'volt_watt': VOLT_WATT_COLUMNS, 'freq_droop': FREQ_DROOP_COLUMNS, 'watt_var': WATT_VAR_COLUMNS, 'measure_dc': MEASURE_DC_COLUMNS}
 for short_name, cols in TRIP_COLUMNS.items():
     BLOCK_SOURCE_COLUMNS[f'trip_{short_name}'] = cols
 CURVE_BLOCK_META_FIELDS = 'Ena AdptCrvReq AdptCrvRslt NPt NCrv RvrtTms RvrtRem RvrtCrv'.split()
@@ -131,18 +130,6 @@ RULE_COLUMN_MAP = {'noncanonical': 'noncanonical', 'common_missing': 'common_mis
 CAT_ENGINEERED_COLUMNS = ['device_fingerprint', 'common_missing_pattern', 'enter_service_missing_pattern', 'missing_selected_total', 'missing_selected_blocks', 'common_missing_any', 'common_missing_count', 'common_sn_has_decimal_suffix']
 EXPECTED_MODEL_META = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'measure_ac': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'measure_dc': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
 
-@dataclass
-class FamilySemanticContext:
-    family: str
-    surrogate_feature_cols: List[str]
-    surrogate_models: Dict[Tuple[str, str], XGBRegressor]
-    residual_quantiles: Dict[str, Dict[str, Dict[str, float]]]
-    family_base_rates: Dict[str, float]
-    scenario_sum_map: Dict[int, float]
-    scenario_count_map: Dict[int, int]
-    scenario_output_sum_map: Dict[int, float]
-    scenario_output_count_map: Dict[int, int]
-
 def seed_everything(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -164,21 +151,21 @@ class ResearchBaseline:
         self.n_jobs = n_jobs
         self.seed = seed
         self.hard_override_names = list(DEFAULT_HARD_OVERRIDE_NAMES)
-        self.semantic_models: Dict[str, XGBClassifier] = {}
-        self.cat_models: Dict[str, Any] = {}
-        self.semantic_contexts: Dict[str, FamilySemanticContext] = {}
-        self.family_thresholds: Dict[str, float] = {'canon10': 0.5, 'canon100': 0.5}
-        self.family_blend_weights: Dict[str, float] = {'canon10': 1.0, 'canon100': 1.0}
-        self.semantic_feature_cols_by_family: Dict[str, List[str]] = {}
-        self.cat_feature_cols_by_family: Dict[str, List[str]] = {}
-        self.surrogate_feature_cols: Optional[List[str]] = None
-        self.surrogate_models: Dict[Tuple[str, str], XGBRegressor] = {}
-        self.residual_quantiles: Dict[str, Dict[str, Dict[str, float]]] = {}
-        self.family_base_rates: Dict[str, float] = {}
-        self.scenario_sum_map: Dict[int, float] = {}
-        self.scenario_count_map: Dict[int, int] = {}
-        self.scenario_output_sum_map: Dict[int, float] = {}
-        self.scenario_output_count_map: Dict[int, int] = {}
+        self.semantic_models = {}
+        self.cat_models = {}
+        self.semantic_contexts = {}
+        self.family_thresholds = {'canon10': 0.5, 'canon100': 0.5}
+        self.family_blend_weights = {'canon10': 1.0, 'canon100': 1.0}
+        self.semantic_feature_cols_by_family = {}
+        self.cat_feature_cols_by_family = {}
+        self.surrogate_feature_cols = None
+        self.surrogate_models = {}
+        self.residual_quantiles = {}
+        self.family_base_rates = {}
+        self.scenario_sum_map = {}
+        self.scenario_count_map = {}
+        self.scenario_output_sum_map = {}
+        self.scenario_output_count_map = {}
 
     @staticmethod
     def _safe_div(a, b):
@@ -608,7 +595,7 @@ class ResearchBaseline:
     def build_features(self, df):
         self._coerce_numeric(df)
         fingerprint = df[COMMON_STR].fillna('<NA>').agg('|'.join, axis=1)
-        data: Dict[str, np.ndarray] = {'Id': df['Id'].to_numpy(), 'device_fingerprint': fingerprint.to_numpy(dtype=object), 'device_family': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'common_missing_any': df[COMMON_STR].isna().any(axis=1).astype(np.int8).to_numpy(), 'common_missing_count': df[COMMON_STR].isna().sum(axis=1).astype(np.int16).to_numpy(), 'common_sn_has_decimal_suffix': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
+        data = {'Id': df['Id'].to_numpy(), 'device_fingerprint': fingerprint.to_numpy(dtype=object), 'device_family': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'common_missing_any': df[COMMON_STR].isna().any(axis=1).astype(np.int8).to_numpy(), 'common_missing_count': df[COMMON_STR].isna().sum(axis=1).astype(np.int16).to_numpy(), 'common_sn_has_decimal_suffix': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
         data['noncanonical'] = (data['device_family'] == 'other').astype(np.int8)
         for col in RAW_NUMERIC:
             arr = df[col].to_numpy()
@@ -796,7 +783,7 @@ class ResearchBaseline:
         return out.fillna(fill_value).astype(dtype)
 
     def _build_scenario_frame(self, x_df, *, include_output_bins):
-        frame: Dict[str, pd.Series] = {'family': x_df['device_family'].astype(str), 'throt_src': self._bucketize(x_df['DERMeasureAC_0_ThrotSrc'], fill_value=-1, dtype=np.int16), 'throt_pct': self._bucketize(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'wmaxlim_pct': self._bucketize(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'wset_pct': self._bucketize(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'varset_pct': self._bucketize(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'pf_set': self._bucketize(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fill_value=-1, dtype=np.int16), 'fd_idx': self._bucketize(x_df['DERFreqDroop_0_AdptCtlRslt'], fill_value=-1, dtype=np.int16), 'vv_idx': self._bucketize(x_df['DERVoltVar_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'vw_idx': self._bucketize(x_df['DERVoltWatt_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'wv_idx': self._bucketize(x_df['DERWattVar_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'volt_bin': self._bucketize(x_df['voltage_pct'], fill_value=-999, dtype=np.int16), 'hz_bin': self._bucketize(x_df['DERMeasureAC_0_Hz'], scale=0.1, fill_value=-999, dtype=np.int16), 'enter_idle': self._bucketize(x_df['enter_service_should_idle'], fill_value=0, dtype=np.int8, round_values=False), 'droop_active': self._bucketize(x_df['freqdroop_outside_deadband'], fill_value=0, dtype=np.int8, round_values=False)}
+        frame = {'family': x_df['device_family'].astype(str), 'throt_src': self._bucketize(x_df['DERMeasureAC_0_ThrotSrc'], fill_value=-1, dtype=np.int16), 'throt_pct': self._bucketize(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'wmaxlim_pct': self._bucketize(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'wset_pct': self._bucketize(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'varset_pct': self._bucketize(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fill_value=-1, dtype=np.int16), 'pf_set': self._bucketize(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fill_value=-1, dtype=np.int16), 'fd_idx': self._bucketize(x_df['DERFreqDroop_0_AdptCtlRslt'], fill_value=-1, dtype=np.int16), 'vv_idx': self._bucketize(x_df['DERVoltVar_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'vw_idx': self._bucketize(x_df['DERVoltWatt_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'wv_idx': self._bucketize(x_df['DERWattVar_0_AdptCrvRslt'], fill_value=-1, dtype=np.int16), 'volt_bin': self._bucketize(x_df['voltage_pct'], fill_value=-999, dtype=np.int16), 'hz_bin': self._bucketize(x_df['DERMeasureAC_0_Hz'], scale=0.1, fill_value=-999, dtype=np.int16), 'enter_idle': self._bucketize(x_df['enter_service_should_idle'], fill_value=0, dtype=np.int8, round_values=False), 'droop_active': self._bucketize(x_df['freqdroop_outside_deadband'], fill_value=0, dtype=np.int8, round_values=False)}
         if include_output_bins:
             frame['w_bin'] = self._bucketize(x_df['w_pct_of_rtg'], scale=5.0, fill_value=-999, dtype=np.int16)
             frame['var_bin'] = self._bucketize(x_df['var_pct_of_limit'], scale=5.0, fill_value=-999, dtype=np.int16)
@@ -985,7 +972,7 @@ class ResearchBaseline:
             family_calibration = family_mask & calibration_partition
             if not family_calibration.any():
                 family_calibration = family_mask
-            family_quantiles: Dict[str, Dict[str, float]] = {}
+            family_quantiles = {}
             for target_name in SURROGATE_TARGETS:
                 series = x_train.loc[family_calibration, f'abs_norm_resid_{target_name}']
                 values = pd.to_numeric(series, errors='coerce').to_numpy(np.float32)
@@ -1072,7 +1059,7 @@ class ResearchBaseline:
 
     @staticmethod
     def _select_nonconstant_columns(df, candidates):
-        keep: List[str] = []
+        keep = []
         for col in candidates:
             if col not in df.columns:
                 continue
@@ -1094,27 +1081,24 @@ class ResearchBaseline:
 
     def _build_train_artifacts(self):
         shutil.rmtree(self.artifact_dir, ignore_errors=True)
-        self.artifact_dir.mkdir(parents=True, exist_ok=True)
         train_root = self.artifact_dir / 'train'
-        row_counts = {'canon10': 0, 'canon100': 0, 'other': 0}
-        part_counts = {'canon10': 0, 'canon100': 0, 'other': 0}
+        built = 0
         for chunk_idx, chunk in enumerate(self.iter_raw_chunks('train.csv', USECOLS_TRAIN)):
             labels = chunk['Label'].astype(np.int8).to_numpy()
             feats = self.build_features(chunk.drop(columns=['Label']))
             feats['Label'] = labels
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
             feats['audit_fold_id'] = (self._build_scenario_keys(feats) % self.cv_folds).astype(np.int8)
-            for family in row_counts:
+            for family in ('canon10', 'canon100', 'other'):
                 family_mask = feats['device_family'] == family
                 if family_mask.any():
                     family_dir = train_root / family
                     family_dir.mkdir(parents=True, exist_ok=True)
                     family_df = feats.loc[family_mask].copy()
-                    family_df.to_parquet(family_dir / f'part_{part_counts[family]:05d}.parquet', index=False)
-                    part_counts[family] += 1
-                    row_counts[family] += int(len(family_df))
+                    family_df.to_parquet(family_dir / f'{chunk_idx:05d}.parquet', index=False)
+                    built += len(family_df)
             if chunk_idx % 10 == 0:
-                print(f"[artifacts] materialized {sum(row_counts.values()):,} training rows")
+                print(f'[artifacts] materialized {built:,} training rows')
             del feats
             gc.collect()
 
@@ -1152,18 +1136,18 @@ class ResearchBaseline:
                     counts[name][1] += int(labels[mask].sum())
         self.hard_override_names = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MIN_OVERRIDE_PRECISION]
 
-    def _capture_semantic_context(self, family):
-        return FamilySemanticContext(family=family, surrogate_feature_cols=list(self.surrogate_feature_cols or []), surrogate_models=dict(self.surrogate_models), residual_quantiles=json.loads(json.dumps(self.residual_quantiles)), family_base_rates=dict(self.family_base_rates), scenario_sum_map=dict(self.scenario_sum_map), scenario_count_map=dict(self.scenario_count_map), scenario_output_sum_map=dict(self.scenario_output_sum_map), scenario_output_count_map=dict(self.scenario_output_count_map))
+    def _capture_semantic_context(self):
+        return (list(self.surrogate_feature_cols or []), dict(self.surrogate_models), json.loads(json.dumps(self.residual_quantiles)), dict(self.family_base_rates), dict(self.scenario_sum_map), dict(self.scenario_count_map), dict(self.scenario_output_sum_map), dict(self.scenario_output_count_map))
 
     def _activate_semantic_context(self, context):
-        self.surrogate_feature_cols = list(context.surrogate_feature_cols)
-        self.surrogate_models = dict(context.surrogate_models)
-        self.residual_quantiles = json.loads(json.dumps(context.residual_quantiles))
-        self.family_base_rates = dict(context.family_base_rates)
-        self.scenario_sum_map = dict(context.scenario_sum_map)
-        self.scenario_count_map = dict(context.scenario_count_map)
-        self.scenario_output_sum_map = dict(context.scenario_output_sum_map)
-        self.scenario_output_count_map = dict(context.scenario_output_count_map)
+        self.surrogate_feature_cols = list(context[0])
+        self.surrogate_models = dict(context[1])
+        self.residual_quantiles = json.loads(json.dumps(context[2]))
+        self.family_base_rates = dict(context[3])
+        self.scenario_sum_map = dict(context[4])
+        self.scenario_count_map = dict(context[5])
+        self.scenario_output_sum_map = dict(context[6])
+        self.scenario_output_count_map = dict(context[7])
 
     def _prepare_family_semantic_frame(self, base_df, y, family):
         work = self._refresh_override_columns(base_df)
@@ -1174,7 +1158,7 @@ class ResearchBaseline:
         work = self._apply_residual_calibration_features(work)
         work = self._fit_transform_scenario_features(work, y)
         work = self._add_family_interaction_features(work)
-        return (work, self._capture_semantic_context(family))
+        return (work, self._capture_semantic_context())
 
     def _semantic_feature_candidates(self, semantic_df):
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'device_fingerprint'}
@@ -1200,7 +1184,7 @@ class ResearchBaseline:
         probs = np.ones(len(semantic_df), dtype=np.float32)
         model_mask = semantic_df['hard_override_anomaly'].to_numpy(np.int8) == 0
         fold_ids = semantic_df[fold_col].to_numpy(np.int8)
-        final_model: Optional[XGBClassifier] = None
+        final_model = None
         for fold in range(self.cv_folds):
             train_mask = model_mask & (fold_ids != fold)
             valid_mask = model_mask & (fold_ids == fold)
@@ -1222,7 +1206,7 @@ class ResearchBaseline:
         probs = np.ones(len(cat_df), dtype=np.float32)
         model_mask = cat_df['hard_override_anomaly'].to_numpy(np.int8) == 0
         fold_ids = cat_df[fold_col].to_numpy(np.int8)
-        final_model: Optional['CatBoostClassifier'] = None
+        final_model = None
         for fold in range(self.cv_folds):
             train_mask = model_mask & (fold_ids != fold)
             valid_mask = model_mask & (fold_ids == fold)
@@ -1328,7 +1312,7 @@ class ResearchBaseline:
         if (~hard_override).any():
             semantic_model = self.semantic_models[family]
             semantic_prob[~hard_override] = semantic_model.predict_proba(semantic_df.loc[~hard_override, self.semantic_feature_cols_by_family[family]])[:, 1].astype(np.float32)
-        cat_prob: Optional[np.ndarray] = None
+        cat_prob = None
         cat_model = self.cat_models.get(family)
         if cat_model is not None and self.cat_feature_cols_by_family.get(family):
             cat_df = self._prepare_cat_frame(base_df.copy())
