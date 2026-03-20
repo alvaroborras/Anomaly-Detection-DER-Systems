@@ -119,13 +119,13 @@ HARD_OVERRIDE_TRAIN_WEIGHT = 0.35
 SM = 50.0
 AT = 0.003
 MOP = 0.995
-CIF = ['hard_rule_score', 'scenario_rate', 'scenario_output_rate', 'resid_quantile_score', 'mode_dispatch_w_resid']
+CIF = ['rs', 'sr', 'so', 'resid_quantile_score', 'mode_dispatch_w_resid']
 STG = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
 SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    w_over_wmaxrtg w_over_wmax va_over_vamax va_over_vamaxrtg var_over_injmax\n    var_over_absmax a_over_amax w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs pf_sign_mismatch w_gt_wmax_tol w_gt_wmaxrtg_tol\n    va_gt_vamax_tol var_gt_injmax_tol var_lt_absmax_tol va_minus_pqmag\n    va_over_pqmag pf_from_w_va pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error\n    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess\n    varset_abs_error varsetpct_target varsetpct_abs_error wset_enabled_far\n    wsetpct_enabled_far wmaxlim_enabled_far varsetpct_enabled_far w_pct_of_rtg\n    var_pct_of_limit enter_service_blocked_power enter_service_blocked_va\n    enter_service_blocked_current pf_inj_target_error pf_inj_reversion_error\n    pf_reactive_near_limit trip_lv_power_when_outside trip_hv_power_when_outside\n    trip_lf_power_when_outside trip_hf_power_when_outside\n    trip_any_power_when_outside voltvar_curve_error voltwatt_curve_error\n    wattvar_curve_expected wattvar_curve_error freqdroop_w_over_pmin_pct\n    dcw_over_w dcw_over_abs_w ac_zero_dc_positive ac_positive_dc_zero\n    ac_dc_same_sign\n    '.split()}
 HARD_RULE_NAMES = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'wmaxlim_far', 'varsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'enter_blocked_power', 'enter_blocked_current', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
 OVR = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
-RCM = {'noncanonical': 'noncanonical', 'common_missing': 'common_missing_any', 'w_gt_wmax': 'w_gt_wmax_tol', 'w_gt_wmaxrtg': 'w_gt_wmaxrtg_tol', 'va_gt_vamax': 'va_gt_vamax_tol', 'var_gt_injmax': 'var_gt_injmax_tol', 'var_lt_absmax': 'var_lt_absmax_tol', 'wset_far': 'wset_enabled_far', 'wsetpct_far': 'wsetpct_enabled_far', 'wmaxlim_far': 'wmaxlim_enabled_far', 'varsetpct_far': 'varsetpct_enabled_far', 'model_structure': 'model_structure_anomaly_any', 'ac_type_rare': 'ac_type_is_rare', 'dc_type_rare': 'dc_port_type_rare_any', 'enter_state': 'enter_service_state_anomaly', 'enter_blocked_power': 'enter_service_blocked_power', 'enter_blocked_current': 'enter_service_blocked_current', 'pf_abs': 'pf_abs_ext_present', 'pf_abs_rvrt': 'pf_abs_rvrt_ext_present', 'trip_power': 'trip_any_power_when_outside'}
-CEC = ['device_fingerprint', 'common_missing_pattern', 'enter_service_missing_pattern', 'missing_selected_total', 'missing_selected_blocks', 'common_missing_any', 'common_missing_count', 'common_sn_has_decimal_suffix']
+RCM = {'noncanonical': 'noncanonical', 'common_missing': 'cma', 'w_gt_wmax': 'w_gt_wmax_tol', 'w_gt_wmaxrtg': 'w_gt_wmaxrtg_tol', 'va_gt_vamax': 'va_gt_vamax_tol', 'var_gt_injmax': 'var_gt_injmax_tol', 'var_lt_absmax': 'var_lt_absmax_tol', 'wset_far': 'wset_enabled_far', 'wsetpct_far': 'wsetpct_enabled_far', 'wmaxlim_far': 'wmaxlim_enabled_far', 'varsetpct_far': 'varsetpct_enabled_far', 'model_structure': 'model_structure_anomaly_any', 'ac_type_rare': 'ac_type_is_rare', 'dc_type_rare': 'dc_port_type_rare_any', 'enter_state': 'enter_service_state_anomaly', 'enter_blocked_power': 'enter_service_blocked_power', 'enter_blocked_current': 'enter_service_blocked_current', 'pf_abs': 'pf_abs_ext_present', 'pf_abs_rvrt': 'pf_abs_rvrt_ext_present', 'trip_power': 'trip_any_power_when_outside'}
+CEC = ['dg', 'cmp', 'emp', 'mst', 'msb', 'cma', 'cmc', 'csd']
 EMM = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'measure_ac': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'measure_dc': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
 
 def s(seed):
@@ -159,7 +159,7 @@ class R:
         self.sur_cols = None
         self.surrogate_models = {}
         self.res_q = {}
-        self.family_base_rates = {}
+        self.fbr = {}
         self.ssm = {}
         self.scm = {}
         self.sosm = {}
@@ -309,14 +309,14 @@ class R:
             data[f'missing_{bn}_any'] = (missing_count > 0).astype(np.int8)
             block_missing_total += missing_count
             block_missing_any += (missing_count > 0).astype(np.int16)
-        data['missing_selected_total'] = block_missing_total
-        data['missing_selected_blocks'] = block_missing_any.astype(np.int8)
+        data['mst'] = block_missing_total
+        data['msb'] = block_missing_any.astype(np.int8)
         common_missing = df[[*CS, 'common[0].ID', 'common[0].L']].isna().to_numpy(dtype=np.uint16)
         common_weights = (1 << np.arange(common_missing.shape[1], dtype=np.uint16)).reshape(1, -1)
-        data['common_missing_pattern'] = (common_missing * common_weights).sum(axis=1).astype(np.int16)
+        data['cmp'] = (common_missing * common_weights).sum(axis=1).astype(np.int16)
         enter_missing = df[ENTER_SERVICE_COLUMNS].isna().to_numpy(dtype=np.uint16)
         enter_weights = (1 << np.arange(enter_missing.shape[1], dtype=np.uint16)).reshape(1, -1)
-        data['enter_service_missing_pattern'] = (enter_missing * enter_weights).sum(axis=1).astype(np.int16)
+        data['emp'] = (enter_missing * enter_weights).sum(axis=1).astype(np.int16)
 
     def _add_model_integrity_features(self, data, df):
         anomaly_sum = np.zeros(len(df), dtype=np.int16)
@@ -593,8 +593,8 @@ class R:
     def bf(self, df):
         self._coerce_numeric(df)
         fingerprint = df[CS].fillna('<NA>').agg('|'.join, axis=1)
-        data = {'Id': df['Id'].to_numpy(), 'device_fingerprint': fingerprint.to_numpy(dtype=object), 'device_family': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'common_missing_any': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'common_missing_count': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'common_sn_has_decimal_suffix': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
-        data['noncanonical'] = (data['device_family'] == 'other').astype(np.int8)
+        data = {'Id': df['Id'].to_numpy(), 'dg': fingerprint.to_numpy(dtype=object), 'df': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'cma': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'cmc': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'csd': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
+        data['noncanonical'] = (data['df'] == 'other').astype(np.int8)
         for col in RN:
             arr = df[col].to_numpy()
             if np.issubdtype(arr.dtype, np.floating):
@@ -718,15 +718,15 @@ class R:
         ac_type = df['DERMeasureAC[0].ACType'].to_numpy(float)
         ac_type_is_rare = np.isfinite(ac_type) & (ac_type == 3.0)
         data['ac_type_is_rare'] = ac_type_is_rare.astype(np.int8)
-        flag_map = {'noncanonical': data['noncanonical'] == 1, 'common_missing': data['common_missing_any'] == 1, 'w_gt_wmax': data['w_gt_wmax_tol'] == 1, 'w_gt_wmaxrtg': data['w_gt_wmaxrtg_tol'] == 1, 'va_gt_vamax': data['va_gt_vamax_tol'] == 1, 'var_gt_injmax': data['var_gt_injmax_tol'] == 1, 'var_lt_absmax': data['var_lt_absmax_tol'] == 1, 'wset_far': data['wset_enabled_far'] == 1, 'wsetpct_far': data['wsetpct_enabled_far'] == 1, 'wmaxlim_far': data['wmaxlim_enabled_far'] == 1, 'varsetpct_far': data['varsetpct_enabled_far'] == 1, 'model_structure': data['model_structure_anomaly_any'] == 1, 'ac_type_rare': ac_type_is_rare == 1, 'dc_type_rare': dc_port_type_rare == 1, 'enter_state': enter_state_anomaly == 1, 'enter_blocked_power': enter_blocked_power == 1, 'enter_blocked_current': enter_blocked_current == 1, 'pf_abs': pf_abs_ext_present == 1, 'pf_abs_rvrt': pf_abs_rvrt_ext_present == 1, 'trip_power': trip_any_power_when_outside == 1}
+        flag_map = {'noncanonical': data['noncanonical'] == 1, 'common_missing': data['cma'] == 1, 'w_gt_wmax': data['w_gt_wmax_tol'] == 1, 'w_gt_wmaxrtg': data['w_gt_wmaxrtg_tol'] == 1, 'va_gt_vamax': data['va_gt_vamax_tol'] == 1, 'var_gt_injmax': data['var_gt_injmax_tol'] == 1, 'var_lt_absmax': data['var_lt_absmax_tol'] == 1, 'wset_far': data['wset_enabled_far'] == 1, 'wsetpct_far': data['wsetpct_enabled_far'] == 1, 'wmaxlim_far': data['wmaxlim_enabled_far'] == 1, 'varsetpct_far': data['varsetpct_enabled_far'] == 1, 'model_structure': data['model_structure_anomaly_any'] == 1, 'ac_type_rare': ac_type_is_rare == 1, 'dc_type_rare': dc_port_type_rare == 1, 'enter_state': enter_state_anomaly == 1, 'enter_blocked_power': enter_blocked_power == 1, 'enter_blocked_current': enter_blocked_current == 1, 'pf_abs': pf_abs_ext_present == 1, 'pf_abs_rvrt': pf_abs_rvrt_ext_present == 1, 'trip_power': trip_any_power_when_outside == 1}
         hard_rule_flags = np.column_stack([flag_map[name] for name in HARD_RULE_NAMES])
         hard_override_flags = np.column_stack([flag_map[name] for name in self.ovr])
         ff = {name: flag.astype(np.float32) for name, flag in flag_map.items()}
         data['hard_rule_count'] = hard_rule_flags.sum(axis=1).astype(np.int8)
-        data['hard_rule_score'] = 3.0 * ff['noncanonical'] + 2.5 * ff['common_missing'] + 2.0 * (ff['w_gt_wmax'] + ff['w_gt_wmaxrtg'] + ff['va_gt_vamax'] + ff['var_gt_injmax'] + ff['var_lt_absmax'] + ff['model_structure'] + ff['enter_state'] + ff['trip_power']) + 1.5 * (ff['wset_far'] + ff['wsetpct_far'] + ff['ac_type_rare'] + ff['dc_type_rare'] + ff['pf_abs'] + ff['pf_abs_rvrt']) + 1.0 * ff['varsetpct_far'] + 0.75 * ff['wmaxlim_far'] + 0.35 * (ff['enter_blocked_power'] + ff['enter_blocked_current'])
-        hard_rule_anomaly = hard_rule_flags.any(axis=1).astype(np.int8)
-        data['hard_rule_anomaly'] = hard_rule_anomaly
-        data['hard_override_anomaly'] = hard_override_flags.any(axis=1).astype(np.int8)
+        data['rs'] = 3.0 * ff['noncanonical'] + 2.5 * ff['common_missing'] + 2.0 * (ff['w_gt_wmax'] + ff['w_gt_wmaxrtg'] + ff['va_gt_vamax'] + ff['var_gt_injmax'] + ff['var_lt_absmax'] + ff['model_structure'] + ff['enter_state'] + ff['trip_power']) + 1.5 * (ff['wset_far'] + ff['wsetpct_far'] + ff['ac_type_rare'] + ff['dc_type_rare'] + ff['pf_abs'] + ff['pf_abs_rvrt']) + 1.0 * ff['varsetpct_far'] + 0.75 * ff['wmaxlim_far'] + 0.35 * (ff['enter_blocked_power'] + ff['enter_blocked_current'])
+        ra = hard_rule_flags.any(axis=1).astype(np.int8)
+        data['ra'] = ra
+        data['oa'] = hard_override_flags.any(axis=1).astype(np.int8)
         return pd.DataFrame(data)
 
     def irc(self, member, usecols, limit_rows=0):
@@ -755,18 +755,18 @@ class R:
 
     def _encode_device_family(self, df):
         out = df.copy()
-        out['device_family'] = out['device_family'].map(FAM).fillna(-1).astype(np.int8)
+        out['df'] = out['df'].map(FAM).fillna(-1).astype(np.int8)
         return out
 
     def _gsf(self, columns):
-        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'device_fingerprint', 'hard_rule_anomaly', 'hard_rule_count', 'hard_rule_score', 'hard_override_anomaly'}
+        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'dg', 'ra', 'hard_rule_count', 'rs', 'oa'}
         excluded.update(SS.values())
         return [col for col in columns if col not in excluded and col not in SLF]
 
     def _build_sample_weights(self, x_df, y):
         weights = np.ones(len(x_df), dtype=np.float32)
-        family = x_df['device_family'].to_numpy()
-        ho = x_df['hard_override_anomaly'].to_numpy() == 1
+        family = x_df['df'].to_numpy()
+        ho = x_df['oa'].to_numpy() == 1
         weights[(family == 'canon100') & (y == 0)] *= CNW
         weights[ho] *= HARD_OVERRIDE_TRAIN_WEIGHT
         return weights
@@ -781,7 +781,7 @@ class R:
         return out.fillna(fv).astype(dtype)
 
     def _bsf(self, x_df, *, include_output_bins):
-        frame = {'family': x_df['device_family'].astype(str), 'throt_src': self._b(x_df['DERMeasureAC_0_ThrotSrc'], fv=-1, dtype=np.int16), 'throt_pct': self._b(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fv=-1, dtype=np.int16), 'wmaxlim_pct': self._b(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fv=-1, dtype=np.int16), 'wset_pct': self._b(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'varset_pct': self._b(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'pf_set': self._b(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fv=-1, dtype=np.int16), 'fd_idx': self._b(x_df['DERFreqDroop_0_AdptCtlRslt'], fv=-1, dtype=np.int16), 'vv_idx': self._b(x_df['DERVoltVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'vw_idx': self._b(x_df['DERVoltWatt_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'wv_idx': self._b(x_df['DERWattVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'volt_bin': self._b(x_df['voltage_pct'], fv=-999, dtype=np.int16), 'hz_bin': self._b(x_df['DERMeasureAC_0_Hz'], scale=0.1, fv=-999, dtype=np.int16), 'enter_idle': self._b(x_df['enter_service_should_idle'], fv=0, dtype=np.int8, round_values=False), 'droop_active': self._b(x_df['freqdroop_outside_deadband'], fv=0, dtype=np.int8, round_values=False)}
+        frame = {'family': x_df['df'].astype(str), 'throt_src': self._b(x_df['DERMeasureAC_0_ThrotSrc'], fv=-1, dtype=np.int16), 'throt_pct': self._b(x_df['DERMeasureAC_0_ThrotPct'], scale=5.0, fv=-1, dtype=np.int16), 'wmaxlim_pct': self._b(x_df['DERCtlAC_0_WMaxLimPct'], scale=5.0, fv=-1, dtype=np.int16), 'wset_pct': self._b(x_df['DERCtlAC_0_WSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'varset_pct': self._b(x_df['DERCtlAC_0_VarSetPct'], scale=5.0, fv=-1, dtype=np.int16), 'pf_set': self._b(x_df['DERCtlAC_0_PFWInj_PF'], scale=0.02, fv=-1, dtype=np.int16), 'fd_idx': self._b(x_df['DERFreqDroop_0_AdptCtlRslt'], fv=-1, dtype=np.int16), 'vv_idx': self._b(x_df['DERVoltVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'vw_idx': self._b(x_df['DERVoltWatt_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'wv_idx': self._b(x_df['DERWattVar_0_AdptCrvRslt'], fv=-1, dtype=np.int16), 'volt_bin': self._b(x_df['voltage_pct'], fv=-999, dtype=np.int16), 'hz_bin': self._b(x_df['DERMeasureAC_0_Hz'], scale=0.1, fv=-999, dtype=np.int16), 'enter_idle': self._b(x_df['enter_service_should_idle'], fv=0, dtype=np.int8, round_values=False), 'droop_active': self._b(x_df['freqdroop_outside_deadband'], fv=0, dtype=np.int8, round_values=False)}
         if include_output_bins:
             frame['w_bin'] = self._b(x_df['w_pct_of_rtg'], scale=5.0, fv=-999, dtype=np.int16)
             frame['var_bin'] = self._b(x_df['var_pct_of_limit'], scale=5.0, fv=-999, dtype=np.int16)
@@ -806,31 +806,31 @@ class R:
         return (sv, cv)
 
     @staticmethod
-    def _asf(out, *, fp, scenario_rate, scenario_count, scenario_output_rate, scenario_output_count):
-        out['scenario_rate'] = scenario_rate.astype(np.float32)
-        out['scenario_rate_delta'] = (scenario_rate - fp).astype(np.float32)
-        out['scenario_count'] = scenario_count.astype(np.int32)
-        out['scenario_log_count'] = np.log1p(scenario_count).astype(np.float32)
-        out['scenario_low_support'] = (scenario_count < 20).astype(np.int8)
-        out['scenario_output_rate'] = scenario_output_rate.astype(np.float32)
-        out['scenario_output_rate_delta'] = (scenario_output_rate - fp).astype(np.float32)
-        out['scenario_output_count'] = scenario_output_count.astype(np.int32)
-        out['scenario_output_log_count'] = np.log1p(scenario_output_count).astype(np.float32)
-        out['scenario_output_low_support'] = (scenario_output_count < 20).astype(np.int8)
+    def _asf(out, *, fp, sr, sc, so, oc):
+        out['sr'] = sr.astype(np.float32)
+        out['scenario_rate_delta'] = (sr - fp).astype(np.float32)
+        out['sc'] = sc.astype(np.int32)
+        out['scenario_log_count'] = np.log1p(sc).astype(np.float32)
+        out['scenario_low_support'] = (sc < 20).astype(np.int8)
+        out['so'] = so.astype(np.float32)
+        out['scenario_output_rate_delta'] = (so - fp).astype(np.float32)
+        out['oc'] = oc.astype(np.int32)
+        out['scenario_output_log_count'] = np.log1p(oc).astype(np.float32)
+        out['scenario_output_low_support'] = (oc < 20).astype(np.int8)
         return out
 
     def _fts(self, x_train, y_train):
         out = x_train.copy()
         y_arr = y_train.to_numpy(np.float32)
-        fs = out['device_family'].astype(str)
-        self.family_base_rates = pd.DataFrame({'family': fs, 'y': y_arr}).groupby('family')['y'].mean().to_dict()
+        fs = out['df'].astype(str)
+        self.fbr = pd.DataFrame({'family': fs, 'y': y_arr}).groupby('family')['y'].mean().to_dict()
         keys = self._bsk(out)
         ok = self._bok(out)
         fold_ids = (out['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
-        scenario_rate = np.zeros(len(out), dtype=np.float32)
-        scenario_count = np.zeros(len(out), dtype=np.int32)
-        scenario_output_rate = np.zeros(len(out), dtype=np.float32)
-        scenario_output_count = np.zeros(len(out), dtype=np.int32)
+        sr = np.zeros(len(out), dtype=np.float32)
+        sc = np.zeros(len(out), dtype=np.int32)
+        so = np.zeros(len(out), dtype=np.float32)
+        oc = np.zeros(len(out), dtype=np.int32)
         gr = float(np.mean(y_arr))
         for fold in range(self.cv_folds):
             tm = fold_ids != fold
@@ -846,19 +846,19 @@ class R:
             valid_output_sum = valid_output_keys.map(output_stats['sum']).fillna(0.0).to_numpy(np.float32)
             valid_output_count = valid_output_keys.map(output_stats['count']).fillna(0).to_numpy(np.int32)
             valid_family = fs.loc[vm].tolist()
-            prior = np.array([self.family_base_rates.get(name, gr) for name in valid_family], dtype=np.float32)
-            scenario_rate[vm] = (valid_sum + SM * prior) / (valid_count + SM)
-            scenario_count[vm] = valid_count
-            scenario_output_rate[vm] = (valid_output_sum + SM * prior) / (valid_output_count + SM)
-            scenario_output_count[vm] = valid_output_count
+            prior = np.array([self.fbr.get(name, gr) for name in valid_family], dtype=np.float32)
+            sr[vm] = (valid_sum + SM * prior) / (valid_count + SM)
+            sc[vm] = valid_count
+            so[vm] = (valid_output_sum + SM * prior) / (valid_output_count + SM)
+            oc[vm] = valid_output_count
         full_stats = pd.DataFrame({'key': keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
         full_output_stats = pd.DataFrame({'key': ok, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
         self.ssm = {int(idx): float(val) for idx, val in full_stats['sum'].items()}
         self.scm = {int(idx): int(val) for idx, val in full_stats['count'].items()}
         self.sosm = {int(idx): float(val) for idx, val in full_output_stats['sum'].items()}
         self.socm = {int(idx): int(val) for idx, val in full_output_stats['count'].items()}
-        fp = fs.map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
-        return self._asf(out, fp=fp, scenario_rate=scenario_rate, scenario_count=scenario_count, scenario_output_rate=scenario_output_rate, scenario_output_count=scenario_output_count)
+        fp = fs.map(self.fbr).fillna(gr).to_numpy(np.float32)
+        return self._asf(out, fp=fp, sr=sr, sc=sc, so=so, oc=oc)
 
     def _apf(self, x_df):
         if not self.scm:
@@ -868,15 +868,15 @@ class R:
         ok = self._bok(out)
         sv, cv = self._lss(keys, self.ssm, self.scm)
         output_sum_values, output_count_values = self._lss(ok, self.sosm, self.socm)
-        gr = float(np.mean(list(self.family_base_rates.values()))) if self.family_base_rates else 0.5
-        fp = out['device_family'].astype(str).map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
-        scenario_rate = (sv + SM * fp) / (cv + SM)
-        scenario_output_rate = (output_sum_values + SM * fp) / (output_count_values + SM)
-        return self._asf(out, fp=fp, scenario_rate=scenario_rate, scenario_count=cv, scenario_output_rate=scenario_output_rate, scenario_output_count=output_count_values)
+        gr = float(np.mean(list(self.fbr.values()))) if self.fbr else 0.5
+        fp = out['df'].astype(str).map(self.fbr).fillna(gr).to_numpy(np.float32)
+        sr = (sv + SM * fp) / (cv + SM)
+        so = (output_sum_values + SM * fp) / (output_count_values + SM)
+        return self._asf(out, fp=fp, sr=sr, sc=cv, so=so, oc=output_count_values)
 
     def _afi(self, x_df):
         out = x_df.copy()
-        canon100_mask = out['device_family'].astype(str) == 'canon100'
+        canon100_mask = out['df'].astype(str) == 'canon100'
         for feature_name in CIF:
             if feature_name not in out.columns:
                 continue
@@ -901,13 +901,13 @@ class R:
     def _fsm(self, x_train, y_train, vm):
         self.sur_cols = self._gsf(x_train.columns)
         fit_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=True)
-        normal_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~vm.to_numpy() & fit_partition
+        normal_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy() & fit_partition
         surrogate_df = x_train.loc[normal_mask].copy()
         if surrogate_df.empty:
             raise RuntimeError('No rows available to train surrogate models.')
         self.surrogate_models = {}
         for family in FAM:
-            fd = surrogate_df.loc[surrogate_df['device_family'] == family].copy()
+            fd = surrogate_df.loc[surrogate_df['df'] == family].copy()
             if fd.empty:
                 continue
             x_surrogate = self._encode_device_family(fd[self.sur_cols])
@@ -934,7 +934,7 @@ class R:
             out[f'q99_ratio_resid_{tg}'] = np.nan
         x_surrogate = self._encode_device_family(out[self.sur_cols])
         for family in FAM:
-            fm = out['device_family'] == family
+            fm = out['df'] == family
             if not fm.any():
                 continue
             x_family = x_surrogate.loc[fm]
@@ -963,10 +963,10 @@ class R:
 
     def _crq(self, x_train, y_train, vm):
         calibration_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=False)
-        base_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~vm.to_numpy()
+        base_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy()
         self.res_q = {}
         for family in FAM:
-            fm = base_mask & (x_train['device_family'] == family)
+            fm = base_mask & (x_train['df'] == family)
             family_calibration = fm & calibration_partition
             if not family_calibration.any():
                 family_calibration = fm
@@ -992,7 +992,7 @@ class R:
             out[f'ultra_resid_{tg}'] = 0
             out[f'q99_ratio_resid_{tg}'] = np.nan
         for family in FAM:
-            fm = out['device_family'] == family
+            fm = out['df'] == family
             if not fm.any():
                 continue
             family_quantiles = self.res_q.get(family, {})
@@ -1088,7 +1088,7 @@ class R:
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
             feats['audit_fold_id'] = (self._bsk(feats) % self.cv_folds).astype(np.int8)
             for family in ('canon10', 'canon100', 'other'):
-                fm = feats['device_family'] == family
+                fm = feats['df'] == family
                 if fm.any():
                     family_dir = train_root / family
                     family_dir.mkdir(parents=True, exist_ok=True)
@@ -1113,10 +1113,10 @@ class R:
         hard_rule_flags = np.column_stack([pd.to_numeric(out[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in HARD_RULE_NAMES])
         if self.ovr:
             hard_override_flags = np.column_stack([pd.to_numeric(out[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in self.ovr])
-            out['hard_override_anomaly'] = hard_override_flags.any(axis=1).astype(np.int8)
+            out['oa'] = hard_override_flags.any(axis=1).astype(np.int8)
         else:
-            out['hard_override_anomaly'] = np.zeros(len(out), dtype=np.int8)
-        out['hard_rule_anomaly'] = hard_rule_flags.any(axis=1).astype(np.int8)
+            out['oa'] = np.zeros(len(out), dtype=np.int8)
+        out['ra'] = hard_rule_flags.any(axis=1).astype(np.int8)
         return out
 
     def _audit_hard_override_rules(self):
@@ -1135,10 +1135,10 @@ class R:
         self.ovr = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MOP]
 
     def _capture_semantic_context(self):
-        return (self.sur_cols, self.surrogate_models, self.res_q, self.family_base_rates, self.ssm, self.scm, self.sosm, self.socm)
+        return (self.sur_cols, self.surrogate_models, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm)
 
     def _activate_semantic_context(self, cx):
-        self.sur_cols, self.surrogate_models, self.res_q, self.family_base_rates, self.ssm, self.scm, self.sosm, self.socm = cx
+        self.sur_cols, self.surrogate_models, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm = cx
 
     def _psf(self, bdf, y):
         work = self._refresh_override_columns(bdf)
@@ -1152,13 +1152,13 @@ class R:
         return (work, self._capture_semantic_context())
 
     def _semantic_feature_candidates(self, sdf):
-        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'device_fingerprint'}
+        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'oa', 'dg'}
         excluded.update(SS.values())
         return [col for col in sdf.columns if col not in excluded and pd.api.types.is_numeric_dtype(sdf[col])]
 
     def _prepare_cat_frame(self, bdf):
         out = self._refresh_override_columns(bdf)
-        for col in [*SS.values(), 'device_fingerprint']:
+        for col in [*SS.values(), 'dg']:
             if col in out.columns:
                 out[col] = out[col].fillna('<NA>').astype(str)
         return out
@@ -1167,13 +1167,13 @@ class R:
         raw_numeric_cols = [SR[col] for col in RN if SR[col] in cat_df.columns]
         missing_cols = [col for col in cat_df.columns if col.startswith('missing_')]
         cc = [SS[col] for col in RSC if SS[col] in cat_df.columns]
-        candidates = dedupe([*raw_numeric_cols, *cc, 'device_fingerprint', *CEC, *missing_cols])
-        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'hard_rule_anomaly'}
+        candidates = dedupe([*raw_numeric_cols, *cc, 'dg', *CEC, *missing_cols])
+        excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'oa', 'ra'}
         return [col for col in candidates if col in cat_df.columns and col not in excluded]
 
     def _tso(self, sdf, y, fc, *, fold_col, fit_final):
         probs = np.ones(len(sdf), dtype=np.float32)
-        mm = sdf['hard_override_anomaly'].to_numpy(np.int8) == 0
+        mm = sdf['oa'].to_numpy(np.int8) == 0
         fold_ids = sdf[fold_col].to_numpy(np.int8)
         final_model = None
         for fold in range(self.cv_folds):
@@ -1195,7 +1195,7 @@ class R:
 
     def _tco(self, cat_df, y, fc, cc, *, fold_col, fit_final):
         probs = np.ones(len(cat_df), dtype=np.float32)
-        mm = cat_df['hard_override_anomaly'].to_numpy(np.int8) == 0
+        mm = cat_df['oa'].to_numpy(np.int8) == 0
         fold_ids = cat_df[fold_col].to_numpy(np.int8)
         final_model = None
         for fold in range(self.cv_folds):
@@ -1267,9 +1267,9 @@ class R:
             cat_df = self._prepare_cat_frame(bdf.copy())
             catf = self._select_nonconstant_columns(cat_df, self._cat_feature_candidates(cat_df))
             self.cat_cols[family] = catf
-            catc = [col for col in [*SS.values(), 'device_fingerprint'] if col in catf]
+            catc = [col for col in [*SS.values(), 'dg'] if col in catf]
             y = y_series.to_numpy(np.int8)
-            ho = sdf['hard_override_anomaly'].to_numpy(np.int8) == 1
+            ho = sdf['oa'].to_numpy(np.int8) == 1
             sp1, sm = self._tso(sdf, y, semf, fold_col='fold_id', fit_final=True)
             sa1, _ = self._tso(sdf, y, semf, fold_col='audit_fold_id', fit_final=False)
             self.semantic_models[family] = sm
@@ -1294,7 +1294,7 @@ class R:
         cx = self.ctx[family]
         self._activate_semantic_context(cx)
         work = self._refresh_override_columns(bdf.copy())
-        ho = work['hard_override_anomaly'].to_numpy(np.int8) == 1
+        ho = work['oa'].to_numpy(np.int8) == 1
         sdf = self._aws(work.copy())
         sdf = self._arf(sdf)
         sdf = self._apf(sdf)
@@ -1326,9 +1326,9 @@ class R:
             fh.write('Id,Label\n')
             for ci, chunk in enumerate(self.irc('test.csv', UTE)):
                 feats = self.bf(chunk)
-                pred = feats['hard_override_anomaly'].astype(np.int8).to_numpy()
+                pred = feats['oa'].astype(np.int8).to_numpy()
                 for family in FAM:
-                    fm = feats['device_family'] == family
+                    fm = feats['df'] == family
                     if fm.any():
                         pred[np.flatnonzero(fm.to_numpy())] = self._predict_family_chunk(family, feats.loc[fm].copy())
                 out = pd.DataFrame({'Id': feats['Id'].astype(np.int64), 'Label': pred.astype(np.int8)})
