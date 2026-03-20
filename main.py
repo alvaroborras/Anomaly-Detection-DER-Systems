@@ -123,8 +123,8 @@ CANON100_INTERACTION_FEATURES = ['hard_rule_score', 'scenario_rate', 'scenario_o
 SURROGATE_TARGETS = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
 SURROGATE_LEAKY_FEATURES = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    w_over_wmaxrtg w_over_wmax va_over_vamax va_over_vamaxrtg var_over_injmax\n    var_over_absmax a_over_amax w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs pf_sign_mismatch w_gt_wmax_tol w_gt_wmaxrtg_tol\n    va_gt_vamax_tol var_gt_injmax_tol var_lt_absmax_tol va_minus_pqmag\n    va_over_pqmag pf_from_w_va pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error\n    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess\n    varset_abs_error varsetpct_target varsetpct_abs_error wset_enabled_far\n    wsetpct_enabled_far wmaxlim_enabled_far varsetpct_enabled_far w_pct_of_rtg\n    var_pct_of_limit enter_service_blocked_power enter_service_blocked_va\n    enter_service_blocked_current pf_inj_target_error pf_inj_reversion_error\n    pf_reactive_near_limit trip_lv_power_when_outside trip_hv_power_when_outside\n    trip_lf_power_when_outside trip_hf_power_when_outside\n    trip_any_power_when_outside voltvar_curve_error voltwatt_curve_error\n    wattvar_curve_expected wattvar_curve_error freqdroop_w_over_pmin_pct\n    dcw_over_w dcw_over_abs_w ac_zero_dc_positive ac_positive_dc_zero\n    ac_dc_same_sign\n    '.split()}
 HARD_RULE_NAMES = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'wmaxlim_far', 'varsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'enter_blocked_power', 'enter_blocked_current', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
-DEFAULT_HARD_OVERRIDE_NAMES = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
-RULE_COLUMN_MAP = {'noncanonical': 'noncanonical', 'common_missing': 'common_missing_any', 'w_gt_wmax': 'w_gt_wmax_tol', 'w_gt_wmaxrtg': 'w_gt_wmaxrtg_tol', 'va_gt_vamax': 'va_gt_vamax_tol', 'var_gt_injmax': 'var_gt_injmax_tol', 'var_lt_absmax': 'var_lt_absmax_tol', 'wset_far': 'wset_enabled_far', 'wsetpct_far': 'wsetpct_enabled_far', 'wmaxlim_far': 'wmaxlim_enabled_far', 'varsetpct_far': 'varsetpct_enabled_far', 'model_structure': 'model_structure_anomaly_any', 'ac_type_rare': 'ac_type_is_rare', 'dc_type_rare': 'dc_port_type_rare_any', 'enter_state': 'enter_service_state_anomaly', 'enter_blocked_power': 'enter_service_blocked_power', 'enter_blocked_current': 'enter_service_blocked_current', 'pf_abs': 'pf_abs_ext_present', 'pf_abs_rvrt': 'pf_abs_rvrt_ext_present', 'trip_power': 'trip_any_power_when_outside'}
+OVR = ['noncanonical', 'common_missing', 'w_gt_wmax', 'w_gt_wmaxrtg', 'va_gt_vamax', 'var_gt_injmax', 'var_lt_absmax', 'wset_far', 'wsetpct_far', 'model_structure', 'ac_type_rare', 'dc_type_rare', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
+RCM = {'noncanonical': 'noncanonical', 'common_missing': 'common_missing_any', 'w_gt_wmax': 'w_gt_wmax_tol', 'w_gt_wmaxrtg': 'w_gt_wmaxrtg_tol', 'va_gt_vamax': 'va_gt_vamax_tol', 'var_gt_injmax': 'var_gt_injmax_tol', 'var_lt_absmax': 'var_lt_absmax_tol', 'wset_far': 'wset_enabled_far', 'wsetpct_far': 'wsetpct_enabled_far', 'wmaxlim_far': 'wmaxlim_enabled_far', 'varsetpct_far': 'varsetpct_enabled_far', 'model_structure': 'model_structure_anomaly_any', 'ac_type_rare': 'ac_type_is_rare', 'dc_type_rare': 'dc_port_type_rare_any', 'enter_state': 'enter_service_state_anomaly', 'enter_blocked_power': 'enter_service_blocked_power', 'enter_blocked_current': 'enter_service_blocked_current', 'pf_abs': 'pf_abs_ext_present', 'pf_abs_rvrt': 'pf_abs_rvrt_ext_present', 'trip_power': 'trip_any_power_when_outside'}
 CAT_ENGINEERED_COLUMNS = ['device_fingerprint', 'common_missing_pattern', 'enter_service_missing_pattern', 'missing_selected_total', 'missing_selected_blocks', 'common_missing_any', 'common_missing_count', 'common_sn_has_decimal_suffix']
 EXPECTED_MODEL_META = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'measure_ac': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'measure_dc': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
 
@@ -148,22 +148,22 @@ class ResearchBaseline:
         self.cat_learning_rate = cat_learning_rate
         self.n_jobs = n_jobs
         self.seed = seed
-        self.hard_override_names = list(DEFAULT_HARD_OVERRIDE_NAMES)
+        self.ovr = list(OVR)
         self.semantic_models = {}
         self.cat_models = {}
-        self.semantic_contexts = {}
-        self.family_thresholds = {'canon10': 0.5, 'canon100': 0.5}
-        self.family_blend_weights = {'canon10': 1.0, 'canon100': 1.0}
-        self.semantic_feature_cols_by_family = {}
-        self.cat_feature_cols_by_family = {}
-        self.surrogate_feature_cols = None
+        self.ctx = {}
+        self.thr = {'canon10': 0.5, 'canon100': 0.5}
+        self.blend_w = {'canon10': 1.0, 'canon100': 1.0}
+        self.sem_cols = {}
+        self.cat_cols = {}
+        self.sur_cols = None
         self.surrogate_models = {}
-        self.residual_quantiles = {}
+        self.res_q = {}
         self.family_base_rates = {}
-        self.scenario_sum_map = {}
-        self.scenario_count_map = {}
-        self.scenario_output_sum_map = {}
-        self.scenario_output_count_map = {}
+        self.ssm = {}
+        self.scm = {}
+        self.sosm = {}
+        self.socm = {}
 
     @staticmethod
     def _safe_div(a, b):
@@ -720,7 +720,7 @@ class ResearchBaseline:
         data['ac_type_is_rare'] = ac_type_is_rare.astype(np.int8)
         flag_map = {'noncanonical': data['noncanonical'] == 1, 'common_missing': data['common_missing_any'] == 1, 'w_gt_wmax': data['w_gt_wmax_tol'] == 1, 'w_gt_wmaxrtg': data['w_gt_wmaxrtg_tol'] == 1, 'va_gt_vamax': data['va_gt_vamax_tol'] == 1, 'var_gt_injmax': data['var_gt_injmax_tol'] == 1, 'var_lt_absmax': data['var_lt_absmax_tol'] == 1, 'wset_far': data['wset_enabled_far'] == 1, 'wsetpct_far': data['wsetpct_enabled_far'] == 1, 'wmaxlim_far': data['wmaxlim_enabled_far'] == 1, 'varsetpct_far': data['varsetpct_enabled_far'] == 1, 'model_structure': data['model_structure_anomaly_any'] == 1, 'ac_type_rare': ac_type_is_rare == 1, 'dc_type_rare': dc_port_type_rare == 1, 'enter_state': enter_state_anomaly == 1, 'enter_blocked_power': enter_blocked_power == 1, 'enter_blocked_current': enter_blocked_current == 1, 'pf_abs': pf_abs_ext_present == 1, 'pf_abs_rvrt': pf_abs_rvrt_ext_present == 1, 'trip_power': trip_any_power_when_outside == 1}
         hard_rule_flags = np.column_stack([flag_map[name] for name in HARD_RULE_NAMES])
-        hard_override_flags = np.column_stack([flag_map[name] for name in self.hard_override_names])
+        hard_override_flags = np.column_stack([flag_map[name] for name in self.ovr])
         float_flags = {name: flag.astype(np.float32) for name, flag in flag_map.items()}
         data['hard_rule_count'] = hard_rule_flags.sum(axis=1).astype(np.int8)
         data['hard_rule_score'] = 3.0 * float_flags['noncanonical'] + 2.5 * float_flags['common_missing'] + 2.0 * (float_flags['w_gt_wmax'] + float_flags['w_gt_wmaxrtg'] + float_flags['va_gt_vamax'] + float_flags['var_gt_injmax'] + float_flags['var_lt_absmax'] + float_flags['model_structure'] + float_flags['enter_state'] + float_flags['trip_power']) + 1.5 * (float_flags['wset_far'] + float_flags['wsetpct_far'] + float_flags['ac_type_rare'] + float_flags['dc_type_rare'] + float_flags['pf_abs'] + float_flags['pf_abs_rvrt']) + 1.0 * float_flags['varsetpct_far'] + 0.75 * float_flags['wmaxlim_far'] + 0.35 * (float_flags['enter_blocked_power'] + float_flags['enter_blocked_current'])
@@ -766,9 +766,9 @@ class ResearchBaseline:
     def _build_sample_weights(self, x_df, y):
         weights = np.ones(len(x_df), dtype=np.float32)
         family = x_df['device_family'].to_numpy()
-        hard_override = x_df['hard_override_anomaly'].to_numpy() == 1
+        ho = x_df['hard_override_anomaly'].to_numpy() == 1
         weights[(family == 'canon100') & (y == 0)] *= CANON100_NEGATIVE_WEIGHT
-        weights[hard_override] *= HARD_OVERRIDE_TRAIN_WEIGHT
+        weights[ho] *= HARD_OVERRIDE_TRAIN_WEIGHT
         return weights
 
     @staticmethod
@@ -853,21 +853,21 @@ class ResearchBaseline:
             scenario_output_count[valid_mask] = valid_output_count
         full_stats = pd.DataFrame({'key': keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
         full_output_stats = pd.DataFrame({'key': output_keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
-        self.scenario_sum_map = {int(idx): float(val) for idx, val in full_stats['sum'].items()}
-        self.scenario_count_map = {int(idx): int(val) for idx, val in full_stats['count'].items()}
-        self.scenario_output_sum_map = {int(idx): float(val) for idx, val in full_output_stats['sum'].items()}
-        self.scenario_output_count_map = {int(idx): int(val) for idx, val in full_output_stats['count'].items()}
+        self.ssm = {int(idx): float(val) for idx, val in full_stats['sum'].items()}
+        self.scm = {int(idx): int(val) for idx, val in full_stats['count'].items()}
+        self.sosm = {int(idx): float(val) for idx, val in full_output_stats['sum'].items()}
+        self.socm = {int(idx): int(val) for idx, val in full_output_stats['count'].items()}
         family_prior = family_series.map(self.family_base_rates).fillna(global_rate).to_numpy(np.float32)
         return self._assign_scenario_features(out, family_prior=family_prior, scenario_rate=scenario_rate, scenario_count=scenario_count, scenario_output_rate=scenario_output_rate, scenario_output_count=scenario_output_count)
 
     def _apply_scenario_features(self, x_df):
-        if not self.scenario_count_map:
+        if not self.scm:
             return x_df
         out = x_df.copy()
         keys = self._build_scenario_keys(out)
         output_keys = self._build_scenario_output_keys(out)
-        sum_values, count_values = self._lookup_scenario_stats(keys, self.scenario_sum_map, self.scenario_count_map)
-        output_sum_values, output_count_values = self._lookup_scenario_stats(output_keys, self.scenario_output_sum_map, self.scenario_output_count_map)
+        sum_values, count_values = self._lookup_scenario_stats(keys, self.ssm, self.scm)
+        output_sum_values, output_count_values = self._lookup_scenario_stats(output_keys, self.sosm, self.socm)
         global_rate = float(np.mean(list(self.family_base_rates.values()))) if self.family_base_rates else 0.5
         family_prior = out['device_family'].astype(str).map(self.family_base_rates).fillna(global_rate).to_numpy(np.float32)
         scenario_rate = (sum_values + SCENARIO_SMOOTHING * family_prior) / (count_values + SCENARIO_SMOOTHING)
@@ -899,7 +899,7 @@ class ResearchBaseline:
         return XGBClassifier(n_estimators=self.n_estimators, max_depth=self.max_depth, learning_rate=self.learning_rate, objective='binary:logistic', **self._xgb_shared_params(eval_metric='logloss', verbosity=1))
 
     def _fit_surrogate_models(self, x_train, y_train, valid_mask):
-        self.surrogate_feature_cols = self._get_surrogate_feature_cols(x_train.columns)
+        self.sur_cols = self._get_surrogate_feature_cols(x_train.columns)
         fit_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=True)
         normal_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~valid_mask.to_numpy() & fit_partition
         surrogate_df = x_train.loc[normal_mask].copy()
@@ -910,7 +910,7 @@ class ResearchBaseline:
             family_df = surrogate_df.loc[surrogate_df['device_family'] == family].copy()
             if family_df.empty:
                 continue
-            x_surrogate = self._encode_device_family(family_df[self.surrogate_feature_cols])
+            x_surrogate = self._encode_device_family(family_df[self.sur_cols])
             for target_name, (target_col, _) in SURROGATE_TARGETS.items():
                 model = self._new_surrogate_model()
                 y_target = family_df[target_col].to_numpy(np.float32)
@@ -919,7 +919,7 @@ class ResearchBaseline:
                 self.surrogate_models[family, target_name] = model
 
     def _augment_with_surrogates(self, x_df):
-        if self.surrogate_feature_cols is None or not self.surrogate_models:
+        if self.sur_cols is None or not self.surrogate_models:
             return x_df
         out = x_df.copy()
         for target_name in SURROGATE_TARGETS:
@@ -932,30 +932,30 @@ class ResearchBaseline:
             out[f'extreme_resid_{target_name}'] = 0
             out[f'ultra_resid_{target_name}'] = 0
             out[f'q99_ratio_resid_{target_name}'] = np.nan
-        x_surrogate = self._encode_device_family(out[self.surrogate_feature_cols])
+        x_surrogate = self._encode_device_family(out[self.sur_cols])
         for family in DEVICE_FAMILY_MAP:
-            family_mask = out['device_family'] == family
-            if not family_mask.any():
+            fm = out['device_family'] == family
+            if not fm.any():
                 continue
-            x_family = x_surrogate.loc[family_mask]
+            x_family = x_surrogate.loc[fm]
             for target_name, (target_col, scale_col) in SURROGATE_TARGETS.items():
                 model = self.surrogate_models.get((family, target_name))
                 if model is None:
                     continue
                 pred = model.predict(x_family).astype(np.float32)
-                actual = out.loc[family_mask, target_col].to_numpy(np.float32)
+                actual = out.loc[fm, target_col].to_numpy(np.float32)
                 resid = actual - pred
-                out.loc[family_mask, f'pred_{target_name}'] = pred
-                out.loc[family_mask, f'resid_{target_name}'] = resid
-                out.loc[family_mask, f'abs_resid_{target_name}'] = np.abs(resid).astype(np.float32)
+                out.loc[fm, f'pred_{target_name}'] = pred
+                out.loc[fm, f'resid_{target_name}'] = resid
+                out.loc[fm, f'abs_resid_{target_name}'] = np.abs(resid).astype(np.float32)
                 if scale_col is not None:
-                    scale = out.loc[family_mask, scale_col].to_numpy(np.float32)
+                    scale = out.loc[fm, scale_col].to_numpy(np.float32)
                     norm_resid = self._safe_div(resid, scale)
                 else:
                     scale = np.maximum(0.05, np.abs(actual))
                     norm_resid = (resid / scale).astype(np.float32)
-                out.loc[family_mask, f'norm_resid_{target_name}'] = norm_resid.astype(np.float32)
-                out.loc[family_mask, f'abs_norm_resid_{target_name}'] = np.abs(norm_resid).astype(np.float32)
+                out.loc[fm, f'norm_resid_{target_name}'] = norm_resid.astype(np.float32)
+                out.loc[fm, f'abs_norm_resid_{target_name}'] = np.abs(norm_resid).astype(np.float32)
         out['resid_energy_total'] = out[['abs_resid_w', 'abs_resid_va', 'abs_resid_var', 'abs_resid_pf', 'abs_resid_a']].sum(axis=1).astype(np.float32)
         out['resid_va_minus_pq'] = (out['pred_va'] - np.sqrt(np.square(out['pred_w']) + np.square(out['pred_var']))).astype(np.float32)
         out['resid_w_var_ratio'] = self._safe_div(out['abs_resid_w'].to_numpy(float), out['abs_resid_var'].to_numpy(float) + 0.001)
@@ -964,12 +964,12 @@ class ResearchBaseline:
     def _compute_residual_quantiles(self, x_train, y_train, valid_mask):
         calibration_partition = self._surrogate_partition_mask(x_train['Id'], fit_partition=False)
         base_mask = (y_train == 0) & (x_train['hard_override_anomaly'] == 0) & (x_train['device_family'] != 'other') & ~valid_mask.to_numpy()
-        self.residual_quantiles = {}
+        self.res_q = {}
         for family in DEVICE_FAMILY_MAP:
-            family_mask = base_mask & (x_train['device_family'] == family)
-            family_calibration = family_mask & calibration_partition
+            fm = base_mask & (x_train['device_family'] == family)
+            family_calibration = fm & calibration_partition
             if not family_calibration.any():
-                family_calibration = family_mask
+                family_calibration = fm
             family_quantiles = {}
             for target_name in SURROGATE_TARGETS:
                 series = x_train.loc[family_calibration, f'abs_norm_resid_{target_name}']
@@ -980,10 +980,10 @@ class ResearchBaseline:
                     for level_name, q in RESIDUAL_TAIL_LEVELS.items():
                         quantiles[level_name] = float(np.quantile(values, q))
                 family_quantiles[target_name] = {key: max(1e-06, value) for key, value in quantiles.items()}
-            self.residual_quantiles[family] = family_quantiles
+            self.res_q[family] = family_quantiles
 
     def _apply_residual_calibration_features(self, x_df):
-        if not self.residual_quantiles:
+        if not self.res_q:
             return x_df
         out = x_df.copy()
         for target_name in SURROGATE_TARGETS:
@@ -992,21 +992,21 @@ class ResearchBaseline:
             out[f'ultra_resid_{target_name}'] = 0
             out[f'q99_ratio_resid_{target_name}'] = np.nan
         for family in DEVICE_FAMILY_MAP:
-            family_mask = out['device_family'] == family
-            if not family_mask.any():
+            fm = out['device_family'] == family
+            if not fm.any():
                 continue
-            family_quantiles = self.residual_quantiles.get(family, {})
+            family_quantiles = self.res_q.get(family, {})
             for target_name in SURROGATE_TARGETS:
-                abs_norm = out.loc[family_mask, f'abs_norm_resid_{target_name}'].to_numpy(np.float32)
+                abs_norm = out.loc[fm, f'abs_norm_resid_{target_name}'].to_numpy(np.float32)
                 q = family_quantiles.get(target_name, RESIDUAL_TAIL_FALLBACKS)
                 tail = abs_norm >= q['tail']
                 extreme = abs_norm >= q['extreme']
                 ultra = abs_norm >= q['ultra']
                 q99_ratio = self._safe_div(abs_norm, np.full_like(abs_norm, q['extreme'], dtype=np.float32))
-                out.loc[family_mask, f'tail_resid_{target_name}'] = tail.astype(np.int8)
-                out.loc[family_mask, f'extreme_resid_{target_name}'] = extreme.astype(np.int8)
-                out.loc[family_mask, f'ultra_resid_{target_name}'] = ultra.astype(np.int8)
-                out.loc[family_mask, f'q99_ratio_resid_{target_name}'] = q99_ratio.astype(np.float32)
+                out.loc[fm, f'tail_resid_{target_name}'] = tail.astype(np.int8)
+                out.loc[fm, f'extreme_resid_{target_name}'] = extreme.astype(np.int8)
+                out.loc[fm, f'ultra_resid_{target_name}'] = ultra.astype(np.int8)
+                out.loc[fm, f'q99_ratio_resid_{target_name}'] = q99_ratio.astype(np.float32)
         abs_norm_w = np.nan_to_num(out['abs_norm_resid_w'].to_numpy(np.float32), nan=0.0)
         abs_norm_var = np.nan_to_num(out['abs_norm_resid_var'].to_numpy(np.float32), nan=0.0)
         abs_norm_pf = np.nan_to_num(out['abs_norm_resid_pf'].to_numpy(np.float32), nan=0.0)
@@ -1088,11 +1088,11 @@ class ResearchBaseline:
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
             feats['audit_fold_id'] = (self._build_scenario_keys(feats) % self.cv_folds).astype(np.int8)
             for family in ('canon10', 'canon100', 'other'):
-                family_mask = feats['device_family'] == family
-                if family_mask.any():
+                fm = feats['device_family'] == family
+                if fm.any():
                     family_dir = train_root / family
                     family_dir.mkdir(parents=True, exist_ok=True)
-                    family_df = feats.loc[family_mask].copy()
+                    family_df = feats.loc[fm].copy()
                     family_df.to_parquet(family_dir / f'{chunk_idx:05d}.parquet', index=False)
                     built += len(family_df)
             if chunk_idx % 10 == 0:
@@ -1110,9 +1110,9 @@ class ResearchBaseline:
 
     def _refresh_override_columns(self, df):
         out = df.copy()
-        hard_rule_flags = np.column_stack([pd.to_numeric(out[RULE_COLUMN_MAP[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in HARD_RULE_NAMES])
-        if self.hard_override_names:
-            hard_override_flags = np.column_stack([pd.to_numeric(out[RULE_COLUMN_MAP[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in self.hard_override_names])
+        hard_rule_flags = np.column_stack([pd.to_numeric(out[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in HARD_RULE_NAMES])
+        if self.ovr:
+            hard_override_flags = np.column_stack([pd.to_numeric(out[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1 for name in self.ovr])
             out['hard_override_anomaly'] = hard_override_flags.any(axis=1).astype(np.int8)
         else:
             out['hard_override_anomaly'] = np.zeros(len(out), dtype=np.int8)
@@ -1120,28 +1120,28 @@ class ResearchBaseline:
         return out
 
     def _audit_hard_override_rules(self):
-        cols = sorted({RULE_COLUMN_MAP[name] for name in DEFAULT_HARD_OVERRIDE_NAMES})
-        counts = {name: [0, 0] for name in DEFAULT_HARD_OVERRIDE_NAMES}
+        cols = sorted({RCM[name] for name in OVR})
+        counts = {name: [0, 0] for name in OVR}
         for family in ['canon10', 'canon100', 'other']:
             frame = self._load_family_artifact(family, columns=['Label', *cols])
             if frame.empty:
                 continue
             labels = frame['Label'].to_numpy(np.int8)
-            for name in DEFAULT_HARD_OVERRIDE_NAMES:
-                mask = pd.to_numeric(frame[RULE_COLUMN_MAP[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1
+            for name in OVR:
+                mask = pd.to_numeric(frame[RCM[name]], errors='coerce').fillna(0).to_numpy(np.int8) == 1
                 if mask.any():
                     counts[name][0] += int(mask.sum())
                     counts[name][1] += int(labels[mask].sum())
-        self.hard_override_names = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MIN_OVERRIDE_PRECISION]
+        self.ovr = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MIN_OVERRIDE_PRECISION]
 
     def _capture_semantic_context(self):
-        return (self.surrogate_feature_cols, self.surrogate_models, self.residual_quantiles, self.family_base_rates, self.scenario_sum_map, self.scenario_count_map, self.scenario_output_sum_map, self.scenario_output_count_map)
+        return (self.sur_cols, self.surrogate_models, self.res_q, self.family_base_rates, self.ssm, self.scm, self.sosm, self.socm)
 
-    def _activate_semantic_context(self, context):
-        self.surrogate_feature_cols, self.surrogate_models, self.residual_quantiles, self.family_base_rates, self.scenario_sum_map, self.scenario_count_map, self.scenario_output_sum_map, self.scenario_output_count_map = context
+    def _activate_semantic_context(self, cx):
+        self.sur_cols, self.surrogate_models, self.res_q, self.family_base_rates, self.ssm, self.scm, self.sosm, self.socm = cx
 
-    def _prepare_family_semantic_frame(self, base_df, y):
-        work = self._refresh_override_columns(base_df)
+    def _prepare_family_semantic_frame(self, bdf, y):
+        work = self._refresh_override_columns(bdf)
         no_valid = pd.Series(np.zeros(len(work), dtype=bool), index=work.index)
         self._fit_surrogate_models(work, y, no_valid)
         work = self._augment_with_surrogates(work)
@@ -1151,13 +1151,13 @@ class ResearchBaseline:
         work = self._add_family_interaction_features(work)
         return (work, self._capture_semantic_context())
 
-    def _semantic_feature_candidates(self, semantic_df):
+    def _semantic_feature_candidates(self, sdf):
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'device_fingerprint'}
         excluded.update(SAFE_STR.values())
-        return [col for col in semantic_df.columns if col not in excluded and pd.api.types.is_numeric_dtype(semantic_df[col])]
+        return [col for col in sdf.columns if col not in excluded and pd.api.types.is_numeric_dtype(sdf[col])]
 
-    def _prepare_cat_frame(self, base_df):
-        out = self._refresh_override_columns(base_df)
+    def _prepare_cat_frame(self, bdf):
+        out = self._refresh_override_columns(bdf)
         for col in [*SAFE_STR.values(), 'device_fingerprint']:
             if col in out.columns:
                 out[col] = out[col].fillna('<NA>').astype(str)
@@ -1171,10 +1171,10 @@ class ResearchBaseline:
         excluded = {'Id', 'Label', 'fold_id', 'audit_fold_id', 'hard_override_anomaly', 'hard_rule_anomaly'}
         return [col for col in candidates if col in cat_df.columns and col not in excluded]
 
-    def _train_semantic_oof(self, semantic_df, y, feature_cols, *, fold_col, fit_final):
-        probs = np.ones(len(semantic_df), dtype=np.float32)
-        model_mask = semantic_df['hard_override_anomaly'].to_numpy(np.int8) == 0
-        fold_ids = semantic_df[fold_col].to_numpy(np.int8)
+    def _train_semantic_oof(self, sdf, y, feature_cols, *, fold_col, fit_final):
+        probs = np.ones(len(sdf), dtype=np.float32)
+        model_mask = sdf['hard_override_anomaly'].to_numpy(np.int8) == 0
+        fold_ids = sdf[fold_col].to_numpy(np.int8)
         final_model = None
         for fold in range(self.cv_folds):
             train_mask = model_mask & (fold_ids != fold)
@@ -1182,15 +1182,15 @@ class ResearchBaseline:
             if not valid_mask.any():
                 continue
             model = self._new_classifier()
-            x_train = semantic_df.loc[train_mask, feature_cols]
+            x_train = sdf.loc[train_mask, feature_cols]
             y_train = y[train_mask]
-            weights = self._build_sample_weights(semantic_df.loc[train_mask], y_train)
+            weights = self._build_sample_weights(sdf.loc[train_mask], y_train)
             model.fit(x_train, y_train, sample_weight=weights)
-            probs[valid_mask] = model.predict_proba(semantic_df.loc[valid_mask, feature_cols])[:, 1].astype(np.float32)
+            probs[valid_mask] = model.predict_proba(sdf.loc[valid_mask, feature_cols])[:, 1].astype(np.float32)
         if fit_final and model_mask.any():
             final_model = self._new_classifier()
-            weights = self._build_sample_weights(semantic_df.loc[model_mask], y[model_mask])
-            final_model.fit(semantic_df.loc[model_mask, feature_cols], y[model_mask], sample_weight=weights)
+            weights = self._build_sample_weights(sdf.loc[model_mask], y[model_mask])
+            final_model.fit(sdf.loc[model_mask, feature_cols], y[model_mask], sample_weight=weights)
         return (probs, final_model)
 
     def _train_cat_oof(self, cat_df, y, feature_cols, categorical_cols, *, fold_col, fit_final):
@@ -1213,13 +1213,13 @@ class ResearchBaseline:
             final_model.fit(cat_df.loc[model_mask, feature_cols], y[model_mask], cat_features=list(categorical_cols), sample_weight=weights, verbose=False)
         return (probs, final_model)
 
-    def _select_family_blend(self, y, hard_override, semantic_primary, semantic_audit, cat_primary, cat_audit):
+    def _select_family_blend(self, y, ho, semantic_primary, semantic_audit, cat_primary, cat_audit):
         baseline_primary_prob = semantic_primary.copy()
-        baseline_primary_prob[hard_override] = 1.0
+        baseline_primary_prob[ho] = 1.0
         baseline_thr, _ = self.tune_threshold(y, baseline_primary_prob)
         baseline_pred_primary = (baseline_primary_prob >= baseline_thr).astype(np.int8)
         baseline_audit_prob = semantic_audit.copy()
-        baseline_audit_prob[hard_override] = 1.0
+        baseline_audit_prob[ho] = 1.0
         baseline_pred_audit = (baseline_audit_prob >= baseline_thr).astype(np.int8)
         baseline_primary_score = float(fbeta_score(y, baseline_pred_primary, beta=2))
         baseline_audit_score = float(fbeta_score(y, baseline_pred_audit, beta=2))
@@ -1232,11 +1232,11 @@ class ResearchBaseline:
         weight_grid = [round(step / 20.0, 2) for step in range(21)] if cat_primary is not None else [1.0]
         for weight in weight_grid:
             blended_primary = self._blend_probs(semantic_primary, cat_primary, weight)
-            blended_primary[hard_override] = 1.0
+            blended_primary[ho] = 1.0
             thr, _ = self.tune_threshold(y, blended_primary)
             pred_primary = (blended_primary >= thr).astype(np.int8)
             blended_audit = self._blend_probs(semantic_audit, cat_audit, weight)
-            blended_audit[hard_override] = 1.0
+            blended_audit[ho] = 1.0
             pred_audit = (blended_audit >= thr).astype(np.int8)
             primary_score = float(fbeta_score(y, pred_primary, beta=2))
             audit_score = float(fbeta_score(y, pred_audit, beta=2))
@@ -1256,64 +1256,64 @@ class ResearchBaseline:
         self._audit_hard_override_rules()
         trained = 0
         for family in DEVICE_FAMILY_MAP:
-            base_df = self._load_family_artifact(family)
-            if base_df.empty:
+            bdf = self._load_family_artifact(family)
+            if bdf.empty:
                 continue
-            y_series = base_df['Label'].astype(np.int8)
-            semantic_df, context = self._prepare_family_semantic_frame(base_df.copy(), y_series)
-            self.semantic_contexts[family] = context
-            semantic_feature_cols = self._select_nonconstant_columns(semantic_df, self._semantic_feature_candidates(semantic_df))
-            self.semantic_feature_cols_by_family[family] = semantic_feature_cols
-            cat_df = self._prepare_cat_frame(base_df.copy())
-            cat_feature_cols = self._select_nonconstant_columns(cat_df, self._cat_feature_candidates(cat_df))
-            self.cat_feature_cols_by_family[family] = cat_feature_cols
-            cat_categorical_cols = [col for col in [*SAFE_STR.values(), 'device_fingerprint'] if col in cat_feature_cols]
+            y_series = bdf['Label'].astype(np.int8)
+            sdf, cx = self._prepare_family_semantic_frame(bdf.copy(), y_series)
+            self.ctx[family] = cx
+            semf = self._select_nonconstant_columns(sdf, self._semantic_feature_candidates(sdf))
+            self.sem_cols[family] = semf
+            cat_df = self._prepare_cat_frame(bdf.copy())
+            catf = self._select_nonconstant_columns(cat_df, self._cat_feature_candidates(cat_df))
+            self.cat_cols[family] = catf
+            catc = [col for col in [*SAFE_STR.values(), 'device_fingerprint'] if col in catf]
             y = y_series.to_numpy(np.int8)
-            hard_override = semantic_df['hard_override_anomaly'].to_numpy(np.int8) == 1
-            semantic_primary_prob, semantic_model = self._train_semantic_oof(semantic_df, y, semantic_feature_cols, fold_col='fold_id', fit_final=True)
-            semantic_audit_prob, _ = self._train_semantic_oof(semantic_df, y, semantic_feature_cols, fold_col='audit_fold_id', fit_final=False)
+            ho = sdf['hard_override_anomaly'].to_numpy(np.int8) == 1
+            semantic_primary_prob, semantic_model = self._train_semantic_oof(sdf, y, semf, fold_col='fold_id', fit_final=True)
+            semantic_audit_prob, _ = self._train_semantic_oof(sdf, y, semf, fold_col='audit_fold_id', fit_final=False)
             self.semantic_models[family] = semantic_model
             cat_primary_prob = cat_audit_prob = cat_model = None
-            if cat_feature_cols:
-                cat_primary_prob, cat_model = self._train_cat_oof(cat_df, y, cat_feature_cols, cat_categorical_cols, fold_col='fold_id', fit_final=True)
-                cat_audit_prob, _ = self._train_cat_oof(cat_df, y, cat_feature_cols, cat_categorical_cols, fold_col='audit_fold_id', fit_final=False)
+            if catf:
+                cat_primary_prob, cat_model = self._train_cat_oof(cat_df, y, catf, catc, fold_col='fold_id', fit_final=True)
+                cat_audit_prob, _ = self._train_cat_oof(cat_df, y, catf, catc, fold_col='audit_fold_id', fit_final=False)
             self.cat_models[family] = cat_model
-            weight, threshold, _, _ = self._select_family_blend(y, hard_override, semantic_primary_prob, semantic_audit_prob, cat_primary_prob, cat_audit_prob)
-            self.family_blend_weights[family] = weight
-            self.family_thresholds[family] = threshold
+            weight, threshold, _, _ = self._select_family_blend(y, ho, semantic_primary_prob, semantic_audit_prob, cat_primary_prob, cat_audit_prob)
+            self.blend_w[family] = weight
+            self.thr[family] = threshold
             trained += 1
             print(f'[fit] {family} threshold={threshold:.3f}, blend_weight={weight:.2f}')
-            del base_df, semantic_df, cat_df
+            del bdf, sdf, cat_df
             gc.collect()
         if not trained:
             raise RuntimeError('No training artifacts were available for model fitting.')
 
-    def _predict_family_chunk(self, family, base_df):
-        if family not in self.semantic_contexts or family not in self.semantic_models:
+    def _predict_family_chunk(self, family, bdf):
+        if family not in self.ctx or family not in self.semantic_models:
             raise RuntimeError(f'Missing fitted semantic model bundle for family {family}.')
-        context = self.semantic_contexts[family]
-        self._activate_semantic_context(context)
-        work = self._refresh_override_columns(base_df.copy())
-        hard_override = work['hard_override_anomaly'].to_numpy(np.int8) == 1
-        semantic_df = self._augment_with_surrogates(work.copy())
-        semantic_df = self._apply_residual_calibration_features(semantic_df)
-        semantic_df = self._apply_scenario_features(semantic_df)
-        semantic_df = self._add_family_interaction_features(semantic_df)
-        semantic_prob = np.ones(len(semantic_df), dtype=np.float32)
-        if (~hard_override).any():
+        cx = self.ctx[family]
+        self._activate_semantic_context(cx)
+        work = self._refresh_override_columns(bdf.copy())
+        ho = work['hard_override_anomaly'].to_numpy(np.int8) == 1
+        sdf = self._augment_with_surrogates(work.copy())
+        sdf = self._apply_residual_calibration_features(sdf)
+        sdf = self._apply_scenario_features(sdf)
+        sdf = self._add_family_interaction_features(sdf)
+        semantic_prob = np.ones(len(sdf), dtype=np.float32)
+        if (~ho).any():
             semantic_model = self.semantic_models[family]
-            semantic_prob[~hard_override] = semantic_model.predict_proba(semantic_df.loc[~hard_override, self.semantic_feature_cols_by_family[family]])[:, 1].astype(np.float32)
+            semantic_prob[~ho] = semantic_model.predict_proba(sdf.loc[~ho, self.sem_cols[family]])[:, 1].astype(np.float32)
         cat_prob = None
         cat_model = self.cat_models.get(family)
-        if cat_model is not None and self.cat_feature_cols_by_family.get(family):
-            cat_df = self._prepare_cat_frame(base_df.copy())
+        if cat_model is not None and self.cat_cols.get(family):
+            cat_df = self._prepare_cat_frame(bdf.copy())
             cat_prob = np.ones(len(cat_df), dtype=np.float32)
-            if (~hard_override).any():
-                cat_prob[~hard_override] = cat_model.predict_proba(cat_df.loc[~hard_override, self.cat_feature_cols_by_family[family]])[:, 1].astype(np.float32)
-        blend_prob = self._blend_probs(semantic_prob, cat_prob, self.family_blend_weights.get(family, 1.0))
-        blend_prob[hard_override] = 1.0
-        pred = (blend_prob >= self.family_thresholds.get(family, 0.5)).astype(np.int8)
-        pred[hard_override] = 1
+            if (~ho).any():
+                cat_prob[~ho] = cat_model.predict_proba(cat_df.loc[~ho, self.cat_cols[family]])[:, 1].astype(np.float32)
+        blend_prob = self._blend_probs(semantic_prob, cat_prob, self.blend_w.get(family, 1.0))
+        blend_prob[ho] = 1.0
+        pred = (blend_prob >= self.thr.get(family, 0.5)).astype(np.int8)
+        pred[ho] = 1
         return pred
 
     def predict_test(self, out_csv):
@@ -1328,9 +1328,9 @@ class ResearchBaseline:
                 feats = self.build_features(chunk)
                 pred = feats['hard_override_anomaly'].astype(np.int8).to_numpy()
                 for family in DEVICE_FAMILY_MAP:
-                    family_mask = feats['device_family'] == family
-                    if family_mask.any():
-                        pred[np.flatnonzero(family_mask.to_numpy())] = self._predict_family_chunk(family, feats.loc[family_mask].copy())
+                    fm = feats['device_family'] == family
+                    if fm.any():
+                        pred[np.flatnonzero(fm.to_numpy())] = self._predict_family_chunk(family, feats.loc[fm].copy())
                 out = pd.DataFrame({'Id': feats['Id'].astype(np.int64), 'Label': pred.astype(np.int8)})
                 out.to_csv(fh, index=False, header=False)
                 total_rows += len(out)

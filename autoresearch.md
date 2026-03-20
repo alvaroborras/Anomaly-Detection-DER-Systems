@@ -40,9 +40,9 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- The current kept `main.py` is ~98k chars, down from ~130k.
-- The most productive safe reductions so far have come from deleting non-essential surface area rather than changing the predictor itself.
-- Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic-context plumbing, and any remaining verbose setup code that does not affect the final submission.
+- The current kept `main.py` is ~96k chars, down from ~130k.
+- The most productive safe reductions so far have come from deleting non-essential surface area and shortening internal names rather than changing the predictor itself.
+- Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic/scenario helper plumbing, and any remaining verbose setup code that does not affect the final submission.
 - Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this remains a backup path, not the leading one.
 
 ## What's Been Tried
@@ -52,4 +52,5 @@ Workload constraints:
 - Kept: removed unused report/config/save machinery, switched the runtime to direct `train.csv` / `test.csv` reads, simplified artifact rebuilding to always start fresh, and collapsed `run_pipeline()` to the minimum needed for final prediction. This reduced `main.py` further to 99,978 chars while preserving the exact hash.
 - Kept: removed extra annotated assignment syntax, deleted the now-unused semantic-context dataclass wrapper, and trimmed more bookkeeping around context/state setup. This reduced `main.py` again to 98,357 chars while preserving the exact hash.
 - Kept: removed a few more dead imports/parameters and collapsed semantic-context capture/activation to plain tuple passing. This brought `main.py` to 97,991 chars while preserving the exact hash.
-- Best current direction: continue deleting helper/reporting structures and collapsing verbose bookkeeping without changing the trained decision path.
+- Kept: shortened a batch of long internal identifiers (`semantic_*`, scenario-map names, override/config names, etc.) with no behavior change. This cut `main.py` further to 95,974 chars while preserving the exact hash.
+- Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path.
