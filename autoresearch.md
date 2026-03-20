@@ -40,12 +40,13 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- Current `main.py` is ~130k chars and contains substantial non-essential surface area: large docstrings, reporting/config dataclasses, model/report persistence, zip-path indirection, and audit/report code.
-- The safest path is to preserve the current predictor logic while deleting non-essential code and simplifying I/O around `train.csv`/`test.csv`.
-- Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this is a backup path, not the leading one.
+- The current kept `main.py` is ~112k chars after safe syntax-preserving stripping, down from ~130k.
+- Large remaining opportunities still appear to be: reporting/config dataclasses, model/report persistence, zip-path indirection, and audit/report surface area that does not affect the final submission.
+- The safest path is still to preserve predictor logic while deleting non-essential code and simplifying I/O around `train.csv`/`test.csv`.
+- Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this remains a backup path, not the leading one.
 
 ## What's Been Tried
-- Analysis only so far.
 - Baseline hash identified from the reference submission: `f49de9a5b433a55ea49da611334ec0326b817d80140d2016fc67f7c5d2763196`.
 - Explored distillation offline: exact matches were possible with engineered-feature trees/boosters, but model representations stayed too large to obviously beat a direct code-pruning refactor.
+- Kept: AST-based syntax-preserving minification (drop docstrings/comments via unparse, remove function annotations) reduced `main.py` from 130,112 chars to 112,003 chars and also slightly improved runtime while preserving the exact hash.
 - Best current direction: aggressively remove code not needed for final prediction while preserving the original training/inference behavior.

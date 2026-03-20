@@ -1,1 +1,2 @@
 {"type":"config","name":"Minimize main.py while preserving exact submission hash","metricName":"score","metricUnit":"","bestDirection":"lower"}
+{"run":1,"commit":"05036c0","metric":130113886783,"metrics":{},"status":"keep","description":"baseline: current full pipeline with exact hash; added run_pipeline.sh/autoresearch.sh/autoresearch.md benchmark harness","timestamp":1774007958740,"segment":0,"confidence":null}
