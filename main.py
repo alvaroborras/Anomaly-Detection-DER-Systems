@@ -8,19 +8,19 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.metrics import fbeta_score
-from xgboost import XGBClassifier, XGBRegressor
+from xgboost import XGBClassifier as X,XGBRegressor as G
 try:
-    from catboost import CatBoostClassifier
+    from catboost import CatBoostClassifier as C
 except ImportError:
-    CatBoostClassifier = None
+    C = None
 
 def dedupe(columns):
     return list(dict.fromkeys(columns))
 
-def prefixed(prefix, fields):
+def p(prefix, fields):
     return [f'{prefix}.{field}' for field in fields]
 
-def build_volt_var_columns(prefix):
+def bvv(prefix):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCrvReq', f'{prefix}.AdptCrvRslt', f'{prefix}.NPt', f'{prefix}.NCrv', f'{prefix}.RvrtTms', f'{prefix}.RvrtRem', f'{prefix}.RvrtCrv']
     for curve in range(3):
         cp = f'{prefix}.Crv[{curve}]'
@@ -29,7 +29,7 @@ def build_volt_var_columns(prefix):
             cols.extend([f'{cp}.Pt[{point}].V', f'{cp}.Pt[{point}].Var'])
     return cols
 
-def build_volt_watt_columns(prefix):
+def bvw(prefix):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCrvReq', f'{prefix}.AdptCrvRslt', f'{prefix}.NPt', f'{prefix}.NCrv', f'{prefix}.RvrtTms', f'{prefix}.RvrtRem', f'{prefix}.RvrtCrv']
     for curve in range(3):
         cp = f'{prefix}.Crv[{curve}]'
@@ -38,7 +38,7 @@ def build_volt_watt_columns(prefix):
             cols.extend([f'{cp}.Pt[{point}].V', f'{cp}.Pt[{point}].W'])
     return cols
 
-def build_watt_var_columns(prefix):
+def bwv(prefix):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCrvReq', f'{prefix}.AdptCrvRslt', f'{prefix}.NPt', f'{prefix}.NCrv', f'{prefix}.RvrtTms', f'{prefix}.RvrtRem', f'{prefix}.RvrtCrv']
     for curve in range(3):
         cp = f'{prefix}.Crv[{curve}]'
@@ -47,14 +47,14 @@ def build_watt_var_columns(prefix):
             cols.extend([f'{cp}.Pt[{point}].W', f'{cp}.Pt[{point}].Var'])
     return cols
 
-def build_freq_droop_columns(prefix):
+def bfd(prefix):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCtlReq', f'{prefix}.AdptCtlRslt', f'{prefix}.NCtl', f'{prefix}.RvrtTms', f'{prefix}.RvrtRem', f'{prefix}.RvrtCtl']
     for ctl in range(3):
         ctl_prefix = f'{prefix}.Ctl[{ctl}]'
         cols.extend([f'{ctl_prefix}.DbOf', f'{ctl_prefix}.DbUf', f'{ctl_prefix}.KOf', f'{ctl_prefix}.KUf', f'{ctl_prefix}.RspTms', f'{ctl_prefix}.PMin', f'{ctl_prefix}.ReadOnly'])
     return cols
 
-def build_trip_columns(prefix, axis_name):
+def btc(prefix, axis_name):
     cols = [f'{prefix}.ID', f'{prefix}.L', f'{prefix}.Ena', f'{prefix}.AdptCrvReq', f'{prefix}.AdptCrvRslt', f'{prefix}.NPt', f'{prefix}.NCrvSet']
     for curve in range(2):
         cp = f'{prefix}.Crv[{curve}]'
@@ -66,31 +66,31 @@ def build_trip_columns(prefix, axis_name):
                 cols.extend([f'{group_prefix}.Pt[{point}].{axis_name}', f'{group_prefix}.Pt[{point}].Tms'])
     return cols
 COMMON_FIELDS = 'Mn Md Opt Vr SN'.split()
-CS = prefixed('common[0]', COMMON_FIELDS)
-COMMON_COLUMNS = prefixed('common[0]', ['ID', 'L', *COMMON_FIELDS, 'DA'])
+CS = p('common[0]', COMMON_FIELDS)
+COMMON_COLUMNS = p('common[0]', ['ID', 'L', *COMMON_FIELDS, 'DA'])
 MEASURE_AC_FIELDS = '\nID L ACType W VA Var PF A LLV LNV Hz TmpAmb TmpCab TmpSnk TmpTrns TmpSw TmpOt\nThrotPct ThrotSrc WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\nAL1 AL2 AL3 VL1L2 VL2L3 VL3L1 VL1 VL2 VL3\n'.split()
-MEASURE_AC_COLUMNS = prefixed('DERMeasureAC[0]', MEASURE_AC_FIELDS)
+MEASURE_AC_COLUMNS = p('DERMeasureAC[0]', MEASURE_AC_FIELDS)
 CAPACITY_FIELDS = '\nID L WMaxRtg VAMaxRtg VarMaxInjRtg VarMaxAbsRtg WChaRteMaxRtg WDisChaRteMaxRtg\nVAChaRteMaxRtg VADisChaRteMaxRtg VNomRtg VMaxRtg VMinRtg AMaxRtg PFOvrExtRtg\nPFUndExtRtg NorOpCatRtg AbnOpCatRtg IntIslandCatRtg WMax WMaxOvrExt WOvrExtPF\nWMaxUndExt WUndExtPF VAMax VarMaxInj VarMaxAbs WChaRteMax WDisChaRteMax\nVAChaRteMax VADisChaRteMax VNom VMax VMin AMax PFOvrExt PFUndExt CtrlModes\nIntIslandCat\n'.split()
-CAPACITY_COLUMNS = prefixed('DERCapacity[0]', CAPACITY_FIELDS)
+CAPACITY_COLUMNS = p('DERCapacity[0]', CAPACITY_FIELDS)
 ENTER_SERVICE_FIELDS = 'ID L ES ESVHi ESVLo ESHzHi ESHzLo ESDlyTms ESRndTms ESRmpTms ESDlyRemTms'.split()
-ENTER_SERVICE_COLUMNS = prefixed('DEREnterService[0]', ENTER_SERVICE_FIELDS)
+ENTER_SERVICE_COLUMNS = p('DEREnterService[0]', ENTER_SERVICE_FIELDS)
 CTL_AC_FIELDS = '\nID L PFWInjEna PFWInjEnaRvrt PFWInjRvrtTms PFWInjRvrtRem PFWAbsEna PFWAbsEnaRvrt\nPFWAbsRvrtTms PFWAbsRvrtRem WMaxLimPctEna WMaxLimPct WMaxLimPctRvrt\nWMaxLimPctEnaRvrt WMaxLimPctRvrtTms WMaxLimPctRvrtRem WSetEna WSetMod WSet\nWSetRvrt WSetPct WSetPctRvrt WSetEnaRvrt WSetRvrtTms WSetRvrtRem VarSetEna\nVarSetMod VarSetPri VarSet VarSetRvrt VarSetPct VarSetPctRvrt VarSetEnaRvrt\nVarSetRvrtTms VarSetRvrtRem WRmp WRmpRef VarRmp AntiIslEna PFWInj.PF PFWInj.Ext\nPFWInjRvrt.PF PFWInjRvrt.Ext PFWAbs.Ext PFWAbsRvrt.Ext\n'.split()
-CTL_AC_COLUMNS = prefixed('DERCtlAC[0]', CTL_AC_FIELDS)
-VOLT_VAR_COLUMNS = build_volt_var_columns('DERVoltVar[0]')
-VOLT_WATT_COLUMNS = build_volt_watt_columns('DERVoltWatt[0]')
-FREQ_DROOP_COLUMNS = build_freq_droop_columns('DERFreqDroop[0]')
-WATT_VAR_COLUMNS = build_watt_var_columns('DERWattVar[0]')
+CTL_AC_COLUMNS = p('DERCtlAC[0]', CTL_AC_FIELDS)
+VOLT_VAR_COLUMNS = bvv('DERVoltVar[0]')
+VOLT_WATT_COLUMNS = bvw('DERVoltWatt[0]')
+FREQ_DROOP_COLUMNS = bfd('DERFreqDroop[0]')
+WATT_VAR_COLUMNS = bwv('DERWattVar[0]')
 TS = {'lv': ('DERTripLV[0]', 'V', 'low'), 'hv': ('DERTripHV[0]', 'V', 'high'), 'lf': ('DERTripLF[0]', 'Hz', 'low'), 'hf': ('DERTripHF[0]', 'Hz', 'high')}
-TRIP_COLUMNS = {sn: build_trip_columns(prefix, axis_name) for sn, (prefix, axis_name, _) in TS.items()}
+TRIP_COLUMNS = {sn: btc(prefix, axis_name) for sn, (prefix, axis_name, _) in TS.items()}
 MEASURE_DC_FIELDS = '\nID L NPrt DCA DCW Prt[0].PrtTyp Prt[0].ID Prt[0].DCA Prt[0].DCV Prt[0].DCW\nPrt[0].Tmp Prt[1].PrtTyp Prt[1].ID Prt[1].DCA Prt[1].DCV Prt[1].DCW Prt[1].Tmp\n'.split()
-MEASURE_DC_COLUMNS = prefixed('DERMeasureDC[0]', MEASURE_DC_FIELDS)
+MEASURE_DC_COLUMNS = p('DERMeasureDC[0]', MEASURE_DC_FIELDS)
 BSC = {'common': COMMON_COLUMNS, 'measure_ac': MEASURE_AC_COLUMNS, 'capacity': CAPACITY_COLUMNS, 'enter_service': ENTER_SERVICE_COLUMNS, 'ctl_ac': CTL_AC_COLUMNS, 'volt_var': VOLT_VAR_COLUMNS, 'volt_watt': VOLT_WATT_COLUMNS, 'freq_droop': FREQ_DROOP_COLUMNS, 'watt_var': WATT_VAR_COLUMNS, 'measure_dc': MEASURE_DC_COLUMNS}
 for sn, cols in TRIP_COLUMNS.items():
     BSC[f'trip_{sn}'] = cols
 CURVE_BLOCK_META_FIELDS = 'Ena AdptCrvReq AdptCrvRslt NPt NCrv RvrtTms RvrtRem RvrtCrv'.split()
 FREQ_DROOP_META_FIELDS = 'Ena AdptCtlReq AdptCtlRslt NCtl RvrtTms RvrtRem RvrtCtl'.split()
 TRIP_META_FIELDS = 'Ena AdptCrvReq AdptCrvRslt NPt NCrvSet'.split()
-RN = dedupe(['common[0].DA', *prefixed('DERMeasureAC[0]', MEASURE_AC_FIELDS[2:]), *prefixed('DERCapacity[0]', CAPACITY_FIELDS[2:]), *prefixed('DEREnterService[0]', ENTER_SERVICE_FIELDS[2:]), *prefixed('DERCtlAC[0]', CTL_AC_FIELDS[2:]), *prefixed('DERVoltVar[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERVoltWatt[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERFreqDroop[0]', FREQ_DROOP_META_FIELDS), *prefixed('DERWattVar[0]', CURVE_BLOCK_META_FIELDS), *prefixed('DERMeasureDC[0]', MEASURE_DC_FIELDS[2:])])
+RN = dedupe(['common[0].DA', *p('DERMeasureAC[0]', MEASURE_AC_FIELDS[2:]), *p('DERCapacity[0]', CAPACITY_FIELDS[2:]), *p('DEREnterService[0]', ENTER_SERVICE_FIELDS[2:]), *p('DERCtlAC[0]', CTL_AC_FIELDS[2:]), *p('DERVoltVar[0]', CURVE_BLOCK_META_FIELDS), *p('DERVoltWatt[0]', CURVE_BLOCK_META_FIELDS), *p('DERFreqDroop[0]', FREQ_DROOP_META_FIELDS), *p('DERWattVar[0]', CURVE_BLOCK_META_FIELDS), *p('DERMeasureDC[0]', MEASURE_DC_FIELDS[2:])])
 TRIP_META_COLUMNS = [f'{prefix}.{field}' for prefix, _, _ in TS.values() for field in TRIP_META_FIELDS]
 RAW_EXTRA_NUMERIC_COLUMNS = ['DERMeasureAC[0].A_SF', 'DERMeasureAC[0].V_SF', 'DERMeasureAC[0].Hz_SF', 'DERMeasureAC[0].W_SF', 'DERMeasureAC[0].PF_SF', 'DERMeasureAC[0].VA_SF', 'DERMeasureAC[0].Var_SF', 'DERCapacity[0].WOvrExtRtg', 'DERCapacity[0].WOvrExtRtgPF', 'DERCapacity[0].WUndExtRtg', 'DERCapacity[0].WUndExtRtgPF', 'DERCapacity[0].W_SF', 'DERCapacity[0].PF_SF', 'DERCapacity[0].VA_SF', 'DERCapacity[0].Var_SF', 'DERCapacity[0].V_SF', 'DERCapacity[0].A_SF', 'DERCtlAC[0].WSet_SF', 'DERMeasureDC[0].DCA_SF', 'DERMeasureDC[0].DCW_SF']
 RAW_EXTRA_STRING_COLUMNS = ['DERMeasureDC[0].Prt[0].IDStr', 'DERMeasureDC[0].Prt[1].IDStr']
@@ -110,15 +110,15 @@ DEFAULT_SEED = 42
 DEFAULT_OUTPUT_DIR = SCRIPT_DIR / 'outputs' / 'full_data_hybrid'
 SQRT3 = math.sqrt(3.0)
 FAM = {'canon10': 0, 'canon100': 1}
-RESIDUAL_TAIL_LEVELS = {'tail': 0.95, 'extreme': 0.99, 'ultra': 0.999}
-RESIDUAL_TAIL_FALLBACKS = {'tail': 0.05, 'extreme': 0.1, 'ultra': 0.2}
-FAMILY_THRESHOLD_FLOOR = 0.02
-MAX_THRESHOLD = 0.6
-CANON100_NEGATIVE_WEIGHT = 1.5
+RTL = {'tail': 0.95, 'extreme': 0.99, 'ultra': 0.999}
+RTF = {'tail': 0.05, 'extreme': 0.1, 'ultra': 0.2}
+FTF = 0.02
+MT = 0.6
+CNW = 1.5
 HARD_OVERRIDE_TRAIN_WEIGHT = 0.35
-SCENARIO_SMOOTHING = 50.0
-AUDIT_TOLERANCE = 0.003
-MIN_OVERRIDE_PRECISION = 0.995
+SM = 50.0
+AT = 0.003
+MOP = 0.995
 CIF = ['hard_rule_score', 'scenario_rate', 'scenario_output_rate', 'resid_quantile_score', 'mode_dispatch_w_resid']
 STG = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
 SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    w_over_wmaxrtg w_over_wmax va_over_vamax va_over_vamaxrtg var_over_injmax\n    var_over_absmax a_over_amax w_minus_wmax w_minus_wmaxrtg va_minus_vamax\n    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj\n    var_eq_neg_varmaxabs pf_sign_mismatch w_gt_wmax_tol w_gt_wmaxrtg_tol\n    va_gt_vamax_tol var_gt_injmax_tol var_lt_absmax_tol va_minus_pqmag\n    va_over_pqmag pf_from_w_va pf_error w_phase_sum_error va_phase_sum_error\n    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error\n    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess\n    varset_abs_error varsetpct_target varsetpct_abs_error wset_enabled_far\n    wsetpct_enabled_far wmaxlim_enabled_far varsetpct_enabled_far w_pct_of_rtg\n    var_pct_of_limit enter_service_blocked_power enter_service_blocked_va\n    enter_service_blocked_current pf_inj_target_error pf_inj_reversion_error\n    pf_reactive_near_limit trip_lv_power_when_outside trip_hv_power_when_outside\n    trip_lf_power_when_outside trip_hf_power_when_outside\n    trip_any_power_when_outside voltvar_curve_error voltwatt_curve_error\n    wattvar_curve_expected wattvar_curve_error freqdroop_w_over_pmin_pct\n    dcw_over_w dcw_over_abs_w ac_zero_dc_positive ac_positive_dc_zero\n    ac_dc_same_sign\n    '.split()}
@@ -128,11 +128,11 @@ RCM = {'noncanonical': 'noncanonical', 'common_missing': 'common_missing_any', '
 CEC = ['device_fingerprint', 'common_missing_pattern', 'enter_service_missing_pattern', 'missing_selected_total', 'missing_selected_blocks', 'common_missing_any', 'common_missing_count', 'common_sn_has_decimal_suffix']
 EMM = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'measure_ac': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'measure_dc': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
 
-def seed_everything(seed):
+def s(seed):
     random.seed(seed)
     np.random.seed(seed)
 
-class ResearchBaseline:
+class R:
 
     def __init__(self, *, artifact_dir=DEFAULT_OUTPUT_DIR / 'artifacts', chunksize=5000, cv_folds=5, n_estimators=180, max_depth=8, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, cat_iterations=400, cat_depth=8, cat_learning_rate=0.05, n_jobs=4, seed=DEFAULT_SEED):
         self.artifact_dir = artifact_dir
@@ -246,7 +246,7 @@ class ResearchBaseline:
         valid = np.isfinite(x_points[:, :-1]) & np.isfinite(x_points[:, 1:]) & np.isfinite(y_points[:, :-1]) & np.isfinite(y_points[:, 1:]) & (np.abs(dx) > 1e-06)
         slopes = np.full(dx.shape, np.nan, dtype=np.float32)
         slopes[valid] = dy[valid] / dx[valid]
-        return (ResearchBaseline._nanmean_rows(slopes), ResearchBaseline._x(np.abs(slopes)))
+        return (R._nanmean_rows(slopes), R._x(np.abs(slopes)))
 
     @staticmethod
     def _piecewise_interp(x, x_points, y_points):
@@ -292,7 +292,7 @@ class ResearchBaseline:
     def _var_pct(var, varmaxinj, varmaxabs):
         var = np.asarray(var, dtype=np.float32)
         denom = np.where(var >= 0, np.asarray(varmaxinj, dtype=np.float32), np.asarray(varmaxabs, dtype=np.float32))
-        return 100.0 * ResearchBaseline._d(var, denom)
+        return 100.0 * R._d(var, denom)
 
     def _coerce_numeric(self, df):
         for col in NSC:
@@ -590,7 +590,7 @@ class ResearchBaseline:
         data['dca_over_total'] = self._d(dca, prt0_a + prt1_a)
         return rare_type.astype(np.int8)
 
-    def build_features(self, df):
+    def bf(self, df):
         self._coerce_numeric(df)
         fingerprint = df[CS].fillna('<NA>').agg('|'.join, axis=1)
         data = {'Id': df['Id'].to_numpy(), 'device_fingerprint': fingerprint.to_numpy(dtype=object), 'device_family': np.where(fingerprint == CANON1, 'canon10', np.where(fingerprint == CANON2, 'canon100', 'other')), 'common_missing_any': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'common_missing_count': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'common_sn_has_decimal_suffix': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
@@ -729,7 +729,7 @@ class ResearchBaseline:
         data['hard_override_anomaly'] = hard_override_flags.any(axis=1).astype(np.int8)
         return pd.DataFrame(data)
 
-    def iter_raw_chunks(self, member, usecols, limit_rows=0):
+    def irc(self, member, usecols, limit_rows=0):
         yielded = 0
         for chunk in pd.read_csv(SCRIPT_DIR / member, usecols=list(usecols), chunksize=self.chunksize, low_memory=False):
             if limit_rows > 0:
@@ -767,7 +767,7 @@ class ResearchBaseline:
         weights = np.ones(len(x_df), dtype=np.float32)
         family = x_df['device_family'].to_numpy()
         ho = x_df['hard_override_anomaly'].to_numpy() == 1
-        weights[(family == 'canon100') & (y == 0)] *= CANON100_NEGATIVE_WEIGHT
+        weights[(family == 'canon100') & (y == 0)] *= CNW
         weights[ho] *= HARD_OVERRIDE_TRAIN_WEIGHT
         return weights
 
@@ -847,9 +847,9 @@ class ResearchBaseline:
             valid_output_count = valid_output_keys.map(output_stats['count']).fillna(0).to_numpy(np.int32)
             valid_family = fs.loc[vm].tolist()
             prior = np.array([self.family_base_rates.get(name, gr) for name in valid_family], dtype=np.float32)
-            scenario_rate[vm] = (valid_sum + SCENARIO_SMOOTHING * prior) / (valid_count + SCENARIO_SMOOTHING)
+            scenario_rate[vm] = (valid_sum + SM * prior) / (valid_count + SM)
             scenario_count[vm] = valid_count
-            scenario_output_rate[vm] = (valid_output_sum + SCENARIO_SMOOTHING * prior) / (valid_output_count + SCENARIO_SMOOTHING)
+            scenario_output_rate[vm] = (valid_output_sum + SM * prior) / (valid_output_count + SM)
             scenario_output_count[vm] = valid_output_count
         full_stats = pd.DataFrame({'key': keys, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
         full_output_stats = pd.DataFrame({'key': ok, 'y': y_arr}).groupby('key')['y'].agg(['sum', 'count'])
@@ -870,8 +870,8 @@ class ResearchBaseline:
         output_sum_values, output_count_values = self._lss(ok, self.sosm, self.socm)
         gr = float(np.mean(list(self.family_base_rates.values()))) if self.family_base_rates else 0.5
         fp = out['device_family'].astype(str).map(self.family_base_rates).fillna(gr).to_numpy(np.float32)
-        scenario_rate = (sv + SCENARIO_SMOOTHING * fp) / (cv + SCENARIO_SMOOTHING)
-        scenario_output_rate = (output_sum_values + SCENARIO_SMOOTHING * fp) / (output_count_values + SCENARIO_SMOOTHING)
+        scenario_rate = (sv + SM * fp) / (cv + SM)
+        scenario_output_rate = (output_sum_values + SM * fp) / (output_count_values + SM)
         return self._asf(out, fp=fp, scenario_rate=scenario_rate, scenario_count=cv, scenario_output_rate=scenario_output_rate, scenario_output_count=output_count_values)
 
     def _afi(self, x_df):
@@ -893,10 +893,10 @@ class ResearchBaseline:
         return {'subsample': self.subsample, 'colsample_bytree': self.colsample_bytree, 'eval_metric': eval_metric, 'tree_method': 'hist', 'n_jobs': self.n_jobs, 'random_state': self.seed, 'seed': self.seed, 'verbosity': verbosity}
 
     def _new_surrogate_model(self):
-        return XGBRegressor(n_estimators=max(80, self.n_estimators // 2), max_depth=max(4, self.max_depth - 2), learning_rate=min(0.08, self.learning_rate * 1.2), objective='reg:squarederror', **self._xgb_shared_params(eval_metric='rmse', verbosity=0))
+        return G(n_estimators=max(80, self.n_estimators // 2), max_depth=max(4, self.max_depth - 2), learning_rate=min(0.08, self.learning_rate * 1.2), objective='reg:squarederror', **self._xgb_shared_params(eval_metric='rmse', verbosity=0))
 
     def _new_classifier(self):
-        return XGBClassifier(n_estimators=self.n_estimators, max_depth=self.max_depth, learning_rate=self.learning_rate, objective='binary:logistic', **self._xgb_shared_params(eval_metric='logloss', verbosity=1))
+        return X(n_estimators=self.n_estimators, max_depth=self.max_depth, learning_rate=self.learning_rate, objective='binary:logistic', **self._xgb_shared_params(eval_metric='logloss', verbosity=1))
 
     def _fsm(self, x_train, y_train, vm):
         self.sur_cols = self._gsf(x_train.columns)
@@ -975,9 +975,9 @@ class ResearchBaseline:
                 series = x_train.loc[family_calibration, f'abs_norm_resid_{tg}']
                 values = pd.to_numeric(series, errors='coerce').to_numpy(np.float32)
                 values = values[np.isfinite(values)]
-                quantiles = RESIDUAL_TAIL_FALLBACKS.copy()
+                quantiles = RTF.copy()
                 if values.size > 0:
-                    for level_name, q in RESIDUAL_TAIL_LEVELS.items():
+                    for level_name, q in RTL.items():
                         quantiles[level_name] = float(np.quantile(values, q))
                 family_quantiles[tg] = {key: max(1e-06, value) for key, value in quantiles.items()}
             self.res_q[family] = family_quantiles
@@ -998,7 +998,7 @@ class ResearchBaseline:
             family_quantiles = self.res_q.get(family, {})
             for tg in STG:
                 abs_norm = out.loc[fm, f'abs_norm_resid_{tg}'].to_numpy(np.float32)
-                q = family_quantiles.get(tg, RESIDUAL_TAIL_FALLBACKS)
+                q = family_quantiles.get(tg, RTF)
                 tail = abs_norm >= q['tail']
                 extreme = abs_norm >= q['extreme']
                 ultra = abs_norm >= q['ultra']
@@ -1037,7 +1037,7 @@ class ResearchBaseline:
         return out
 
     @staticmethod
-    def tune_threshold(y_true, prob, *, low=FAMILY_THRESHOLD_FLOOR, high=MAX_THRESHOLD, step=0.01):
+    def tune_threshold(y_true, prob, *, low=FTF, high=MT, step=0.01):
         if len(y_true) == 0:
             return (0.5, 0.0)
         best_thr, best_f2 = (0.5, -1.0)
@@ -1070,20 +1070,20 @@ class ResearchBaseline:
         return keep
 
     def _ensure_catboost_available(self):
-        if CatBoostClassifier is None:
+        if C is None:
             raise RuntimeError('CatBoost is required for the full-data hybrid pipeline. Install dependencies from pyproject.toml before training.')
 
     def _new_cat_model(self):
         self._ensure_catboost_available()
-        return CatBoostClassifier(iterations=self.cat_iterations, depth=self.cat_depth, learning_rate=self.cat_learning_rate, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.n_jobs, allow_writing_files=False, verbose=False)
+        return C(iterations=self.cat_iterations, depth=self.cat_depth, learning_rate=self.cat_learning_rate, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.n_jobs, allow_writing_files=False, verbose=False)
 
     def _build_train_artifacts(self):
         shutil.rmtree(self.artifact_dir, ignore_errors=True)
         train_root = self.artifact_dir / 'train'
         built = 0
-        for ci, chunk in enumerate(self.iter_raw_chunks('train.csv', UTR)):
+        for ci, chunk in enumerate(self.irc('train.csv', UTR)):
             labels = chunk['Label'].astype(np.int8).to_numpy()
-            feats = self.build_features(chunk.drop(columns=['Label']))
+            feats = self.bf(chunk.drop(columns=['Label']))
             feats['Label'] = labels
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.cv_folds).astype(np.int8)
             feats['audit_fold_id'] = (self._bsk(feats) % self.cv_folds).astype(np.int8)
@@ -1132,7 +1132,7 @@ class ResearchBaseline:
                 if mask.any():
                     counts[name][0] += int(mask.sum())
                     counts[name][1] += int(labels[mask].sum())
-        self.ovr = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MIN_OVERRIDE_PRECISION]
+        self.ovr = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MOP]
 
     def _capture_semantic_context(self):
         return (self.sur_cols, self.surrogate_models, self.res_q, self.family_base_rates, self.ssm, self.scm, self.sosm, self.socm)
@@ -1240,7 +1240,7 @@ class ResearchBaseline:
             pred_audit = (blended_audit >= thr).astype(np.int8)
             ps = float(fbeta_score(y, pred_primary, beta=2))
             as_ = float(fbeta_score(y, pred_audit, beta=2))
-            if as_ < baseline_audit_score - AUDIT_TOLERANCE:
+            if as_ < baseline_audit_score - AT:
                 continue
             if ps > best_primary_score + 1e-12 or (abs(ps - best_primary_score) <= 1e-12 and as_ > best_audit_for_best):
                 best_weight = weight
@@ -1316,7 +1316,7 @@ class ResearchBaseline:
         pred[ho] = 1
         return pred
 
-    def predict_test(self, out_csv):
+    def pt(self, out_csv):
         if not self.semantic_models:
             raise RuntimeError('Model is not fitted.')
         out_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -1324,8 +1324,8 @@ class ResearchBaseline:
         pr = 0
         with out_csv.open('w', encoding='utf-8') as fh:
             fh.write('Id,Label\n')
-            for ci, chunk in enumerate(self.iter_raw_chunks('test.csv', UTE)):
-                feats = self.build_features(chunk)
+            for ci, chunk in enumerate(self.irc('test.csv', UTE)):
+                feats = self.bf(chunk)
                 pred = feats['hard_override_anomaly'].astype(np.int8).to_numpy()
                 for family in FAM:
                     fm = feats['device_family'] == family
@@ -1339,15 +1339,15 @@ class ResearchBaseline:
                     print(f'[test] wrote {tr:,} predictions')
         print(f'[test] done; tr={tr:,}, pr={pr:,}, positive_rate={pr / max(tr, 1):.6f}')
 
-def run_pipeline():
-    seed_everything(DEFAULT_SEED)
-    baseline = ResearchBaseline()
+def rp():
+    s(DEFAULT_SEED)
+    baseline = R()
     baseline.fit()
     out = DEFAULT_OUTPUT_DIR / 'submission_full_data.csv'
-    baseline.predict_test(out)
+    baseline.pt(out)
     print(f'[solution] path={out}')
 
 def main():
-    run_pipeline()
+    rp()
 if __name__ == '__main__':
     main()
