@@ -40,7 +40,7 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- The current kept `main.py` is ~69.4k chars, down from ~130k.
+- The current kept `main.py` is ~69.3k chars, down from ~130k.
 - The most productive safe reductions so far have come from deleting non-essential surface area, removing dead duplicate logic, shortening internal names/feature columns, and hoisting pure/stateless helpers out of class scope.
 - The current best path is still careful exact-token shortening with an explicit denylist for external API keywords (`cat_features`, `chunksize`, etc.); those mistakes are easy to make and expensive to rerun.
 - Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic/scenario helper plumbing, and any remaining verbose setup code that does not affect the final submission.
@@ -73,4 +73,5 @@ Workload constraints:
 - Crash/reverted: one broader rename pass also changed pandas `read_csv(chunksize=...)` into `csz=...`; external API keywords need an explicit denylist just like CatBoost keywords do.
 - Kept: re-applied a narrower exact-token shortening pass after the `chunksize` crash, safely renaming remaining internal rule labels, state names, and local plumbing terms while preserving external API keywords. This brought `main.py` to 69,559 chars while preserving the exact hash.
 - Kept: shortened the internal family labels and inlined the tiny `rp/main` wrappers into the `__main__` block, plus another safe local/rule-token tightening pass. This brought `main.py` to 69,388 chars while preserving the exact hash.
+- Kept: tightened a few last small naming surfaces (shorter `canon100`-derived feature prefix plus compact `_tt` / `_xsp` parameter names) with no behavior change. This brought `main.py` to 69,302 chars while preserving the exact hash.
 - Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path; naming surface and class-scoped boilerplate are still paying off, but avoid blind replacements of external API keywords.

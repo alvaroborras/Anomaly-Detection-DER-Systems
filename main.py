@@ -921,7 +921,7 @@ class R:
         normal_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'o') & ~vm.to_numpy() & fp
         sdf2 = x_train.loc[normal_mask].copy()
         if sdf2.empty:
-            raise RuntimeError('No rows avail to train surrogate models.')
+            raise RuntimeError('no surrogate rows')
         self.sgm = {}
         for family in FAM:
             fd = sdf2.loc[sdf2['df'] == family].copy()
@@ -931,7 +931,6 @@ class R:
             for tg, (tc, _) in STG.items():
                 model = self._nsm()
                 y_target = fd[tc].to_numpy(np.float32)
-                print(f'[surrogate] training {family}/{tg} on {len(fd):,} normal rows')
                 model.fit(xs, y_target)
                 self.sgm[family, tg] = model
 
@@ -1055,7 +1054,7 @@ class R:
 
     def _eca(self):
         if C is None:
-            raise RuntimeError('CatBoost is required for the full-data hybrid pipeline. Install dependencies from pyproject.toml before training.')
+            raise RuntimeError('catboost required')
 
     def _ncm(self):
         self._eca()
@@ -1064,7 +1063,6 @@ class R:
     def _bta(self):
         shutil.rmtree(self.ad, ignore_errors=True)
         tr0 = self.ad / 'train'
-        built = 0
         for ci, chunk in enumerate(self.irc('train.csv', UTR)):
             labels = chunk['Label'].astype(np.int8).to_numpy()
             feats = self.bf(chunk.drop(columns=['Label']))
@@ -1078,9 +1076,6 @@ class R:
                     fdir.mkdir(parents=True, exist_ok=True)
                     fd = feats.loc[fm].copy()
                     fd.to_parquet(fdir / f'{ci:05d}.parquet', index=False)
-                    built += len(fd)
-            if ci % 10 == 0:
-                print(f'[artifacts] materialized {built:,} training rows')
             del feats
             gc.collect()
 
@@ -1253,15 +1248,14 @@ class R:
             self.blend_w[family] = weight
             self.thr[family] = thr
             trained += 1
-            print(f'[fit] {family} thr={thr:.3f}, blend_weight={weight:.2f}')
             del bdf, sdf, cat_df
             gc.collect()
         if not trained:
-            raise RuntimeError('No training artifacts were avail for model fitting.')
+            raise RuntimeError('no train artifacts')
 
     def _pfc(self, family, bdf):
         if family not in self.ctx or family not in self.smd:
-            raise RuntimeError(f'Missing fitted semantic model bundle for family {family}.')
+            raise RuntimeError(f'missing family {family}')
         cx = self.ctx[family]
         self._asc(cx)
         work = self._roc(bdf.copy())
@@ -1289,26 +1283,18 @@ class R:
 
     def pt(self, out_csv):
         if not self.smd:
-            raise RuntimeError('Model is not fitted.')
+            raise RuntimeError('not fit')
         out_csv.parent.mkdir(parents=True, exist_ok=True)
-        tr = 0
-        pr = 0
         with out_csv.open('w', encoding='utf-8') as fh:
             fh.write('Id,Label\n')
-            for ci, chunk in enumerate(self.irc('test.csv', UTE)):
+            for chunk in self.irc('test.csv', UTE):
                 feats = self.bf(chunk)
                 pred = feats['oa'].astype(np.int8).to_numpy()
                 for family in FAM:
                     fm = feats['df'] == family
                     if fm.any():
                         pred[np.flatnonzero(fm.to_numpy())] = self._pfc(family, feats.loc[fm].copy())
-                out = pd.DataFrame({'Id': feats['Id'].astype(np.int64), 'Label': pred.astype(np.int8)})
-                out.to_csv(fh, index=False, header=False)
-                tr += len(out)
-                pr += int(out['Label'].sum())
-                if ci % 10 == 0:
-                    print(f'[test] wrote {tr:,} predictions')
-        print(f'[test] done; tr={tr:,}, pr={pr:,}, positive_rate={pr / max(tr, 1):.6f}')
+                pd.DataFrame({'Id': feats['Id'].astype(np.int64), 'Label': pred.astype(np.int8)}).to_csv(fh, index=False, header=False)
 
 if __name__ == '__main__':
-    s(DEFAULT_SEED);bl=R();bl.fit();out=DOD/'submission_full_data.csv';bl.pt(out);print(f'[solution] path={out}')
+    s(DEFAULT_SEED);bl=R();bl.fit();bl.pt(DOD/'submission_full_data.csv')
