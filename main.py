@@ -120,7 +120,7 @@ AT = 0.003
 MOP = 0.995
 CIF = ['rs', 'sr', 'so', 'rqs', 'mdwr']
 STG = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
-SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav vvr voi\n    voa aoa wmx wmr vmv\n    vmi0 vpa wew w_eq_wmax vev\n    vena psm gw gwr\n    gva gvi vla vmp\n    vop pfv pf_error wpe ape\n    vpe pws pvs wsae\n    wspt wspe wltg wlex\n    vsae vspt vspe wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_pwo trip_hv_pwo\n    trip_lf_pwo trip_hf_pwo\n    tpo voltvar_cer voltwatt_cer\n    wattvar_ce wattvar_cer fdwp\n    dcw_over_w dwwa azdp apdz\n    adss\n    '.split()}
+SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav vvr voi\n    voa aoa wmx wmr vmv\n    vmi0 vpa wew we vev\n    vena psm gw gwr\n    gva gvi vla vmp\n    vop pfv pe wpe ape\n    vpe pws pvs wsae\n    wspt wspe wltg wlex\n    vsae vspt vspe wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_pwo trip_hv_pwo\n    trip_lf_pwo trip_hf_pwo\n    tpo voltvar_cer voltwatt_cer\n    wattvar_ce wattvar_cer fdwp\n    dww dwwa azdp apdz\n    adss\n    '.split()}
 HRN = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wsf', 'wpf', 'wlf', 'vpf', 'ms0', 'atr2', 'dtr2', 'es0', 'eip', 'eic', 'pa0', 'pr0', 'tp0']
 OVR = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wsf', 'wpf', 'ms0', 'atr2', 'dtr2', 'es0', 'pa0', 'pr0', 'tp0']
 RCM = {'nc': 'nc', 'cmi': 'cma', 'gww': 'gw', 'gwrt': 'gwr', 'vgv': 'gva', 'vgi': 'gvi', 'vlm': 'vla', 'wsf': 'wf', 'wpf': 'wef', 'wlf': 'wmf', 'vpf': 'vef', 'ms0': 'msa', 'atr2': 'atr', 'dtr2': 'dtr', 'es0': 'esa', 'eip': 'ebp', 'eic': 'ebc', 'pa0': 'pae', 'pr0': 'pre', 'tp0': 'tpo'}
@@ -435,11 +435,11 @@ class R:
             lms = ~np.isfinite(raw_len)
             id_match = np.isclose(raw_id, expected_id, equal_nan=False)
             lmt = np.isclose(raw_len, expected_len, equal_nan=False)
-            data[f'{bn}_model_id_missing'] = im0.astype(np.int8)
-            data[f'{bn}_model_len_missing'] = lms.astype(np.int8)
-            data[f'{bn}_model_id_match'] = id_match.astype(np.int8)
-            data[f'{bn}_model_len_match'] = lmt.astype(np.int8)
-            data[f'{bn}_model_integrity_ok'] = (id_match & lmt).astype(np.int8)
+            data[f'{bn}_im'] = im0.astype(np.int8)
+            data[f'{bn}_lm'] = lms.astype(np.int8)
+            data[f'{bn}_mi'] = id_match.astype(np.int8)
+            data[f'{bn}_ml'] = lmt.astype(np.int8)
+            data[f'{bn}_ok'] = (id_match & lmt).astype(np.int8)
             mismatch = ~im0 & ~id_match | ~lms & ~lmt
             data[f'{bn}_ms0_anomaly'] = mismatch.astype(np.int8)
             as0 += mismatch.astype(np.int16)
@@ -481,7 +481,7 @@ class R:
         data['tmn'] = tmn
         data['tmx'] = tmx
         data['tme'] = tme
-        data['temp_spread'] = (tmx - tmn).astype(np.float32)
+        data['tsp'] = (tmx - tmn).astype(np.float32)
         data['tmoa'] = (tmx - amb).astype(np.float32)
 
     def _aes(self, data, df, *, vp, hz, abs_w, va, a, tolw, tolva, amax):
@@ -682,7 +682,7 @@ class R:
         prt1_a = df['DERMeasureDC[0].Prt[1].DCA'].to_numpy(float)
         prt0_t = df['DERMeasureDC[0].Prt[0].PrtTyp'].to_numpy(float)
         prt1_t = df['DERMeasureDC[0].Prt[1].PrtTyp'].to_numpy(float)
-        data['dcw_over_w'] = _d(dcw, w)
+        data['dww'] = _d(dcw, w)
         data['dwwa'] = _d(dcw, abs_w)
         data['dmps'] = (dcw - (prt0 + prt1)).astype(np.float32)
         data['dcv_spread'] = np.abs(prt0_v - prt1_v).astype(np.float32)
@@ -735,9 +735,9 @@ class R:
         vmin = df['DERCapacity[0].VMin'].to_numpy(float)
         for name, numerator, dnr in [('wwr', w, wmaxrtg), ('ww', w, wmax), ('vav', va, vamax), ('vvr', va, vamaxrtg), ('voi', var, vmi), ('voa', var, vma), ('aoa', a, amax), ('llv_over_vnom', llv, vnom), ('lnv_over_vnom', lnv * SQRT3, vnom)]:
             data[name] = _d(numerator, dnr)
-        for name, value in [('wmx', w - wmax), ('wmr', w - wmaxrtg), ('vmv', va - vamax), ('vmi0', var - vmi), ('vpa', var + vma), ('llv_minus_lnv_sqrt3', llv - lnv * SQRT3), ('hz_delta_60', hz - 60.0)]:
+        for name, value in [('wmx', w - wmax), ('wmr', w - wmaxrtg), ('vmv', va - vamax), ('vmi0', var - vmi), ('vpa', var + vma), ('lls', llv - lnv * SQRT3), ('hz_delta_60', hz - 60.0)]:
             data[name] = value.astype(np.float32)
-        for name, left, right in [('wew', w, wmaxrtg), ('w_eq_wmax', w, wmax), ('vev', var, vmi), ('vena', var, -vma)]:
+        for name, left, right in [('wew', w, wmaxrtg), ('we', w, wmax), ('vev', var, vmi), ('vena', var, -vma)]:
             data[name] = np.isclose(left, right, equal_nan=False).astype(np.int8)
         data['psm'] = ((np.sign(np.nan_to_num(pf)) != np.sign(np.nan_to_num(w))) & (np.nan_to_num(pf) != 0) & (np.nan_to_num(w) != 0)).astype(np.int8)
         tolw = np.maximum(50.0, 0.02 * np.nan_to_num(wmaxrtg, nan=0.0)).astype(np.float32)
@@ -752,14 +752,14 @@ class R:
         data['vop'] = _d(va, pq)
         pfv = _d(w, va)
         data['pfv'] = pfv
-        data['pf_error'] = (pf - pfv).astype(np.float32)
+        data['pe'] = (pf - pfv).astype(np.float32)
         for name, total, suffixes in [('wpe', w, ['WL1', 'WL2', 'WL3']), ('ape', va, ['VAL1', 'VAL2', 'VAL3']), ('vpe', var, ['VarL1', 'VarL2', 'VarL3'])]:
             ps0 = sum((df[f'DERMeasureAC[0].{suffix}'].to_numpy(float) for suffix in suffixes))
             data[name] = (total - ps0).astype(np.float32)
-        for name, suffixes in [('phase_ll_spread', ['VL1L2', 'VL2L3', 'VL3L1']), ('phase_ln_spread', ['VL1', 'VL2', 'VL3']), ('pws', ['WL1', 'WL2', 'WL3']), ('pvs', ['VarL1', 'VarL2', 'VarL3'])]:
+        for name, suffixes in [('pls', ['VL1L2', 'VL2L3', 'VL3L1']), ('pns', ['VL1', 'VL2', 'VL3']), ('pws', ['WL1', 'WL2', 'WL3']), ('pvs', ['VarL1', 'VarL2', 'VarL3'])]:
             pv = df[[f'DERMeasureAC[0].{suffix}' for suffix in suffixes]].to_numpy(float)
             data[name] = (_x(pv) - _n(pv)).astype(np.float32)
-        for name, numerator, dnr in [('wmax_over_wmaxrtg', wmax, wmaxrtg), ('vamax_over_vamaxrtg', vamax, vamaxrtg), ('vmax_over_vnom', vmax, vnom), ('vmin_over_vnom', vmin, vnom)]:
+        for name, numerator, dnr in [('wow', wmax, wmaxrtg), ('vov', vamax, vamaxrtg), ('vmax_over_vnom', vmax, vnom), ('vmin_over_vnom', vmin, vnom)]:
             data[name] = _d(numerator, dnr)
         wsetena = np.nan_to_num(df['DERCtlAC[0].WSetEna'].to_numpy(float), nan=0.0)
         wset = df['DERCtlAC[0].WSet'].to_numpy(float)
