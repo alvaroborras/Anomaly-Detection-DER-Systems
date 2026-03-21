@@ -109,7 +109,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_SEED = 42
 DOD = SCRIPT_DIR / 'outputs' / 'full_data_hybrid'
 SQRT3 = math.sqrt(3.0)
-FAM = {'canon10': 0, 'canon100': 1}
+FAM = {'c0': 0, 'c1': 1}
 RTL = {'tail': 0.95, 'extreme': 0.99, 'ultra': 0.999}
 RTF = {'tail': 0.05, 'extreme': 0.1, 'ultra': 0.2}
 FTF = 0.02
@@ -346,7 +346,7 @@ def _bsw(x_df, y):
     weights = np.ones(len(x_df), dtype=np.float32)
     family = x_df['df'].to_numpy()
     ho = x_df['oa'].to_numpy() == 1
-    weights[(family == 'canon100') & (y == 0)] *= CNW
+    weights[(family == 'c1') & (y == 0)] *= CNW
     weights[ho] *= HOTW
     return weights
 
@@ -366,7 +366,7 @@ def _bok(x_df):
 
 def _afi(x_df):
     out = x_df.copy()
-    c1m = out['df'].astype(str) == 'canon100'
+    c1m = out['df'].astype(str) == 'c1'
     for fname in CIF:
         if fname not in out.columns:
             continue
@@ -394,8 +394,8 @@ class R:
         self.smd = {}
         self.cmd = {}
         self.ctx = {}
-        self.thr = {'canon10': 0.5, 'canon100': 0.5}
-        self.blend_w = {'canon10': 1.0, 'canon100': 1.0}
+        self.thr = {'c0': 0.5, 'c1': 0.5}
+        self.blend_w = {'c0': 1.0, 'c1': 1.0}
         self.sm0 = {}
         self.ccs = {}
         self.sc0 = None
@@ -701,8 +701,8 @@ class R:
     def bf(self, df):
         _cn(df)
         fpg = df[CS].fillna('<NA>').agg('|'.join, axis=1)
-        data = {'Id': df['Id'].to_numpy(), 'dg': fpg.to_numpy(dtype=object), 'df': np.where(fpg == CANON1, 'canon10', np.where(fpg == CANON2, 'canon100', 'other')), 'cma': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'cmc': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'csd': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
-        data['nc'] = (data['df'] == 'other').astype(np.int8)
+        data = {'Id': df['Id'].to_numpy(), 'dg': fpg.to_numpy(dtype=object), 'df': np.where(fpg == CANON1, 'c0', np.where(fpg == CANON2, 'c1', 'o')), 'cma': df[CS].isna().any(axis=1).astype(np.int8).to_numpy(), 'cmc': df[CS].isna().sum(axis=1).astype(np.int16).to_numpy(), 'csd': df['common[0].SN'].fillna('').astype(str).str.endswith('.0').astype(np.int8).to_numpy()}
+        data['nc'] = (data['df'] == 'o').astype(np.int8)
         for col in RN:
             arr = df[col].to_numpy()
             if np.issubdtype(arr.dtype, np.floating):
@@ -918,7 +918,7 @@ class R:
     def _fsm(self, x_train, y_train, vm):
         self.sc0 = _gsf(x_train.columns)
         fp = _spm(x_train['Id'], fp=True)
-        normal_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy() & fp
+        normal_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'o') & ~vm.to_numpy() & fp
         sdf2 = x_train.loc[normal_mask].copy()
         if sdf2.empty:
             raise RuntimeError('No rows avail to train surrogate models.')
@@ -980,7 +980,7 @@ class R:
 
     def _crq(self, x_train, y_train, vm):
         cpn = _spm(x_train['Id'], fp=False)
-        base_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy()
+        base_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'o') & ~vm.to_numpy()
         self.res_q = {}
         for family in FAM:
             fm = base_mask & (x_train['df'] == family)
@@ -1071,7 +1071,7 @@ class R:
             feats['Label'] = labels
             feats['fold_id'] = (feats['Id'].to_numpy(np.int64) % self.kf).astype(np.int8)
             feats['af'] = (_bsk(feats) % self.kf).astype(np.int8)
-            for family in ('canon10', 'canon100', 'other'):
+            for family in ('c0', 'c1', 'o'):
                 fm = feats['df'] == family
                 if fm.any():
                     fdir = tr0 / family
@@ -1106,7 +1106,7 @@ class R:
     def _aho(self):
         cols = sorted({RCM[name] for name in OVR})
         counts = {name: [0, 0] for name in OVR}
-        for family in ['canon10', 'canon100', 'other']:
+        for family in ['c0', 'c1', 'o']:
             frame = self._lfa(family, columns=['Label', *cols])
             if frame.empty:
                 continue
@@ -1310,15 +1310,5 @@ class R:
                     print(f'[test] wrote {tr:,} predictions')
         print(f'[test] done; tr={tr:,}, pr={pr:,}, positive_rate={pr / max(tr, 1):.6f}')
 
-def rp():
-    s(DEFAULT_SEED)
-    bl = R()
-    bl.fit()
-    out = DOD / 'submission_full_data.csv'
-    bl.pt(out)
-    print(f'[solution] path={out}')
-
-def main():
-    rp()
 if __name__ == '__main__':
-    main()
+    s(DEFAULT_SEED);bl=R();bl.fit();out=DOD/'submission_full_data.csv';bl.pt(out);print(f'[solution] path={out}')

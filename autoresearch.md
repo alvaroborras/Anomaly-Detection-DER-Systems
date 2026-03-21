@@ -40,8 +40,9 @@ Workload constraints:
 - Prefer simpler code when score is equal or better.
 
 ## Current Understanding
-- The current kept `main.py` is ~71.8k chars, down from ~130k.
+- The current kept `main.py` is ~69.6k chars, down from ~130k.
 - The most productive safe reductions so far have come from deleting non-essential surface area, removing dead duplicate logic, shortening internal names/feature columns, and hoisting pure/stateless helpers out of class scope.
+- The current best path is still careful exact-token shortening with an explicit denylist for external API keywords (`cat_features`, `chunksize`, etc.); those mistakes are easy to make and expensive to rerun.
 - Large remaining opportunities still appear to be: extra bookkeeping around artifact generation, semantic/scenario helper plumbing, and any remaining verbose setup code that does not affect the final submission.
 - Distillation experiments on engineered features looked intellectually promising, but exact-match models were still structurally large; this remains a backup path, not the leading one.
 
@@ -67,5 +68,8 @@ Workload constraints:
 - Kept: shortened another safe batch of remaining local identifiers plus the last long internal DC/freqdroop/target feature names, with a narrower non-colliding rename set after the prior crash. This brought `main.py` to 73,484 chars while preserving the exact hash.
 - Kept: shortened another safe batch of shared column/field constants plus remaining one-off locals and internal feature names (DC, phase-error, freqdroop, watt-limit terms). This brought `main.py` to 72,246 chars while preserving the exact hash.
 - Kept: hoisted another batch of pure helper functions (encoding/binning/hash/stat aggregation/candidate builders) out of class scope and fixed their signatures for direct global calls. This brought `main.py` to 71,807 chars while preserving the exact hash.
-- Crash/reverted: a later rename sweep accidentally rewrote the CatBoost `cat_features=` keyword to `cfs=`, so broad renames now need an explicit denylist for library/API keyword names.
+- Kept: hoisted another batch of pure helpers (`_cn/_bsw/_bsf/_bsk/_bok/_afi`) out of class scope and shortened internal hyperparameter attribute names while preserving external library keyword args. This brought `main.py` to 71,294 chars while preserving the exact hash.
+- Kept: applied another exact-token shortening pass on remaining locals and internal feature terms (residual magnitudes, mode flags, DC/freqdroop temporaries, curve metadata, and capacity-rating locals) without touching external API keywords. This brought `main.py` to 70,591 chars while preserving the exact hash.
+- Crash/reverted: one broader rename pass also changed pandas `read_csv(chunksize=...)` into `csz=...`; external API keywords need an explicit denylist just like CatBoost keywords do.
+- Kept: re-applied a narrower exact-token shortening pass after the `chunksize` crash, safely renaming remaining internal rule labels, state names, and local plumbing terms while preserving external API keywords. This brought `main.py` to 69,559 chars while preserving the exact hash.
 - Best current direction: continue deleting helper/reporting structures and compacting internal plumbing without changing the trained decision path; naming surface and class-scoped boilerplate are still paying off, but avoid blind replacements of external API keywords.
