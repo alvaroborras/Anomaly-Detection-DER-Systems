@@ -249,11 +249,11 @@ def _var_pct(var, vmi, vma):
     denom = np.where(var >= 0, np.asarray(vmi, dtype=np.float32), np.asarray(vma, dtype=np.float32))
     return 100.0 * _d(var, denom)
 
-def _tt(y_true, prob, *, low=FTF, high=MT, step=0.01):
+def _tt(y_true, prob, *, l=FTF, h=MT, s=0.01):
     if len(y_true) == 0:
         return (0.5, 0.0)
     bt, best_f2 = (0.5, -1.0)
-    ths = np.arange(low, high + 1e-09, step, dtype=np.float32)
+    ths = np.arange(l, h + 1e-09, s, dtype=np.float32)
     for thr in ths:
         pred = (prob >= thr).astype(np.int8)
         score = fbeta_score(y_true, pred, beta=2)
@@ -371,7 +371,7 @@ def _afi(x_df):
         if fname not in out.columns:
             continue
         values = pd.to_numeric(out[fname], errors='coerce').to_numpy(np.float32)
-        out[f'canon100_{fname}'] = np.where(c1m.to_numpy(), values, 0.0).astype(np.float32)
+        out[f'c1_{fname}'] = np.where(c1m.to_numpy(), values, 0.0).astype(np.float32)
     return out
 
 class R:
@@ -906,14 +906,14 @@ class R:
         so = (osv + SM * fp) / (ocv + SM)
         return _asf(out, fp=fp, sr=sr, sc=cv, so=so, oc=ocv)
 
-    def _xsp(self, *, eval_metric, verbosity):
-        return {'subsample': self.su, 'colsample_bytree': self.cb, 'eval_metric': eval_metric, 'tree_method': 'hist', 'n_jobs': self.nj, 'random_state': self.seed, 'seed': self.seed, 'verbosity': verbosity}
+    def _xsp(self, *, em, vb):
+        return {'subsample': self.su, 'colsample_bytree': self.cb, 'eval_metric': em, 'tree_method': 'hist', 'n_jobs': self.nj, 'random_state': self.seed, 'seed': self.seed, 'verbosity': vb}
 
     def _nsm(self):
-        return G(n_estimators=max(80, self.ne // 2), max_depth=max(4, self.md - 2), learning_rate=min(0.08, self.lr * 1.2), objective='reg:squarederror', **self._xsp(eval_metric='rmse', verbosity=0))
+        return G(n_estimators=max(80, self.ne // 2), max_depth=max(4, self.md - 2), learning_rate=min(0.08, self.lr * 1.2), objective='reg:squarederror', **self._xsp(em='rmse', vb=0))
 
     def _ncf(self):
-        return X(n_estimators=self.ne, max_depth=self.md, learning_rate=self.lr, objective='binary:logistic', **self._xsp(eval_metric='logloss', verbosity=1))
+        return X(n_estimators=self.ne, max_depth=self.md, learning_rate=self.lr, objective='binary:logistic', **self._xsp(em='logloss', vb=1))
 
     def _fsm(self, x_train, y_train, vm):
         self.sc0 = _gsf(x_train.columns)
