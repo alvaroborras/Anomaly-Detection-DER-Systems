@@ -943,10 +943,6 @@ class R:
             out[f'ar_{tg}'] = np.nan
             out[f'nr_{tg}'] = np.nan
             out[f'anr_{tg}'] = np.nan
-            out[f'tr_{tg}'] = 0
-            out[f'er_{tg}'] = 0
-            out[f'ur_{tg}'] = 0
-            out[f'q9r_{tg}'] = np.nan
         xs = _edf(out[self.sc0])
         for family in FAM:
             fm = out['df'] == family
@@ -1160,12 +1156,12 @@ class R:
                 continue
             model = self._ncm()
             weights = _bsw(cat_df.loc[tm], y[tm])
-            model.fit(cat_df.loc[tm, fc], y[tm], cat_features=list(cc), sample_weight=weights)
+            model.fit(cat_df.loc[tm, fc], y[tm], cat_features=cc, sample_weight=weights)
             probs[vm] = model.predict_proba(cat_df.loc[vm, fc])[:, 1].astype(np.float32)
         if ff and mm.any():
             fm = self._ncm()
             weights = _bsw(cat_df.loc[mm], y[mm])
-            fm.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights)
+            fm.fit(cat_df.loc[mm, fc], y[mm], cat_features=cc, sample_weight=weights)
         return (probs, fm)
 
     def _sfb(self, y, ho, sp, sa, cp, ca):

@@ -1,2 +1,1 @@
-- Distill the current predictor to a much smaller hand-coded model over engineered features from `build_features()`, but only if the exact-match representation ends up smaller than a direct refactor.
 - Investigate whether CatBoost can be eliminated entirely if an XGBoost-only or simpler family-specific path can reproduce the exact final predictions.
