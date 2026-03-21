@@ -1052,12 +1052,9 @@ class R:
         out['rqs'] = out[['q9r_w', 'q9r_va', 'q9r_var', 'q9r_pf', 'q9r_a']].sum(axis=1).astype(np.float32)
         return out
 
-    def _eca(self):
+    def _ncm(self):
         if C is None:
             raise RuntimeError('catboost required')
-
-    def _ncm(self):
-        self._eca()
         return C(iterations=self.cti, depth=self.cd, learning_rate=self.clr, loss_function='Logloss', eval_metric='Logloss', random_seed=self.seed, thread_count=self.nj, allow_writing_files=False, verbose=False)
 
     def _bta(self):
@@ -1113,12 +1110,6 @@ class R:
                     counts[name][1] += int(labels[mask].sum())
         self.ovr = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MOP]
 
-    def _csc(self):
-        return (self.sc0, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm)
-
-    def _asc(self, cx):
-        self.sc0, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm = cx
-
     def _psf(self, bdf, y):
         work = self._roc(bdf)
         no_valid = pd.Series(np.zeros(len(work), dtype=bool), index=work.index)
@@ -1128,7 +1119,7 @@ class R:
         work = self._arf(work)
         work = self._fts(work, y)
         work = _afi(work)
-        return (work, self._csc())
+        return (work, (self.sc0, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm))
 
     def _pcf(self, bdf):
         out = self._roc(bdf)
@@ -1171,12 +1162,12 @@ class R:
                 continue
             model = self._ncm()
             weights = _bsw(cat_df.loc[tm], y[tm])
-            model.fit(cat_df.loc[tm, fc], y[tm], cat_features=list(cc), sample_weight=weights, verbose=False)
+            model.fit(cat_df.loc[tm, fc], y[tm], cat_features=list(cc), sample_weight=weights)
             probs[vm] = model.predict_proba(cat_df.loc[vm, fc])[:, 1].astype(np.float32)
         if ff and mm.any():
             fm = self._ncm()
             weights = _bsw(cat_df.loc[mm], y[mm])
-            fm.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights, verbose=False)
+            fm.fit(cat_df.loc[mm, fc], y[mm], cat_features=list(cc), sample_weight=weights)
         return (probs, fm)
 
     def _sfb(self, y, ho, sp, sa, cp, ca):
@@ -1256,8 +1247,7 @@ class R:
     def _pfc(self, family, bdf):
         if family not in self.ctx or family not in self.smd:
             raise RuntimeError(f'missing family {family}')
-        cx = self.ctx[family]
-        self._asc(cx)
+        self.sc0, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm = self.ctx[family]
         work = self._roc(bdf.copy())
         ho = work['oa'].to_numpy(np.int8) == 1
         sdf = self._aws(work.copy())
