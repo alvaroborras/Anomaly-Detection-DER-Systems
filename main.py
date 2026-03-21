@@ -122,9 +122,9 @@ MOP = 0.995
 CIF = ['rs', 'sr', 'so', 'rqs', 'mdwr']
 STG = {'w': ('DERMeasureAC_0_W', 'DERCapacity_0_WMaxRtg'), 'va': ('DERMeasureAC_0_VA', 'DERCapacity_0_VAMaxRtg'), 'var': ('DERMeasureAC_0_Var', 'DERCapacity_0_VarMaxInjRtg'), 'pf': ('DERMeasureAC_0_PF', None), 'a': ('DERMeasureAC_0_A', 'DERCapacity_0_AMaxRtg')}
 SLF = {*(f'DERMeasureAC_0_{field}' for field in '\n    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3\n    AL1 AL2 AL3\n    '.split()), *'\n    wwr ww vav vvr voi\n    voa aoa wmx wmr vmv\n    vmi0 vpa wew w_eq_wmax vev\n    vena psm gw gwr\n    gva gvi vla vmp\n    vop pfv pf_error wpe ape\n    vpe pws pvs wsae\n    wspt wspe wltg wlex\n    vsae vspt vspe wf\n    wef wmf vef wpr\n    vpl ebp esbv\n    ebc pte pre2\n    prl trip_lv_pwo trip_hv_pwo\n    trip_lf_pwo trip_hf_pwo\n    tpo voltvar_cer voltwatt_cer\n    wattvar_ce wattvar_cer fdwp\n    dcw_over_w dwwa azdp apdz\n    adss\n    '.split()}
-HRN = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wset_far', 'wsetpct_far', 'wmaxlim_far', 'varsetpct_far', 'ms0', 'atr2', 'dtr2', 'enter_state', 'eip', 'eic', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
-OVR = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wset_far', 'wsetpct_far', 'ms0', 'atr2', 'dtr2', 'enter_state', 'pf_abs', 'pf_abs_rvrt', 'trip_power']
-RCM = {'nc': 'nc', 'cmi': 'cma', 'gww': 'gw', 'gwrt': 'gwr', 'vgv': 'gva', 'vgi': 'gvi', 'vlm': 'vla', 'wset_far': 'wf', 'wsetpct_far': 'wef', 'wmaxlim_far': 'wmf', 'varsetpct_far': 'vef', 'ms0': 'msa', 'atr2': 'atr', 'dtr2': 'dtr', 'enter_state': 'esa', 'eip': 'ebp', 'eic': 'ebc', 'pf_abs': 'pae', 'pf_abs_rvrt': 'pre', 'trip_power': 'tpo'}
+HRN = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wsf', 'wpf', 'wlf', 'vpf', 'ms0', 'atr2', 'dtr2', 'es0', 'eip', 'eic', 'pa0', 'pr0', 'tp0']
+OVR = ['nc', 'cmi', 'gww', 'gwrt', 'vgv', 'vgi', 'vlm', 'wsf', 'wpf', 'ms0', 'atr2', 'dtr2', 'es0', 'pa0', 'pr0', 'tp0']
+RCM = {'nc': 'nc', 'cmi': 'cma', 'gww': 'gw', 'gwrt': 'gwr', 'vgv': 'gva', 'vgi': 'gvi', 'vlm': 'vla', 'wsf': 'wf', 'wpf': 'wef', 'wlf': 'wmf', 'vpf': 'vef', 'ms0': 'msa', 'atr2': 'atr', 'dtr2': 'dtr', 'es0': 'esa', 'eip': 'ebp', 'eic': 'ebc', 'pa0': 'pae', 'pr0': 'pre', 'tp0': 'tpo'}
 CEC = ['dg', 'cmp', 'emp', 'mst', 'msb', 'cma', 'cmc', 'csd']
 EMM = {'common': ('common[0].ID', 'common[0].L', 1.0, 66.0), 'ma0': ('DERMeasureAC[0].ID', 'DERMeasureAC[0].L', 701.0, 153.0), 'capacity': ('DERCapacity[0].ID', 'DERCapacity[0].L', 702.0, 50.0), 'enter_service': ('DEREnterService[0].ID', 'DEREnterService[0].L', 703.0, 17.0), 'md0': ('DERMeasureDC[0].ID', 'DERMeasureDC[0].L', 714.0, 68.0)}
 
@@ -253,8 +253,8 @@ def _tt(y_true, prob, *, low=FTF, high=MT, step=0.01):
     if len(y_true) == 0:
         return (0.5, 0.0)
     bt, best_f2 = (0.5, -1.0)
-    thresholds = np.arange(low, high + 1e-09, step, dtype=np.float32)
-    for thr in thresholds:
+    ths = np.arange(low, high + 1e-09, step, dtype=np.float32)
+    for thr in ths:
         pred = (prob >= thr).astype(np.int8)
         score = fbeta_score(y_true, pred, beta=2)
         if score > best_f2:
@@ -266,9 +266,9 @@ def _bp(primary, secondary, weight):
         return primary.astype(np.float32)
     return (weight * primary + (1.0 - weight) * secondary).astype(np.float32)
 
-def _snc(df, candidates):
+def _snc(df, cds):
     keep = []
-    for col in candidates:
+    for col in cds:
         if col not in df.columns:
             continue
         series = df[col]
@@ -300,10 +300,10 @@ def _b(values, *, fv, dtype, scale=1.0, round_values=True):
 def _hf(frame):
     return pd.util.hash_pandas_object(frame, index=False).to_numpy(np.uint64)
 
-def _lss(keys, sum_map, count_map):
+def _lss(keys, sum_map, cm0):
     ks = pd.Series(keys)
     sv = ks.map(sum_map).fillna(0.0).to_numpy(np.float32)
-    cv = ks.map(count_map).fillna(0).to_numpy(np.int32)
+    cv = ks.map(cm0).fillna(0).to_numpy(np.int32)
     return (sv, cv)
 
 def _asf(out, *, fp, sr, sc, so, oc):
@@ -333,9 +333,9 @@ def _cfc(cat_df):
     rnc = [SR[col] for col in RN if SR[col] in cat_df.columns]
     missing_cols = [col for col in cat_df.columns if col.startswith('missing_')]
     cc = [SS[col] for col in RSC if SS[col] in cat_df.columns]
-    candidates = dedupe([*rnc, *cc, 'dg', *CEC, *missing_cols])
+    cds = dedupe([*rnc, *cc, 'dg', *CEC, *missing_cols])
     excluded = {'Id', 'Label', 'fold_id', 'af', 'oa', 'ra'}
-    return [col for col in candidates if col in cat_df.columns and col not in excluded]
+    return [col for col in cds if col in cat_df.columns and col not in excluded]
 
 def _cn(df):
     for col in NSC:
@@ -396,9 +396,9 @@ class R:
         self.ctx = {}
         self.thr = {'canon10': 0.5, 'canon100': 0.5}
         self.blend_w = {'canon10': 1.0, 'canon100': 1.0}
-        self.sem_cols = {}
+        self.sm0 = {}
         self.ccs = {}
-        self.sur_cols = None
+        self.sc0 = None
         self.sgm = {}
         self.res_q = {}
         self.fbr = {}
@@ -422,9 +422,9 @@ class R:
         cmi = df[[*CS, 'common[0].ID', 'common[0].L']].isna().to_numpy(dtype=np.uint16)
         cwt = (1 << np.arange(cmi.shape[1], dtype=np.uint16)).reshape(1, -1)
         data['cmp'] = (cmi * cwt).sum(axis=1).astype(np.int16)
-        enter_missing = df[ESC].isna().to_numpy(dtype=np.uint16)
-        ewt = (1 << np.arange(enter_missing.shape[1], dtype=np.uint16)).reshape(1, -1)
-        data['emp'] = (enter_missing * ewt).sum(axis=1).astype(np.int16)
+        ems = df[ESC].isna().to_numpy(dtype=np.uint16)
+        ewt = (1 << np.arange(ems.shape[1], dtype=np.uint16)).reshape(1, -1)
+        data['emp'] = (ems * ewt).sum(axis=1).astype(np.int16)
 
     def _ami(self, data, df):
         as0 = np.zeros(len(df), dtype=np.int16)
@@ -492,12 +492,12 @@ class R:
         es_hz_hi = df['DEREnterService[0].ESHzHi'].to_numpy(float)
         es_hz_lo = df['DEREnterService[0].ESHzLo'].to_numpy(float)
         es_delay = df['DEREnterService[0].ESDlyTms'].to_numpy(float)
-        es_random = df['DEREnterService[0].ESRndTms'].to_numpy(float)
+        er0 = df['DEREnterService[0].ESRndTms'].to_numpy(float)
         es_ramp = df['DEREnterService[0].ESRmpTms'].to_numpy(float)
-        es_delay_rem = df['DEREnterService[0].ESDlyRemTms'].to_numpy(float)
+        edr = df['DEREnterService[0].ESDlyRemTms'].to_numpy(float)
         inside_v = np.isfinite(vp) & np.isfinite(es_v_hi) & np.isfinite(es_v_lo) & (vp >= es_v_lo) & (vp <= es_v_hi)
-        inside_hz = np.isfinite(hz) & np.isfinite(es_hz_hi) & np.isfinite(es_hz_lo) & (hz >= es_hz_lo) & (hz <= es_hz_hi)
-        iwin = inside_v & inside_hz
+        ihz = np.isfinite(hz) & np.isfinite(es_hz_hi) & np.isfinite(es_hz_lo) & (hz >= es_hz_lo) & (hz <= es_hz_hi)
+        iwin = inside_v & ihz
         enabled = np.isfinite(es) & (es == 1.0)
         saz = np.isfinite(es) & (es >= 1.5)
         sidl = ~enabled | ~iwin
@@ -513,10 +513,10 @@ class R:
         data['esvh'] = (es_v_hi - vp).astype(np.float32)
         data['eshl'] = (hz - es_hz_lo).astype(np.float32)
         data['eshh'] = (es_hz_hi - hz).astype(np.float32)
-        data['estd'] = (es_delay + es_random).astype(np.float32)
-        data['esdr'] = es_delay_rem.astype(np.float32)
+        data['estd'] = (es_delay + er0).astype(np.float32)
+        data['esdr'] = edr.astype(np.float32)
         data['esrt'] = es_ramp.astype(np.float32)
-        data['esda'] = (np.nan_to_num(es_delay_rem, nan=0.0) > 0).astype(np.int8)
+        data['esda'] = (np.nan_to_num(edr, nan=0.0) > 0).astype(np.int8)
         bpwr = sidl & (abs_w > tolw)
         blocked_va = sidl & (va > tolva)
         bcur = sidl & (a > ct0)
@@ -755,8 +755,8 @@ class R:
         data['pfv'] = pfv
         data['pf_error'] = (pf - pfv).astype(np.float32)
         for name, total, suffixes in [('wpe', w, ['WL1', 'WL2', 'WL3']), ('ape', va, ['VAL1', 'VAL2', 'VAL3']), ('vpe', var, ['VarL1', 'VarL2', 'VarL3'])]:
-            phase_sum = sum((df[f'DERMeasureAC[0].{suffix}'].to_numpy(float) for suffix in suffixes))
-            data[name] = (total - phase_sum).astype(np.float32)
+            ps0 = sum((df[f'DERMeasureAC[0].{suffix}'].to_numpy(float) for suffix in suffixes))
+            data[name] = (total - ps0).astype(np.float32)
         for name, suffixes in [('phase_ll_spread', ['VL1L2', 'VL2L3', 'VL3L1']), ('phase_ln_spread', ['VL1', 'VL2', 'VL3']), ('pws', ['WL1', 'WL2', 'WL3']), ('pvs', ['VarL1', 'VarL2', 'VarL3'])]:
             pv = df[[f'DERMeasureAC[0].{suffix}' for suffix in suffixes]].to_numpy(float)
             data[name] = (_x(pv) - _n(pv)).astype(np.float32)
@@ -826,29 +826,29 @@ class R:
         ac_type = df['DERMeasureAC[0].ACType'].to_numpy(float)
         atr = np.isfinite(ac_type) & (ac_type == 3.0)
         data['atr'] = atr.astype(np.int8)
-        fmp = {'nc': data['nc'] == 1, 'cmi': data['cma'] == 1, 'gww': data['gw'] == 1, 'gwrt': data['gwr'] == 1, 'vgv': data['gva'] == 1, 'vgi': data['gvi'] == 1, 'vlm': data['vla'] == 1, 'wset_far': data['wf'] == 1, 'wsetpct_far': data['wef'] == 1, 'wmaxlim_far': data['wmf'] == 1, 'varsetpct_far': data['vef'] == 1, 'ms0': data['msa'] == 1, 'atr2': atr == 1, 'dtr2': dpr == 1, 'enter_state': esa2 == 1, 'eip': eip == 1, 'eic': eic == 1, 'pf_abs': pae == 1, 'pf_abs_rvrt': pre == 1, 'trip_power': tpo == 1}
+        fmp = {'nc': data['nc'] == 1, 'cmi': data['cma'] == 1, 'gww': data['gw'] == 1, 'gwrt': data['gwr'] == 1, 'vgv': data['gva'] == 1, 'vgi': data['gvi'] == 1, 'vlm': data['vla'] == 1, 'wsf': data['wf'] == 1, 'wpf': data['wef'] == 1, 'wlf': data['wmf'] == 1, 'vpf': data['vef'] == 1, 'ms0': data['msa'] == 1, 'atr2': atr == 1, 'dtr2': dpr == 1, 'es0': esa2 == 1, 'eip': eip == 1, 'eic': eic == 1, 'pa0': pae == 1, 'pr0': pre == 1, 'tp0': tpo == 1}
         hrf = np.column_stack([fmp[name] for name in HRN])
         hof = np.column_stack([fmp[name] for name in self.ovr])
         ff = {name: flag.astype(np.float32) for name, flag in fmp.items()}
         data['hrc'] = hrf.sum(axis=1).astype(np.int8)
-        data['rs'] = 3.0 * ff['nc'] + 2.5 * ff['cmi'] + 2.0 * (ff['gww'] + ff['gwrt'] + ff['vgv'] + ff['vgi'] + ff['vlm'] + ff['ms0'] + ff['enter_state'] + ff['trip_power']) + 1.5 * (ff['wset_far'] + ff['wsetpct_far'] + ff['atr2'] + ff['dtr2'] + ff['pf_abs'] + ff['pf_abs_rvrt']) + 1.0 * ff['varsetpct_far'] + 0.75 * ff['wmaxlim_far'] + 0.35 * (ff['eip'] + ff['eic'])
+        data['rs'] = 3.0 * ff['nc'] + 2.5 * ff['cmi'] + 2.0 * (ff['gww'] + ff['gwrt'] + ff['vgv'] + ff['vgi'] + ff['vlm'] + ff['ms0'] + ff['es0'] + ff['tp0']) + 1.5 * (ff['wsf'] + ff['wpf'] + ff['atr2'] + ff['dtr2'] + ff['pa0'] + ff['pr0']) + 1.0 * ff['vpf'] + 0.75 * ff['wlf'] + 0.35 * (ff['eip'] + ff['eic'])
         ra = hrf.any(axis=1).astype(np.int8)
         data['ra'] = ra
         data['oa'] = hof.any(axis=1).astype(np.int8)
         return pd.DataFrame(data)
 
-    def irc(self, member, usecols, limit_rows=0):
+    def irc(self, member, usecols, lmt=0):
         yielded = 0
         for chunk in pd.read_csv(SCRIPT_DIR / member, usecols=list(usecols), chunksize=self.chunksize, low_memory=False):
-            if limit_rows > 0:
-                rm = limit_rows - yielded
+            if lmt > 0:
+                rm = lmt - yielded
                 if rm <= 0:
                     break
                 if len(chunk) > rm:
                     chunk = chunk.iloc[:rm].copy()
             yielded += len(chunk)
             yield chunk
-            if limit_rows > 0 and yielded >= limit_rows:
+            if lmt > 0 and yielded >= lmt:
                 break
 
     def _fts(self, x_train, y_train):
@@ -916,18 +916,18 @@ class R:
         return X(n_estimators=self.ne, max_depth=self.md, learning_rate=self.lr, objective='binary:logistic', **self._xsp(eval_metric='logloss', verbosity=1))
 
     def _fsm(self, x_train, y_train, vm):
-        self.sur_cols = _gsf(x_train.columns)
+        self.sc0 = _gsf(x_train.columns)
         fp = _spm(x_train['Id'], fp=True)
         normal_mask = (y_train == 0) & (x_train['oa'] == 0) & (x_train['df'] != 'other') & ~vm.to_numpy() & fp
         sdf2 = x_train.loc[normal_mask].copy()
         if sdf2.empty:
-            raise RuntimeError('No rows available to train surrogate models.')
+            raise RuntimeError('No rows avail to train surrogate models.')
         self.sgm = {}
         for family in FAM:
             fd = sdf2.loc[sdf2['df'] == family].copy()
             if fd.empty:
                 continue
-            xs = _edf(fd[self.sur_cols])
+            xs = _edf(fd[self.sc0])
             for tg, (tc, _) in STG.items():
                 model = self._nsm()
                 y_target = fd[tc].to_numpy(np.float32)
@@ -936,7 +936,7 @@ class R:
                 self.sgm[family, tg] = model
 
     def _aws(self, x_df):
-        if self.sur_cols is None or not self.sgm:
+        if self.sc0 is None or not self.sgm:
             return x_df
         out = x_df.copy()
         for tg in STG:
@@ -949,7 +949,7 @@ class R:
             out[f'er_{tg}'] = 0
             out[f'ur_{tg}'] = 0
             out[f'q9r_{tg}'] = np.nan
-        xs = _edf(out[self.sur_cols])
+        xs = _edf(out[self.sc0])
         for family in FAM:
             fm = out['df'] == family
             if not fm.any():
@@ -1014,12 +1014,12 @@ class R:
                 continue
             fq = self.res_q.get(family, {})
             for tg in STG:
-                abs_norm = out.loc[fm, f'anr_{tg}'].to_numpy(np.float32)
+                anm = out.loc[fm, f'anr_{tg}'].to_numpy(np.float32)
                 q = fq.get(tg, RTF)
-                tail = abs_norm >= q['tail']
-                extreme = abs_norm >= q['extreme']
-                ultra = abs_norm >= q['ultra']
-                q99_ratio = _d(abs_norm, np.full_like(abs_norm, q['extreme'], dtype=np.float32))
+                tail = anm >= q['tail']
+                extreme = anm >= q['extreme']
+                ultra = anm >= q['ultra']
+                q99_ratio = _d(anm, np.full_like(anm, q['extreme'], dtype=np.float32))
                 out.loc[fm, f'tr_{tg}'] = tail.astype(np.int8)
                 out.loc[fm, f'er_{tg}'] = extreme.astype(np.int8)
                 out.loc[fm, f'ur_{tg}'] = ultra.astype(np.int8)
@@ -1119,10 +1119,10 @@ class R:
         self.ovr = [name for name, (count, positives) in counts.items() if count == 0 or positives / count >= MOP]
 
     def _csc(self):
-        return (self.sur_cols, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm)
+        return (self.sc0, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm)
 
     def _asc(self, cx):
-        self.sur_cols, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm = cx
+        self.sc0, self.sgm, self.res_q, self.fbr, self.ssm, self.scm, self.sosm, self.socm = cx
 
     def _psf(self, bdf, y):
         work = self._roc(bdf)
@@ -1200,8 +1200,8 @@ class R:
         bapd = bar
         bps1 = bps0
         bafb = bas0
-        weight_grid = [round(step / 20.0, 2) for step in range(21)] if cp is not None else [1.0]
-        for weight in weight_grid:
+        wg = [round(step / 20.0, 2) for step in range(21)] if cp is not None else [1.0]
+        for weight in wg:
             blp = _bp(sp, cp, weight)
             blp[ho] = 1.0
             thr, _ = _tt(y, blp)
@@ -1234,7 +1234,7 @@ class R:
             sdf, cx = self._psf(bdf.copy(), y_series)
             self.ctx[family] = cx
             semf = _snc(sdf, _sfc(sdf))
-            self.sem_cols[family] = semf
+            self.sm0[family] = semf
             cat_df = self._pcf(bdf.copy())
             catf = _snc(cat_df, _cfc(cat_df))
             self.ccs[family] = catf
@@ -1257,7 +1257,7 @@ class R:
             del bdf, sdf, cat_df
             gc.collect()
         if not trained:
-            raise RuntimeError('No training artifacts were available for model fitting.')
+            raise RuntimeError('No training artifacts were avail for model fitting.')
 
     def _pfc(self, family, bdf):
         if family not in self.ctx or family not in self.smd:
@@ -1273,7 +1273,7 @@ class R:
         sp = np.ones(len(sdf), dtype=np.float32)
         if (~ho).any():
             sm = self.smd[family]
-            sp[~ho] = sm.predict_proba(sdf.loc[~ho, self.sem_cols[family]])[:, 1].astype(np.float32)
+            sp[~ho] = sm.predict_proba(sdf.loc[~ho, self.sm0[family]])[:, 1].astype(np.float32)
         cpb = None
         cm = self.cmd.get(family)
         if cm is not None and self.ccs.get(family):
@@ -1312,10 +1312,10 @@ class R:
 
 def rp():
     s(DEFAULT_SEED)
-    baseline = R()
-    baseline.fit()
+    bl = R()
+    bl.fit()
     out = DOD / 'submission_full_data.csv'
-    baseline.pt(out)
+    bl.pt(out)
     print(f'[solution] path={out}')
 
 def main():
