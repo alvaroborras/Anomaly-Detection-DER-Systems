@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import gc
 import math
 import random
 import re
@@ -1074,7 +1073,6 @@ class R:
                     fd = feats.loc[fm].copy()
                     fd.to_parquet(fdir / f'{ci:05d}.parquet', index=False)
             del feats
-            gc.collect()
 
     def _lfa(self, family, columns=None):
         fdir = self.ad / 'train' / family
@@ -1240,7 +1238,6 @@ class R:
             self.thr[family] = thr
             trained += 1
             del bdf, sdf, cat_df
-            gc.collect()
         if not trained:
             raise RuntimeError('no train artifacts')
 
