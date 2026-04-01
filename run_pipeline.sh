@@ -1,42 +1,42 @@
 #!/bin/bash
 set -euo pipefail
 uv run python -m py_compile main.py
-rm -rf outputs
-start_ns=$(python - <<'PY'
+rm -f submission.csv
+start_ns=$(python3 - <<'PY'
 import time
 print(time.time_ns())
 PY
 )
-uv run main.py
-end_ns=$(python - <<'PY'
-import time
-print(time.time_ns())
-PY
-)
-out=$(START_NS="$start_ns" python - <<'PY'
+uv run python - <<'PY'
 from pathlib import Path
-import os,sys
-start=int(os.environ['START_NS'])
-paths=[Path('submission_full_data.csv'),Path('outputs/full_data_hybrid/submission_full_data.csv')]
-new=[]
-for p in paths:
-    if p.exists() and p.stat().st_mtime_ns>=start:
-        new.append((p.stat().st_mtime_ns,str(p)))
-if not new:
-    sys.exit('no fresh submission file found')
-print(max(new)[1])
+from main import RunConfig, configure_logging, run_pipeline
+
+configure_logging()
+run_pipeline(
+    RunConfig(
+        train_path=Path('train.csv').resolve(),
+        test_path=Path('test.csv').resolve(),
+        submission_path=Path('submission.csv').resolve(),
+    )
+)
+PY
+end_ns=$(python3 - <<'PY'
+import time
+print(time.time_ns())
 PY
 )
+out="submission.csv"
+[ -f "$out" ]
 read chars wall_ms actual_hash <<EOF
-$(OUT_PATH="$out" START_NS="$start_ns" END_NS="$end_ns" python - <<'PY'
+$(OUT_PATH="$out" START_NS="$start_ns" END_NS="$end_ns" python3 - <<'PY'
 from pathlib import Path
-import hashlib,os
-mp=Path('main.py')
-op=Path(os.environ['OUT_PATH'])
-chars=len(mp.read_text())
-wall_ms=(int(os.environ['END_NS'])-int(os.environ['START_NS']))//1_000_000
-h=hashlib.sha256(op.read_bytes()).hexdigest()
-print(chars,wall_ms,h)
+import hashlib, os
+mp = Path('main.py')
+op = Path(os.environ['OUT_PATH'])
+chars = len(mp.read_text())
+wall_ms = (int(os.environ['END_NS']) - int(os.environ['START_NS'])) // 1_000_000
+h = hashlib.sha256(op.read_bytes()).hexdigest()
+print(chars, wall_ms, h)
 PY
 )
 EOF
