@@ -1388,38 +1388,9 @@ class ResearchBaseline:
         data["dca_over_total"] = self._safe_div(dca, prt0_a + prt1_a)
         return rare_type.astype(np.int8)
 
-    def build_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Convert one raw CSV chunk into the deterministic feature frame used everywhere."""
-        self._coerce_numeric(df)
-
-        fingerprint = df[COMMON_STR].fillna("<NA>").agg("|".join, axis=1)
-        data: Dict[str, np.ndarray] = {
-            "Id": df["Id"].to_numpy(),
-            "device_fingerprint": fingerprint.to_numpy(dtype=object),
-            "device_family": np.where(
-                fingerprint == CANON1,
-                "canon10",
-                np.where(fingerprint == CANON2, "canon100", "other"),
-            ),
-            "common_missing_any": df[COMMON_STR]
-            .isna()
-            .any(axis=1)
-            .astype(np.int8)
-            .to_numpy(),
-            "common_missing_count": df[COMMON_STR]
-            .isna()
-            .sum(axis=1)
-            .astype(np.int16)
-            .to_numpy(),
-            "common_sn_has_decimal_suffix": df["common[0].SN"]
-            .fillna("")
-            .astype(str)
-            .str.endswith(".0")
-            .astype(np.int8)
-            .to_numpy(),
-        }
-        data["noncanonical"] = (data["device_family"] == "other").astype(np.int8)
-
+    def _add_source_columns(
+        self, data: Dict[str, np.ndarray], df: pd.DataFrame
+    ) -> None:
         for col in RAW_NUMERIC:
             arr = df[col].to_numpy()
             if np.issubdtype(arr.dtype, np.floating):
@@ -1430,33 +1401,32 @@ class ResearchBaseline:
                 df[col].fillna("<NA>").astype(str).to_numpy(dtype=object)
             )
 
-        self._add_block_missingness(data, df)
-        self._add_model_integrity_features(data, df)
-        self._add_temperature_features(data, df)
-
-        w = df["DERMeasureAC[0].W"].to_numpy(float)
-        abs_w = np.abs(w)
-        va = df["DERMeasureAC[0].VA"].to_numpy(float)
-        var = df["DERMeasureAC[0].Var"].to_numpy(float)
-        pf = df["DERMeasureAC[0].PF"].to_numpy(float)
-        a = df["DERMeasureAC[0].A"].to_numpy(float)
-        llv = df["DERMeasureAC[0].LLV"].to_numpy(float)
-        lnv = df["DERMeasureAC[0].LNV"].to_numpy(float)
-        hz = df["DERMeasureAC[0].Hz"].to_numpy(float)
-
-        wmaxrtg = df["DERCapacity[0].WMaxRtg"].to_numpy(float)
-        vamaxrtg = df["DERCapacity[0].VAMaxRtg"].to_numpy(float)
-        varmaxinjrtg = df["DERCapacity[0].VarMaxInjRtg"].to_numpy(float)
-        varmaxabsrtg = df["DERCapacity[0].VarMaxAbsRtg"].to_numpy(float)
-        wmax = df["DERCapacity[0].WMax"].to_numpy(float)
-        vamax = df["DERCapacity[0].VAMax"].to_numpy(float)
-        varmaxinj = df["DERCapacity[0].VarMaxInj"].to_numpy(float)
-        varmaxabs = df["DERCapacity[0].VarMaxAbs"].to_numpy(float)
-        amax = df["DERCapacity[0].AMax"].to_numpy(float)
-        vnom = df["DERCapacity[0].VNom"].to_numpy(float)
-        vmax = df["DERCapacity[0].VMax"].to_numpy(float)
-        vmin = df["DERCapacity[0].VMin"].to_numpy(float)
-
+    def _add_measurement_relationship_features(
+        self,
+        data: Dict[str, np.ndarray],
+        df: pd.DataFrame,
+        *,
+        w: np.ndarray,
+        va: np.ndarray,
+        var: np.ndarray,
+        pf: np.ndarray,
+        a: np.ndarray,
+        llv: np.ndarray,
+        lnv: np.ndarray,
+        hz: np.ndarray,
+        wmaxrtg: np.ndarray,
+        vamaxrtg: np.ndarray,
+        varmaxinjrtg: np.ndarray,
+        varmaxabsrtg: np.ndarray,
+        wmax: np.ndarray,
+        vamax: np.ndarray,
+        varmaxinj: np.ndarray,
+        varmaxabs: np.ndarray,
+        amax: np.ndarray,
+        vnom: np.ndarray,
+        vmax: np.ndarray,
+        vmin: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         for name, numerator, denominator in [
             ("w_over_wmaxrtg", w, wmaxrtg),
             ("w_over_wmax", w, wmax),
@@ -1553,7 +1523,18 @@ class ResearchBaseline:
             ("vmin_over_vnom", vmin, vnom),
         ]:
             data[name] = self._safe_div(numerator, denominator)
+        return tolw, tolva
 
+    def _add_control_target_features(
+        self,
+        data: Dict[str, np.ndarray],
+        df: pd.DataFrame,
+        *,
+        w: np.ndarray,
+        var: np.ndarray,
+        wmaxrtg: np.ndarray,
+        varmaxinj: np.ndarray,
+    ) -> None:
         wsetena = np.nan_to_num(df["DERCtlAC[0].WSetEna"].to_numpy(float), nan=0.0)
         wset = df["DERCtlAC[0].WSet"].to_numpy(float)
         wsetpct = df["DERCtlAC[0].WSetPct"].to_numpy(float)
@@ -1611,71 +1592,16 @@ class ResearchBaseline:
             )
         ).astype(np.int8)
 
-        self._add_capacity_extension_features(
-            data,
-            wmaxrtg=wmaxrtg,
-            wmax=wmax,
-            vamaxrtg=vamaxrtg,
-            vamax=vamax,
-            varmaxinjrtg=varmaxinjrtg,
-            varmaxinj=varmaxinj,
-            varmaxabsrtg=varmaxabsrtg,
-            varmaxabs=varmaxabs,
-            vnomrtg=df["DERCapacity[0].VNomRtg"].to_numpy(float),
-            vnom=vnom,
-            vmaxrtg=df["DERCapacity[0].VMaxRtg"].to_numpy(float),
-            vmax=vmax,
-            vminrtg=df["DERCapacity[0].VMinRtg"].to_numpy(float),
-            vmin=vmin,
-            amaxrtg=df["DERCapacity[0].AMaxRtg"].to_numpy(float),
-            amax=amax,
-            wcha_rtg=df["DERCapacity[0].WChaRteMaxRtg"].to_numpy(float),
-            wdis_rtg=df["DERCapacity[0].WDisChaRteMaxRtg"].to_numpy(float),
-            vacha_rtg=df["DERCapacity[0].VAChaRteMaxRtg"].to_numpy(float),
-            vadis_rtg=df["DERCapacity[0].VADisChaRteMaxRtg"].to_numpy(float),
-            wcha=df["DERCapacity[0].WChaRteMax"].to_numpy(float),
-            wdis=df["DERCapacity[0].WDisChaRteMax"].to_numpy(float),
-            vacha=df["DERCapacity[0].VAChaRteMax"].to_numpy(float),
-            vadis=df["DERCapacity[0].VADisChaRteMax"].to_numpy(float),
-            pfover_rtg=df["DERCapacity[0].PFOvrExtRtg"].to_numpy(float),
-            pfover=df["DERCapacity[0].PFOvrExt"].to_numpy(float),
-            pfunder_rtg=df["DERCapacity[0].PFUndExtRtg"].to_numpy(float),
-            pfunder=df["DERCapacity[0].PFUndExt"].to_numpy(float),
-        )
-
-        voltage_pct = 100.0 * self._safe_div(llv, vnom)
-        line_neutral_voltage_pct = 100.0 * self._safe_div(lnv * SQRT3, vnom)
-        w_pct = 100.0 * self._safe_div(w, wmaxrtg)
-        var_pct = self._var_pct(var, varmaxinj, varmaxabs)
-
-        data["voltage_pct"] = voltage_pct.astype(np.float32)
-        data["line_neutral_voltage_pct"] = line_neutral_voltage_pct.astype(np.float32)
-        data["w_pct_of_rtg"] = w_pct.astype(np.float32)
-        data["var_pct_of_limit"] = var_pct.astype(np.float32)
-
-        enter_state_anomaly, enter_blocked_power, enter_blocked_current = (
-            self._add_enter_service_features(
-                data,
-                df,
-                voltage_pct=voltage_pct,
-                hz=hz,
-                abs_w=abs_w,
-                va=va,
-                a=a,
-                tolw=tolw,
-                tolva=tolva,
-                amax=amax,
-            )
-        )
-        pf_abs_ext_present, pf_abs_rvrt_ext_present = self._add_pf_control_features(
-            data,
-            df,
-            pf=pf,
-            var=var,
-            varmaxinj=varmaxinj,
-            varmaxabs=varmaxabs,
-        )
-
+    def _compute_trip_summary_flags(
+        self,
+        data: Dict[str, np.ndarray],
+        df: pd.DataFrame,
+        *,
+        voltage_pct: np.ndarray,
+        hz: np.ndarray,
+        abs_w: np.ndarray,
+        tolw: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray]:
         trip_outside_flags = []
         trip_power_flags = []
         for short_name, (prefix, axis_name, mode) in TRIP_SPECS.items():
@@ -1693,19 +1619,24 @@ class ResearchBaseline:
             )
             trip_outside_flags.append(outside)
             trip_power_flags.append(power_when_outside)
-        if trip_outside_flags:
-            trip_any_outside = (
-                np.column_stack(trip_outside_flags).any(axis=1).astype(np.int8)
+        if not trip_outside_flags:
+            return (
+                np.zeros(len(df), dtype=np.int8),
+                np.zeros(len(df), dtype=np.int8),
             )
-            trip_any_power_when_outside = (
-                np.column_stack(trip_power_flags).any(axis=1).astype(np.int8)
-            )
-        else:
-            trip_any_outside = np.zeros(len(df), dtype=np.int8)
-            trip_any_power_when_outside = np.zeros(len(df), dtype=np.int8)
-        data["trip_any_outside_musttrip"] = trip_any_outside
-        data["trip_any_power_when_outside"] = trip_any_power_when_outside
+        trip_any_outside = np.column_stack(trip_outside_flags).any(axis=1).astype(np.int8)
+        trip_any_power = np.column_stack(trip_power_flags).any(axis=1).astype(np.int8)
+        return trip_any_outside, trip_any_power
 
+    def _add_curve_family_features(
+        self,
+        data: Dict[str, np.ndarray],
+        df: pd.DataFrame,
+        *,
+        voltage_pct: np.ndarray,
+        w_pct: np.ndarray,
+        var_pct: np.ndarray,
+    ) -> None:
         curve_scalars = lambda prefix, field: [
             df[f"{prefix}.Crv[{curve}].{field}"].to_numpy(float) for curve in range(3)
         ]
@@ -1786,13 +1717,106 @@ class ResearchBaseline:
                 observed_value=observed_value,
             )
 
-        self._add_freq_droop_features(data, df, hz=hz, w_pct=w_pct)
-        dc_port_type_rare = self._add_dc_features(data, df, w=w, abs_w=abs_w)
+    def _initialize_feature_data(self, df: pd.DataFrame) -> Dict[str, np.ndarray]:
+        fingerprint = df[COMMON_STR].fillna("<NA>").agg("|".join, axis=1)
+        data: Dict[str, np.ndarray] = {
+            "Id": df["Id"].to_numpy(),
+            "device_fingerprint": fingerprint.to_numpy(dtype=object),
+            "device_family": np.where(
+                fingerprint == CANON1,
+                "canon10",
+                np.where(fingerprint == CANON2, "canon100", "other"),
+            ),
+            "common_missing_any": df[COMMON_STR]
+            .isna()
+            .any(axis=1)
+            .astype(np.int8)
+            .to_numpy(),
+            "common_missing_count": df[COMMON_STR]
+            .isna()
+            .sum(axis=1)
+            .astype(np.int16)
+            .to_numpy(),
+            "common_sn_has_decimal_suffix": df["common[0].SN"]
+            .fillna("")
+            .astype(str)
+            .str.endswith(".0")
+            .astype(np.int8)
+            .to_numpy(),
+        }
+        data["noncanonical"] = (data["device_family"] == "other").astype(np.int8)
+        return data
 
-        ac_type = df["DERMeasureAC[0].ACType"].to_numpy(float)
-        ac_type_is_rare = np.isfinite(ac_type) & (ac_type == 3.0)
-        data["ac_type_is_rare"] = ac_type_is_rare.astype(np.int8)
+    def _load_ac_measurements(
+        self, df: pd.DataFrame
+    ) -> Tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ]:
+        w = df["DERMeasureAC[0].W"].to_numpy(float)
+        return (
+            w,
+            np.abs(w),
+            df["DERMeasureAC[0].VA"].to_numpy(float),
+            df["DERMeasureAC[0].Var"].to_numpy(float),
+            df["DERMeasureAC[0].PF"].to_numpy(float),
+            df["DERMeasureAC[0].A"].to_numpy(float),
+            df["DERMeasureAC[0].LLV"].to_numpy(float),
+            df["DERMeasureAC[0].LNV"].to_numpy(float),
+            df["DERMeasureAC[0].Hz"].to_numpy(float),
+        )
 
+    def _load_capacity_limits(
+        self, df: pd.DataFrame
+    ) -> Tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ]:
+        return (
+            df["DERCapacity[0].WMaxRtg"].to_numpy(float),
+            df["DERCapacity[0].VAMaxRtg"].to_numpy(float),
+            df["DERCapacity[0].VarMaxInjRtg"].to_numpy(float),
+            df["DERCapacity[0].VarMaxAbsRtg"].to_numpy(float),
+            df["DERCapacity[0].WMax"].to_numpy(float),
+            df["DERCapacity[0].VAMax"].to_numpy(float),
+            df["DERCapacity[0].VarMaxInj"].to_numpy(float),
+            df["DERCapacity[0].VarMaxAbs"].to_numpy(float),
+            df["DERCapacity[0].AMax"].to_numpy(float),
+            df["DERCapacity[0].VNom"].to_numpy(float),
+            df["DERCapacity[0].VMax"].to_numpy(float),
+            df["DERCapacity[0].VMin"].to_numpy(float),
+        )
+
+    def _add_hard_rule_features(
+        self,
+        data: Dict[str, np.ndarray],
+        *,
+        ac_type_is_rare: np.ndarray,
+        dc_port_type_rare: np.ndarray,
+        enter_state_anomaly: np.ndarray,
+        enter_blocked_power: np.ndarray,
+        enter_blocked_current: np.ndarray,
+        pf_abs_ext_present: np.ndarray,
+        pf_abs_rvrt_ext_present: np.ndarray,
+        trip_any_power_when_outside: np.ndarray,
+    ) -> None:
         flag_map = {
             "noncanonical": data["noncanonical"] == 1,
             "common_missing": data["common_missing_any"] == 1,
@@ -1852,9 +1876,165 @@ class ResearchBaseline:
                 + float_flags["enter_blocked_current"]
             )
         )
-        hard_rule_anomaly = hard_rule_flags.any(axis=1).astype(np.int8)
-        data["hard_rule_anomaly"] = hard_rule_anomaly
+        data["hard_rule_anomaly"] = hard_rule_flags.any(axis=1).astype(np.int8)
         data["hard_override_anomaly"] = hard_override_flags.any(axis=1).astype(np.int8)
+
+    def build_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Convert one raw CSV chunk into the deterministic feature frame used everywhere."""
+        self._coerce_numeric(df)
+        data = self._initialize_feature_data(df)
+
+        self._add_source_columns(data, df)
+        self._add_block_missingness(data, df)
+        self._add_model_integrity_features(data, df)
+        self._add_temperature_features(data, df)
+
+        w, abs_w, va, var, pf, a, llv, lnv, hz = self._load_ac_measurements(df)
+        (
+            wmaxrtg,
+            vamaxrtg,
+            varmaxinjrtg,
+            varmaxabsrtg,
+            wmax,
+            vamax,
+            varmaxinj,
+            varmaxabs,
+            amax,
+            vnom,
+            vmax,
+            vmin,
+        ) = self._load_capacity_limits(df)
+
+        tolw, tolva = self._add_measurement_relationship_features(
+            data,
+            df,
+            w=w,
+            va=va,
+            var=var,
+            pf=pf,
+            a=a,
+            llv=llv,
+            lnv=lnv,
+            hz=hz,
+            wmaxrtg=wmaxrtg,
+            vamaxrtg=vamaxrtg,
+            varmaxinjrtg=varmaxinjrtg,
+            varmaxabsrtg=varmaxabsrtg,
+            wmax=wmax,
+            vamax=vamax,
+            varmaxinj=varmaxinj,
+            varmaxabs=varmaxabs,
+            amax=amax,
+            vnom=vnom,
+            vmax=vmax,
+            vmin=vmin,
+        )
+        self._add_control_target_features(
+            data,
+            df,
+            w=w,
+            var=var,
+            wmaxrtg=wmaxrtg,
+            varmaxinj=varmaxinj,
+        )
+        self._add_capacity_extension_features(
+            data,
+            wmaxrtg=wmaxrtg,
+            wmax=wmax,
+            vamaxrtg=vamaxrtg,
+            vamax=vamax,
+            varmaxinjrtg=varmaxinjrtg,
+            varmaxinj=varmaxinj,
+            varmaxabsrtg=varmaxabsrtg,
+            varmaxabs=varmaxabs,
+            vnomrtg=df["DERCapacity[0].VNomRtg"].to_numpy(float),
+            vnom=vnom,
+            vmaxrtg=df["DERCapacity[0].VMaxRtg"].to_numpy(float),
+            vmax=vmax,
+            vminrtg=df["DERCapacity[0].VMinRtg"].to_numpy(float),
+            vmin=vmin,
+            amaxrtg=df["DERCapacity[0].AMaxRtg"].to_numpy(float),
+            amax=amax,
+            wcha_rtg=df["DERCapacity[0].WChaRteMaxRtg"].to_numpy(float),
+            wdis_rtg=df["DERCapacity[0].WDisChaRteMaxRtg"].to_numpy(float),
+            vacha_rtg=df["DERCapacity[0].VAChaRteMaxRtg"].to_numpy(float),
+            vadis_rtg=df["DERCapacity[0].VADisChaRteMaxRtg"].to_numpy(float),
+            wcha=df["DERCapacity[0].WChaRteMax"].to_numpy(float),
+            wdis=df["DERCapacity[0].WDisChaRteMax"].to_numpy(float),
+            vacha=df["DERCapacity[0].VAChaRteMax"].to_numpy(float),
+            vadis=df["DERCapacity[0].VADisChaRteMax"].to_numpy(float),
+            pfover_rtg=df["DERCapacity[0].PFOvrExtRtg"].to_numpy(float),
+            pfover=df["DERCapacity[0].PFOvrExt"].to_numpy(float),
+            pfunder_rtg=df["DERCapacity[0].PFUndExtRtg"].to_numpy(float),
+            pfunder=df["DERCapacity[0].PFUndExt"].to_numpy(float),
+        )
+
+        voltage_pct = 100.0 * self._safe_div(llv, vnom)
+        line_neutral_voltage_pct = 100.0 * self._safe_div(lnv * SQRT3, vnom)
+        w_pct = 100.0 * self._safe_div(w, wmaxrtg)
+        var_pct = self._var_pct(var, varmaxinj, varmaxabs)
+        data["voltage_pct"] = voltage_pct.astype(np.float32)
+        data["line_neutral_voltage_pct"] = line_neutral_voltage_pct.astype(np.float32)
+        data["w_pct_of_rtg"] = w_pct.astype(np.float32)
+        data["var_pct_of_limit"] = var_pct.astype(np.float32)
+
+        enter_state_anomaly, enter_blocked_power, enter_blocked_current = (
+            self._add_enter_service_features(
+                data,
+                df,
+                voltage_pct=voltage_pct,
+                hz=hz,
+                abs_w=abs_w,
+                va=va,
+                a=a,
+                tolw=tolw,
+                tolva=tolva,
+                amax=amax,
+            )
+        )
+        pf_abs_ext_present, pf_abs_rvrt_ext_present = self._add_pf_control_features(
+            data,
+            df,
+            pf=pf,
+            var=var,
+            varmaxinj=varmaxinj,
+            varmaxabs=varmaxabs,
+        )
+        trip_any_outside, trip_any_power_when_outside = self._compute_trip_summary_flags(
+            data,
+            df,
+            voltage_pct=voltage_pct,
+            hz=hz,
+            abs_w=abs_w,
+            tolw=tolw,
+        )
+        data["trip_any_outside_musttrip"] = trip_any_outside
+        data["trip_any_power_when_outside"] = trip_any_power_when_outside
+
+        self._add_curve_family_features(
+            data,
+            df,
+            voltage_pct=voltage_pct,
+            w_pct=w_pct,
+            var_pct=var_pct,
+        )
+        self._add_freq_droop_features(data, df, hz=hz, w_pct=w_pct)
+        dc_port_type_rare = self._add_dc_features(data, df, w=w, abs_w=abs_w)
+
+        ac_type = df["DERMeasureAC[0].ACType"].to_numpy(float)
+        ac_type_is_rare = np.isfinite(ac_type) & (ac_type == 3.0)
+        data["ac_type_is_rare"] = ac_type_is_rare.astype(np.int8)
+        self._add_hard_rule_features(
+            data,
+            ac_type_is_rare=ac_type_is_rare,
+            dc_port_type_rare=dc_port_type_rare,
+            enter_state_anomaly=enter_state_anomaly,
+            enter_blocked_power=enter_blocked_power,
+            enter_blocked_current=enter_blocked_current,
+            pf_abs_ext_present=pf_abs_ext_present,
+            pf_abs_rvrt_ext_present=pf_abs_rvrt_ext_present,
+            trip_any_power_when_outside=trip_any_power_when_outside,
+        )
         return pd.DataFrame(data)
 
     def iter_raw_chunks(
@@ -2289,9 +2469,6 @@ class ResearchBaseline:
             for target_name, (target_col, _) in SURROGATE_TARGETS.items():
                 model = self._new_surrogate_model()
                 y_target = family_df[target_col].to_numpy(np.float32)
-                LOGGER.info(
-                    f"[surrogate] training {family}/{target_name} on {len(family_df):,} normal rows"
-                )
                 model.fit(x_surrogate, y_target)
                 self.surrogate_models[(family, target_name)] = model
 
@@ -2624,17 +2801,13 @@ class ResearchBaseline:
             verbose=False,
         )
 
-    def _artifact_metadata_path(self) -> Path:
-        return self.artifact_dir / "metadata.json"
-
-    def _build_train_artifacts(self, train_path: Path) -> Dict[str, Any]:
-        metadata_path = self._artifact_metadata_path()
+    def _build_train_artifacts(self, train_path: Path) -> None:
+        metadata_path = self.artifact_dir / "metadata.json"
         if metadata_path.exists() and not self.rebuild_artifacts:
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             LOGGER.info(
                 "[artifacts] using cached training artifacts from %s", self.artifact_dir
             )
-            return metadata
+            return
 
         if self.artifact_dir.exists() and self.rebuild_artifacts:
             shutil.rmtree(self.artifact_dir)
@@ -2681,13 +2854,17 @@ class ResearchBaseline:
             train_root,
         )
 
-        metadata = {
-            "row_counts": row_counts,
-            "part_counts": part_counts,
-            "cv_folds": self.cv_folds,
-        }
-        metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-        return metadata
+        metadata_path.write_text(
+            json.dumps(
+                {
+                    "row_counts": row_counts,
+                    "part_counts": part_counts,
+                    "cv_folds": self.cv_folds,
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
 
     def _load_family_artifact(
         self, family: str, columns: Optional[Sequence[str]] = None
@@ -3002,7 +3179,6 @@ class ResearchBaseline:
         self._build_train_artifacts(train_path)
         self._audit_hard_override_rules()
 
-        LOGGER.info("[fit] starting family training")
         with tqdm(
             list(DEVICE_FAMILY_MAP),
             desc="fit families",
@@ -3013,10 +3189,8 @@ class ResearchBaseline:
                 family_progress.set_postfix(family=family)
                 base_df = self._load_family_artifact(family)
                 if base_df.empty:
-                    LOGGER.info("[fit] skipping %s; no training rows", family)
                     continue
 
-                LOGGER.info("[fit] training %s on %s rows", family, f"{len(base_df):,}")
                 y_series = base_df["Label"].astype(np.int8)
                 semantic_df, context = self._prepare_family_semantic_frame(
                     base_df.copy(), y_series, family
@@ -3095,14 +3269,6 @@ class ResearchBaseline:
                 self.family_blend_weights[family] = weight
                 self.family_thresholds[family] = threshold
 
-                LOGGER.info(
-                    "[fit] %s threshold=%.3f blend_weight=%.2f semantic_features=%d cat_features=%d",
-                    family,
-                    threshold,
-                    weight,
-                    len(semantic_feature_cols),
-                    len(cat_feature_cols),
-                )
                 del (
                     base_df,
                     semantic_df,
@@ -3118,7 +3284,6 @@ class ResearchBaseline:
                 gc.collect()
 
         self.is_fitted = True
-        LOGGER.info("[fit] completed family training")
 
     def _predict_family_chunk(self, family: str, base_df: pd.DataFrame) -> np.ndarray:
         if family not in self.semantic_contexts or family not in self.semantic_models:
@@ -3170,7 +3335,6 @@ class ResearchBaseline:
         out_csv.parent.mkdir(parents=True, exist_ok=True)
         total_rows = 0
         positive_rows = 0
-        LOGGER.info("[test] generating predictions from %s", test_path)
         with out_csv.open("w", encoding="utf-8") as fh:
             fh.write("Id,Label\n")
             with tqdm(
@@ -3227,7 +3391,6 @@ def run_pipeline(config: RunConfig = DEFAULT_RUN_CONFIG) -> Path:
     cleanup_artifacts = config.artifact_dir is None
     if cleanup_artifacts and artifact_dir.exists():
         shutil.rmtree(artifact_dir, ignore_errors=True)
-    LOGGER.info("[run] using artifact directory %s", artifact_dir)
 
     baseline = config.create_baseline(artifact_dir=artifact_dir)
     try:
