@@ -97,6 +97,16 @@ FREQ_DROOP_CONTROL_FIELDS = (
 )
 
 
+@dataclass(frozen=True)
+class RepeatingBlockSpec:
+    header_fields: Sequence[str]
+    item_label: str
+    item_count: int
+    item_fields: Sequence[str]
+    point_count: int = 0
+    point_fields: Sequence[str] = ()
+
+
 def build_point_columns(
     prefix: str, point_count: int, point_fields: Sequence[str]
 ) -> List[str]:
@@ -107,22 +117,15 @@ def build_point_columns(
     ]
 
 
-def build_repeating_block_columns(
-    prefix: str,
-    *,
-    header_fields: Sequence[str],
-    item_label: str,
-    item_count: int,
-    item_fields: Sequence[str],
-    point_count: int = 0,
-    point_fields: Sequence[str] = (),
-) -> List[str]:
-    columns = prefixed(prefix, header_fields)
-    for item_index in range(item_count):
-        item_prefix = f"{prefix}.{item_label}[{item_index}]"
-        columns.extend(prefixed(item_prefix, item_fields))
-        if point_count > 0:
-            columns.extend(build_point_columns(item_prefix, point_count, point_fields))
+def build_repeating_block_columns(prefix: str, spec: RepeatingBlockSpec) -> List[str]:
+    columns = prefixed(prefix, spec.header_fields)
+    for item_index in range(spec.item_count):
+        item_prefix = f"{prefix}.{spec.item_label}[{item_index}]"
+        columns.extend(prefixed(item_prefix, spec.item_fields))
+        if spec.point_count > 0:
+            columns.extend(
+                build_point_columns(item_prefix, spec.point_count, spec.point_fields)
+            )
     return columns
 
 
@@ -138,46 +141,54 @@ def build_trip_group_columns(curve_prefix: str, axis_name: str) -> List[str]:
 def build_volt_var_columns(prefix: str) -> List[str]:
     return build_repeating_block_columns(
         prefix,
-        header_fields=CURVE_BLOCK_HEADER_FIELDS,
-        item_label="Crv",
-        item_count=3,
-        item_fields=VOLT_VAR_CURVE_FIELDS,
-        point_count=4,
-        point_fields=["V", "Var"],
+        RepeatingBlockSpec(
+            header_fields=CURVE_BLOCK_HEADER_FIELDS,
+            item_label="Crv",
+            item_count=3,
+            item_fields=VOLT_VAR_CURVE_FIELDS,
+            point_count=4,
+            point_fields=["V", "Var"],
+        ),
     )
 
 
 def build_volt_watt_columns(prefix: str) -> List[str]:
     return build_repeating_block_columns(
         prefix,
-        header_fields=CURVE_BLOCK_HEADER_FIELDS,
-        item_label="Crv",
-        item_count=3,
-        item_fields=VOLT_WATT_CURVE_FIELDS,
-        point_count=2,
-        point_fields=["V", "W"],
+        RepeatingBlockSpec(
+            header_fields=CURVE_BLOCK_HEADER_FIELDS,
+            item_label="Crv",
+            item_count=3,
+            item_fields=VOLT_WATT_CURVE_FIELDS,
+            point_count=2,
+            point_fields=["V", "W"],
+        ),
     )
 
 
 def build_watt_var_columns(prefix: str) -> List[str]:
     return build_repeating_block_columns(
         prefix,
-        header_fields=CURVE_BLOCK_HEADER_FIELDS,
-        item_label="Crv",
-        item_count=3,
-        item_fields=WATT_VAR_CURVE_FIELDS,
-        point_count=6,
-        point_fields=["W", "Var"],
+        RepeatingBlockSpec(
+            header_fields=CURVE_BLOCK_HEADER_FIELDS,
+            item_label="Crv",
+            item_count=3,
+            item_fields=WATT_VAR_CURVE_FIELDS,
+            point_count=6,
+            point_fields=["W", "Var"],
+        ),
     )
 
 
 def build_freq_droop_columns(prefix: str) -> List[str]:
     return build_repeating_block_columns(
         prefix,
-        header_fields=FREQ_DROOP_HEADER_FIELDS,
-        item_label="Ctl",
-        item_count=3,
-        item_fields=FREQ_DROOP_CONTROL_FIELDS,
+        RepeatingBlockSpec(
+            header_fields=FREQ_DROOP_HEADER_FIELDS,
+            item_label="Ctl",
+            item_count=3,
+            item_fields=FREQ_DROOP_CONTROL_FIELDS,
+        ),
     )
 
 
@@ -509,6 +520,140 @@ class FamilySemanticContext:
 
 
 @dataclass(frozen=True)
+class AcSnapshot:
+    w: np.ndarray
+    abs_w: np.ndarray
+    va: np.ndarray
+    var: np.ndarray
+    pf: np.ndarray
+    a: np.ndarray
+    llv: np.ndarray
+    lnv: np.ndarray
+    hz: np.ndarray
+
+
+@dataclass(frozen=True)
+class CapacitySnapshot:
+    wmaxrtg: np.ndarray
+    vamaxrtg: np.ndarray
+    varmaxinjrtg: np.ndarray
+    varmaxabsrtg: np.ndarray
+    wmax: np.ndarray
+    vamax: np.ndarray
+    varmaxinj: np.ndarray
+    varmaxabs: np.ndarray
+    amax: np.ndarray
+    vnom: np.ndarray
+    vmax: np.ndarray
+    vmin: np.ndarray
+    vnomrtg: np.ndarray
+    vmaxrtg: np.ndarray
+    vminrtg: np.ndarray
+    amaxrtg: np.ndarray
+    wcha_rtg: np.ndarray
+    wdis_rtg: np.ndarray
+    vacha_rtg: np.ndarray
+    vadis_rtg: np.ndarray
+    wcha: np.ndarray
+    wdis: np.ndarray
+    vacha: np.ndarray
+    vadis: np.ndarray
+    pfover_rtg: np.ndarray
+    pfover: np.ndarray
+    pfunder_rtg: np.ndarray
+    pfunder: np.ndarray
+
+
+@dataclass(frozen=True)
+class FeatureContext:
+    ac: AcSnapshot
+    capacity: CapacitySnapshot
+    tolw: np.ndarray
+    tolva: np.ndarray
+    voltage_pct: np.ndarray
+    line_neutral_voltage_pct: np.ndarray
+    w_pct: np.ndarray
+    var_pct: np.ndarray
+
+
+@dataclass(frozen=True)
+class TripBlockSpec:
+    short_name: str
+    prefix: str
+    axis_name: str
+    mode: str
+
+
+@dataclass(frozen=True)
+class CurveBlockSpec:
+    name: str
+    raw_idx: np.ndarray
+    curve_x: Sequence[np.ndarray]
+    curve_y: Sequence[np.ndarray]
+    curve_actpt: Sequence[np.ndarray]
+    curve_meta: Dict[str, Sequence[np.ndarray]]
+    measure_value: np.ndarray
+    observed_value: np.ndarray
+
+
+@dataclass(frozen=True)
+class HardRuleInputs:
+    ac_type_is_rare: np.ndarray
+    dc_port_type_rare: np.ndarray
+    enter_state_anomaly: np.ndarray
+    enter_blocked_power: np.ndarray
+    enter_blocked_current: np.ndarray
+    pf_abs_ext_present: np.ndarray
+    pf_abs_rvrt_ext_present: np.ndarray
+    trip_any_power_when_outside: np.ndarray
+
+
+@dataclass(frozen=True)
+class ScenarioFeatureStats:
+    family_prior: np.ndarray
+    scenario_rate: np.ndarray
+    scenario_count: np.ndarray
+    scenario_output_rate: np.ndarray
+    scenario_output_count: np.ndarray
+
+
+@dataclass(frozen=True)
+class CatOofConfig:
+    feature_cols: Sequence[str]
+    categorical_cols: Sequence[str]
+    fold_col: str
+    fit_final: bool
+
+
+@dataclass(frozen=True)
+class BlendInputs:
+    y: np.ndarray
+    hard_override: np.ndarray
+    semantic_primary: np.ndarray
+    semantic_audit: np.ndarray
+    cat_primary: Optional[np.ndarray]
+    cat_audit: Optional[np.ndarray]
+
+
+@dataclass(frozen=True)
+class ResearchBaselineConfig:
+    artifact_dir: Path = DEFAULT_ARTIFACT_DIR
+    rebuild_artifacts: bool = False
+    chunksize: int = 5000
+    cv_folds: int = 5
+    n_estimators: int = 180
+    max_depth: int = 8
+    learning_rate: float = 0.05
+    subsample: float = 0.8
+    colsample_bytree: float = 0.8
+    cat_iterations: int = 400
+    cat_depth: int = 8
+    cat_learning_rate: float = 0.05
+    n_jobs: int = 4
+    seed: int = DEFAULT_SEED
+
+
+@dataclass(frozen=True)
 class RunConfig:
     train_path: Path = TRAIN_CSV_PATH
     test_path: Path = TEST_CSV_PATH
@@ -533,20 +678,22 @@ class RunConfig:
     ) -> "ResearchBaseline":
         resolved_artifact_dir = artifact_dir or self.artifact_dir or DEFAULT_ARTIFACT_DIR
         return ResearchBaseline(
-            artifact_dir=resolved_artifact_dir,
-            rebuild_artifacts=self.rebuild_artifacts,
-            chunksize=self.chunksize,
-            cv_folds=self.cv_folds,
-            n_estimators=self.xgb_n_estimators,
-            max_depth=self.xgb_max_depth,
-            learning_rate=self.xgb_learning_rate,
-            subsample=self.xgb_subsample,
-            colsample_bytree=self.xgb_colsample_bytree,
-            cat_iterations=self.cat_iterations,
-            cat_depth=self.cat_depth,
-            cat_learning_rate=self.cat_learning_rate,
-            n_jobs=self.n_jobs,
-            seed=self.seed,
+            ResearchBaselineConfig(
+                artifact_dir=resolved_artifact_dir,
+                rebuild_artifacts=self.rebuild_artifacts,
+                chunksize=self.chunksize,
+                cv_folds=self.cv_folds,
+                n_estimators=self.xgb_n_estimators,
+                max_depth=self.xgb_max_depth,
+                learning_rate=self.xgb_learning_rate,
+                subsample=self.xgb_subsample,
+                colsample_bytree=self.xgb_colsample_bytree,
+                cat_iterations=self.cat_iterations,
+                cat_depth=self.cat_depth,
+                cat_learning_rate=self.cat_learning_rate,
+                n_jobs=self.n_jobs,
+                seed=self.seed,
+            )
         )
 
 
@@ -573,38 +720,21 @@ def file_sha256(path: Path) -> str:
 
 
 class ResearchBaseline:
-    def __init__(
-        self,
-        *,
-        artifact_dir: Path = DEFAULT_ARTIFACT_DIR,
-        rebuild_artifacts: bool = False,
-        chunksize: int = 5000,
-        cv_folds: int = 5,
-        n_estimators: int = 150,
-        max_depth: int = 8,
-        learning_rate: float = 0.05,
-        subsample: float = 0.8,
-        colsample_bytree: float = 0.8,
-        cat_iterations: int = 400,
-        cat_depth: int = 8,
-        cat_learning_rate: float = 0.05,
-        n_jobs: int = 4,
-        seed: int = DEFAULT_SEED,
-    ) -> None:
-        self.artifact_dir = artifact_dir
-        self.rebuild_artifacts = rebuild_artifacts
-        self.chunksize = chunksize
-        self.cv_folds = cv_folds
-        self.n_estimators = n_estimators
-        self.max_depth = max_depth
-        self.learning_rate = learning_rate
-        self.subsample = subsample
-        self.colsample_bytree = colsample_bytree
-        self.cat_iterations = cat_iterations
-        self.cat_depth = cat_depth
-        self.cat_learning_rate = cat_learning_rate
-        self.n_jobs = n_jobs
-        self.seed = seed
+    def __init__(self, config: ResearchBaselineConfig) -> None:
+        self.artifact_dir = config.artifact_dir
+        self.rebuild_artifacts = config.rebuild_artifacts
+        self.chunksize = config.chunksize
+        self.cv_folds = config.cv_folds
+        self.n_estimators = config.n_estimators
+        self.max_depth = config.max_depth
+        self.learning_rate = config.learning_rate
+        self.subsample = config.subsample
+        self.colsample_bytree = config.colsample_bytree
+        self.cat_iterations = config.cat_iterations
+        self.cat_depth = config.cat_depth
+        self.cat_learning_rate = config.cat_learning_rate
+        self.n_jobs = config.n_jobs
+        self.seed = config.seed
         self.hard_override_names = list(DEFAULT_HARD_OVERRIDE_NAMES)
         self.semantic_models: Dict[str, XGBClassifier] = {}
         self.cat_models: Dict[str, Any] = {}
@@ -877,63 +1007,45 @@ class ResearchBaseline:
         data["model_structure_anomaly_any"] = (anomaly_sum > 0).astype(np.int8)
 
     def _add_capacity_extension_features(
-        self,
-        data: Dict[str, np.ndarray],
-        *,
-        wmaxrtg: np.ndarray,
-        wmax: np.ndarray,
-        vamaxrtg: np.ndarray,
-        vamax: np.ndarray,
-        varmaxinjrtg: np.ndarray,
-        varmaxinj: np.ndarray,
-        varmaxabsrtg: np.ndarray,
-        varmaxabs: np.ndarray,
-        vnomrtg: np.ndarray,
-        vnom: np.ndarray,
-        vmaxrtg: np.ndarray,
-        vmax: np.ndarray,
-        vminrtg: np.ndarray,
-        vmin: np.ndarray,
-        amaxrtg: np.ndarray,
-        amax: np.ndarray,
-        wcha_rtg: np.ndarray,
-        wdis_rtg: np.ndarray,
-        vacha_rtg: np.ndarray,
-        vadis_rtg: np.ndarray,
-        wcha: np.ndarray,
-        wdis: np.ndarray,
-        vacha: np.ndarray,
-        vadis: np.ndarray,
-        pfover_rtg: np.ndarray,
-        pfover: np.ndarray,
-        pfunder_rtg: np.ndarray,
-        pfunder: np.ndarray,
+        self, data: Dict[str, np.ndarray], capacity: CapacitySnapshot
     ) -> None:
-        data["vnom_setting_delta"] = (vnom - vnomrtg).astype(np.float32)
-        data["vmax_setting_delta"] = (vmax - vmaxrtg).astype(np.float32)
-        data["vmin_setting_delta"] = (vmin - vminrtg).astype(np.float32)
-        data["amax_setting_delta"] = (amax - amaxrtg).astype(np.float32)
-        data["pfover_setting_delta"] = (pfover - pfover_rtg).astype(np.float32)
-        data["pfunder_setting_delta"] = (pfunder - pfunder_rtg).astype(np.float32)
-        data["charge_rate_share_rtg"] = self._safe_div(wcha_rtg, wmaxrtg)
-        data["discharge_rate_share_rtg"] = self._safe_div(wdis_rtg, wmaxrtg)
-        data["charge_va_share_rtg"] = self._safe_div(vacha_rtg, vamaxrtg)
-        data["discharge_va_share_rtg"] = self._safe_div(vadis_rtg, vamaxrtg)
-        data["charge_rate_share_setting"] = self._safe_div(wcha, wmax)
-        data["discharge_rate_share_setting"] = self._safe_div(wdis, wmax)
-        data["charge_va_share_setting"] = self._safe_div(vacha, vamax)
-        data["discharge_va_share_setting"] = self._safe_div(vadis, vamax)
+        data["vnom_setting_delta"] = (
+            capacity.vnom - capacity.vnomrtg
+        ).astype(np.float32)
+        data["vmax_setting_delta"] = (
+            capacity.vmax - capacity.vmaxrtg
+        ).astype(np.float32)
+        data["vmin_setting_delta"] = (
+            capacity.vmin - capacity.vminrtg
+        ).astype(np.float32)
+        data["amax_setting_delta"] = (
+            capacity.amax - capacity.amaxrtg
+        ).astype(np.float32)
+        data["pfover_setting_delta"] = (
+            capacity.pfover - capacity.pfover_rtg
+        ).astype(np.float32)
+        data["pfunder_setting_delta"] = (
+            capacity.pfunder - capacity.pfunder_rtg
+        ).astype(np.float32)
+        data["charge_rate_share_rtg"] = self._safe_div(capacity.wcha_rtg, capacity.wmaxrtg)
+        data["discharge_rate_share_rtg"] = self._safe_div(capacity.wdis_rtg, capacity.wmaxrtg)
+        data["charge_va_share_rtg"] = self._safe_div(capacity.vacha_rtg, capacity.vamaxrtg)
+        data["discharge_va_share_rtg"] = self._safe_div(capacity.vadis_rtg, capacity.vamaxrtg)
+        data["charge_rate_share_setting"] = self._safe_div(capacity.wcha, capacity.wmax)
+        data["discharge_rate_share_setting"] = self._safe_div(capacity.wdis, capacity.wmax)
+        data["charge_va_share_setting"] = self._safe_div(capacity.vacha, capacity.vamax)
+        data["discharge_va_share_setting"] = self._safe_div(capacity.vadis, capacity.vamax)
         rating_pairs = [
-            (wmaxrtg, wmax),
-            (vamaxrtg, vamax),
-            (varmaxinjrtg, varmaxinj),
-            (varmaxabsrtg, varmaxabs),
-            (vnomrtg, vnom),
-            (vmaxrtg, vmax),
-            (vminrtg, vmin),
-            (amaxrtg, amax),
+            (capacity.wmaxrtg, capacity.wmax),
+            (capacity.vamaxrtg, capacity.vamax),
+            (capacity.varmaxinjrtg, capacity.varmaxinj),
+            (capacity.varmaxabsrtg, capacity.varmaxabs),
+            (capacity.vnomrtg, capacity.vnom),
+            (capacity.vmaxrtg, capacity.vmax),
+            (capacity.vminrtg, capacity.vmin),
+            (capacity.amaxrtg, capacity.amax),
         ]
-        gap_count = np.zeros(len(wmaxrtg), dtype=np.int16)
+        gap_count = np.zeros(len(capacity.wmaxrtg), dtype=np.int16)
         for rating, setting in rating_pairs:
             tol = np.maximum(1.0, 0.01 * np.nan_to_num(np.abs(rating), nan=0.0)).astype(
                 np.float32
@@ -969,18 +1081,7 @@ class ResearchBaseline:
         data["temp_max_over_ambient"] = (temp_max - amb).astype(np.float32)
 
     def _add_enter_service_features(
-        self,
-        data: Dict[str, np.ndarray],
-        df: pd.DataFrame,
-        *,
-        voltage_pct: np.ndarray,
-        hz: np.ndarray,
-        abs_w: np.ndarray,
-        va: np.ndarray,
-        a: np.ndarray,
-        tolw: np.ndarray,
-        tolva: np.ndarray,
-        amax: np.ndarray,
+        self, data: Dict[str, np.ndarray], df: pd.DataFrame, ctx: FeatureContext
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         es = df["DEREnterService[0].ES"].to_numpy(float)
         es_v_hi = df["DEREnterService[0].ESVHi"].to_numpy(float)
@@ -993,24 +1094,24 @@ class ResearchBaseline:
         es_delay_rem = df["DEREnterService[0].ESDlyRemTms"].to_numpy(float)
 
         inside_v = (
-            np.isfinite(voltage_pct)
+            np.isfinite(ctx.voltage_pct)
             & np.isfinite(es_v_hi)
             & np.isfinite(es_v_lo)
-            & (voltage_pct >= es_v_lo)
-            & (voltage_pct <= es_v_hi)
+            & (ctx.voltage_pct >= es_v_lo)
+            & (ctx.voltage_pct <= es_v_hi)
         )
         inside_hz = (
-            np.isfinite(hz)
+            np.isfinite(ctx.ac.hz)
             & np.isfinite(es_hz_hi)
             & np.isfinite(es_hz_lo)
-            & (hz >= es_hz_lo)
-            & (hz <= es_hz_hi)
+            & (ctx.ac.hz >= es_hz_lo)
+            & (ctx.ac.hz <= es_hz_hi)
         )
         inside_window = inside_v & inside_hz
         enabled = np.isfinite(es) & (es == 1.0)
         state_anomaly = np.isfinite(es) & (es >= 1.5)
         should_idle = (~enabled) | (~inside_window)
-        current_tol = np.maximum(1.0, 0.02 * np.nan_to_num(amax, nan=0.0))
+        current_tol = np.maximum(1.0, 0.02 * np.nan_to_num(ctx.capacity.amax, nan=0.0))
 
         data["enter_service_enabled"] = enabled.astype(np.int8)
         data["enter_service_state_anomaly"] = state_anomaly.astype(np.int8)
@@ -1019,10 +1120,10 @@ class ResearchBaseline:
         data["enter_service_should_idle"] = should_idle.astype(np.int8)
         data["enter_service_v_window_width"] = (es_v_hi - es_v_lo).astype(np.float32)
         data["enter_service_hz_window_width"] = (es_hz_hi - es_hz_lo).astype(np.float32)
-        data["enter_service_v_margin_low"] = (voltage_pct - es_v_lo).astype(np.float32)
-        data["enter_service_v_margin_high"] = (es_v_hi - voltage_pct).astype(np.float32)
-        data["enter_service_hz_margin_low"] = (hz - es_hz_lo).astype(np.float32)
-        data["enter_service_hz_margin_high"] = (es_hz_hi - hz).astype(np.float32)
+        data["enter_service_v_margin_low"] = (ctx.voltage_pct - es_v_lo).astype(np.float32)
+        data["enter_service_v_margin_high"] = (es_v_hi - ctx.voltage_pct).astype(np.float32)
+        data["enter_service_hz_margin_low"] = (ctx.ac.hz - es_hz_lo).astype(np.float32)
+        data["enter_service_hz_margin_high"] = (es_hz_hi - ctx.ac.hz).astype(np.float32)
         data["enter_service_total_delay"] = (es_delay + es_random).astype(np.float32)
         data["enter_service_delay_remaining"] = es_delay_rem.astype(np.float32)
         data["enter_service_ramp_time"] = es_ramp.astype(np.float32)
@@ -1030,9 +1131,9 @@ class ResearchBaseline:
             np.nan_to_num(es_delay_rem, nan=0.0) > 0
         ).astype(np.int8)
 
-        blocked_power = should_idle & (abs_w > tolw)
-        blocked_va = should_idle & (va > tolva)
-        blocked_current = should_idle & (a > current_tol)
+        blocked_power = should_idle & (ctx.ac.abs_w > ctx.tolw)
+        blocked_va = should_idle & (ctx.ac.va > ctx.tolva)
+        blocked_current = should_idle & (ctx.ac.a > current_tol)
         data["enter_service_blocked_power"] = blocked_power.astype(np.int8)
         data["enter_service_blocked_va"] = blocked_va.astype(np.int8)
         data["enter_service_blocked_current"] = blocked_current.astype(np.int8)
@@ -1043,14 +1144,7 @@ class ResearchBaseline:
         )
 
     def _add_pf_control_features(
-        self,
-        data: Dict[str, np.ndarray],
-        df: pd.DataFrame,
-        *,
-        pf: np.ndarray,
-        var: np.ndarray,
-        varmaxinj: np.ndarray,
-        varmaxabs: np.ndarray,
+        self, data: Dict[str, np.ndarray], df: pd.DataFrame, ctx: FeatureContext
     ) -> Tuple[np.ndarray, np.ndarray]:
         pfinj_ena = np.nan_to_num(df["DERCtlAC[0].PFWInjEna"].to_numpy(float), nan=0.0)
         pfinj_ena_rvrt = np.nan_to_num(
@@ -1067,15 +1161,17 @@ class ResearchBaseline:
         pfabs_ext = df["DERCtlAC[0].PFWAbs.Ext"].to_numpy(float)
         pfabs_rvrt_ext = df["DERCtlAC[0].PFWAbsRvrt.Ext"].to_numpy(float)
 
-        observed_var_pct = self._var_pct(var, varmaxinj, varmaxabs)
+        observed_var_pct = self._var_pct(
+            ctx.ac.var, ctx.capacity.varmaxinj, ctx.capacity.varmaxabs
+        )
         inj_target_error = np.where(
             (pfinj_ena > 0) & np.isfinite(pfinj_target),
-            np.abs(np.abs(pf) - pfinj_target),
+            np.abs(np.abs(ctx.ac.pf) - pfinj_target),
             np.nan,
         )
         inj_rvrt_error = np.where(
             (pfinj_ena_rvrt > 0) & np.isfinite(pfinj_rvrt_target),
-            np.abs(np.abs(pf) - pfinj_rvrt_target),
+            np.abs(np.abs(ctx.ac.pf) - pfinj_rvrt_target),
             np.nan,
         )
         data["pf_control_any_enabled"] = ((pfinj_ena > 0) | (pfabs_ena > 0)).astype(
@@ -1104,19 +1200,16 @@ class ResearchBaseline:
         self,
         data: Dict[str, np.ndarray],
         df: pd.DataFrame,
-        *,
-        short_name: str,
-        prefix: str,
-        axis_name: str,
-        mode: str,
-        measure_value: np.ndarray,
-        abs_w: np.ndarray,
-        tolw: np.ndarray,
+        spec: TripBlockSpec,
+        ctx: FeatureContext,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        adpt_idx = self._curve_index(df[f"{prefix}.AdptCrvRslt"].to_numpy(float), 2)
+        measure_value = ctx.voltage_pct if spec.axis_name == "V" else ctx.ac.hz
+        adpt_idx = self._curve_index(
+            df[f"{spec.prefix}.AdptCrvRslt"].to_numpy(float), 2
+        )
         group_scalar = lambda group, field: self._select_curve_scalar(
             [
-                df[f"{prefix}.Crv[{curve}].{group}.{field}"].to_numpy(float)
+                df[f"{spec.prefix}.Crv[{curve}].{group}.{field}"].to_numpy(float)
                 for curve in range(2)
             ],
             adpt_idx,
@@ -1125,7 +1218,7 @@ class ResearchBaseline:
             [
                 np.column_stack(
                     [
-                        df[f"{prefix}.Crv[{curve}].{group}.Pt[{i}].{field}"].to_numpy(
+                        df[f"{spec.prefix}.Crv[{curve}].{group}.Pt[{i}].{field}"].to_numpy(
                             float
                         )
                         for i in range(5)
@@ -1137,13 +1230,13 @@ class ResearchBaseline:
         )
         must_actpt = group_scalar("MustTrip", "ActPt")
         mom_actpt = group_scalar("MomCess", "ActPt")
-        must_x = group_points("MustTrip", axis_name)
+        must_x = group_points("MustTrip", spec.axis_name)
         must_t = group_points("MustTrip", "Tms")
-        mom_x = group_points("MomCess", axis_name)
+        mom_x = group_points("MomCess", spec.axis_name)
         mom_t = group_points("MomCess", "Tms")
         may_present = np.column_stack(
             [
-                df[f"{prefix}.Crv[{curve}].MayTrip.Pt[{point}].{axis_name}"].to_numpy(
+                df[f"{spec.prefix}.Crv[{curve}].MayTrip.Pt[{point}].{spec.axis_name}"].to_numpy(
                     float
                 )
                 for curve in range(2)
@@ -1151,7 +1244,7 @@ class ResearchBaseline:
             ]
         )
 
-        enabled = np.nan_to_num(df[f"{prefix}.Ena"].to_numpy(float), nan=0.0) > 0
+        enabled = np.nan_to_num(df[f"{spec.prefix}.Ena"].to_numpy(float), nan=0.0) > 0
         must_count = self._pair_point_count(must_x, must_t)
         mom_count = self._pair_point_count(mom_x, mom_t)
         must_x_min = self._nanmin_rows(must_x)
@@ -1163,86 +1256,78 @@ class ResearchBaseline:
         mom_t_min = self._nanmin_rows(mom_t)
         mom_t_max = self._nanmax_rows(mom_t)
 
-        if mode == "low":
+        if spec.mode == "low":
             margin = measure_value - must_x_max
         else:
             margin = must_x_min - measure_value
         outside = enabled & np.isfinite(margin) & (margin < 0)
-        power_when_outside = outside & (abs_w > tolw)
+        power_when_outside = outside & (ctx.ac.abs_w > ctx.tolw)
         envelope_gap = np.where(
             np.isfinite(mom_x_min) & np.isfinite(must_x_max),
             np.abs(mom_x_min - must_x_max),
             np.nan,
         )
 
-        data[f"trip_{short_name}_curve_idx"] = adpt_idx.astype(np.int8)
-        data[f"trip_{short_name}_enabled"] = enabled.astype(np.int8)
-        data[f"trip_{short_name}_curve_req_gap"] = (
-            df[f"{prefix}.AdptCrvReq"].to_numpy(float)
-            - df[f"{prefix}.AdptCrvRslt"].to_numpy(float)
+        trip_name = spec.short_name
+        data[f"trip_{trip_name}_curve_idx"] = adpt_idx.astype(np.int8)
+        data[f"trip_{trip_name}_enabled"] = enabled.astype(np.int8)
+        data[f"trip_{trip_name}_curve_req_gap"] = (
+            df[f"{spec.prefix}.AdptCrvReq"].to_numpy(float)
+            - df[f"{spec.prefix}.AdptCrvRslt"].to_numpy(float)
         ).astype(np.float32)
-        data[f"trip_{short_name}_musttrip_count"] = must_count
-        data[f"trip_{short_name}_musttrip_actpt_gap"] = (
+        data[f"trip_{trip_name}_musttrip_count"] = must_count
+        data[f"trip_{trip_name}_musttrip_actpt_gap"] = (
             must_actpt - must_count
         ).astype(np.float32)
-        data[f"trip_{short_name}_musttrip_axis_min"] = must_x_min
-        data[f"trip_{short_name}_musttrip_axis_max"] = must_x_max
-        data[f"trip_{short_name}_musttrip_axis_span"] = (
+        data[f"trip_{trip_name}_musttrip_axis_min"] = must_x_min
+        data[f"trip_{trip_name}_musttrip_axis_max"] = must_x_max
+        data[f"trip_{trip_name}_musttrip_axis_span"] = (
             must_x_max - must_x_min
         ).astype(np.float32)
-        data[f"trip_{short_name}_musttrip_tms_span"] = (must_t_max - must_t_min).astype(
+        data[f"trip_{trip_name}_musttrip_tms_span"] = (must_t_max - must_t_min).astype(
             np.float32
         )
-        data[f"trip_{short_name}_musttrip_reverse_steps"] = self._curve_reverse_steps(
+        data[f"trip_{trip_name}_musttrip_reverse_steps"] = self._curve_reverse_steps(
             must_x
         )
-        data[f"trip_{short_name}_momcess_count"] = mom_count
-        data[f"trip_{short_name}_momcess_actpt_gap"] = (mom_actpt - mom_count).astype(
+        data[f"trip_{trip_name}_momcess_count"] = mom_count
+        data[f"trip_{trip_name}_momcess_actpt_gap"] = (mom_actpt - mom_count).astype(
             np.float32
         )
-        data[f"trip_{short_name}_momcess_axis_span"] = (mom_x_max - mom_x_min).astype(
+        data[f"trip_{trip_name}_momcess_axis_span"] = (mom_x_max - mom_x_min).astype(
             np.float32
         )
-        data[f"trip_{short_name}_momcess_tms_span"] = (mom_t_max - mom_t_min).astype(
+        data[f"trip_{trip_name}_momcess_tms_span"] = (mom_t_max - mom_t_min).astype(
             np.float32
         )
-        data[f"trip_{short_name}_momcess_reverse_steps"] = self._curve_reverse_steps(
+        data[f"trip_{trip_name}_momcess_reverse_steps"] = self._curve_reverse_steps(
             mom_x
         )
-        data[f"trip_{short_name}_maytrip_present_any"] = (
+        data[f"trip_{trip_name}_maytrip_present_any"] = (
             np.isfinite(may_present).any(axis=1).astype(np.int8)
         )
-        data[f"trip_{short_name}_musttrip_margin"] = margin.astype(np.float32)
-        data[f"trip_{short_name}_outside_musttrip"] = outside.astype(np.int8)
-        data[f"trip_{short_name}_power_when_outside"] = power_when_outside.astype(
+        data[f"trip_{trip_name}_musttrip_margin"] = margin.astype(np.float32)
+        data[f"trip_{trip_name}_outside_musttrip"] = outside.astype(np.int8)
+        data[f"trip_{trip_name}_power_when_outside"] = power_when_outside.astype(
             np.int8
         )
-        data[f"trip_{short_name}_momcess_musttrip_gap"] = envelope_gap.astype(
+        data[f"trip_{trip_name}_momcess_musttrip_gap"] = envelope_gap.astype(
             np.float32
         )
         return outside.astype(np.int8), power_when_outside.astype(np.int8)
 
     def _add_curve_block_features(
-        self,
-        data: Dict[str, np.ndarray],
-        *,
-        name: str,
-        raw_idx: np.ndarray,
-        curve_x: Sequence[np.ndarray],
-        curve_y: Sequence[np.ndarray],
-        curve_actpt: Sequence[np.ndarray],
-        curve_meta: Dict[str, Sequence[np.ndarray]],
-        measure_value: np.ndarray,
-        observed_value: Optional[np.ndarray] = None,
+        self, data: Dict[str, np.ndarray], spec: CurveBlockSpec
     ) -> None:
-        adpt_idx = self._curve_index(raw_idx, len(curve_x))
-        selected_x = self._select_curve_points(curve_x, adpt_idx)
-        selected_y = self._select_curve_points(curve_y, adpt_idx)
-        selected_actpt = self._select_curve_scalar(curve_actpt, adpt_idx)
-        data[f"{name}_curve_idx"] = adpt_idx.astype(np.int8)
+        adpt_idx = self._curve_index(spec.raw_idx, len(spec.curve_x))
+        selected_x = self._select_curve_points(spec.curve_x, adpt_idx)
+        selected_y = self._select_curve_points(spec.curve_y, adpt_idx)
+        selected_actpt = self._select_curve_scalar(spec.curve_actpt, adpt_idx)
+        curve_name = spec.name
+        data[f"{curve_name}_curve_idx"] = adpt_idx.astype(np.int8)
         point_count = self._pair_point_count(selected_x, selected_y)
-        data[f"{name}_curve_point_count"] = point_count
-        data[f"{name}_curve_actpt_gap"] = (selected_actpt - point_count).astype(
+        data[f"{curve_name}_curve_point_count"] = point_count
+        data[f"{curve_name}_curve_actpt_gap"] = (selected_actpt - point_count).astype(
             np.float32
         )
         x_min = self._nanmin_rows(selected_x)
@@ -1250,27 +1335,24 @@ class ResearchBaseline:
         y_min = self._nanmin_rows(selected_y)
         y_max = self._nanmax_rows(selected_y)
         mean_slope, max_abs_slope = self._curve_slope_stats(selected_x, selected_y)
-        data[f"{name}_curve_x_span"] = (x_max - x_min).astype(np.float32)
-        data[f"{name}_curve_y_span"] = (y_max - y_min).astype(np.float32)
-        data[f"{name}_curve_reverse_steps"] = self._curve_reverse_steps(selected_x)
-        data[f"{name}_curve_mean_slope"] = mean_slope
-        data[f"{name}_curve_max_abs_slope"] = max_abs_slope
-        data[f"{name}_curve_measure_margin_low"] = (measure_value - x_min).astype(
-            np.float32
-        )
-        data[f"{name}_curve_measure_margin_high"] = (x_max - measure_value).astype(
-            np.float32
-        )
-        if observed_value is not None:
-            expected_value = self._piecewise_interp(
-                measure_value, selected_x, selected_y
-            )
-            data[f"{name}_curve_expected"] = expected_value.astype(np.float32)
-            data[f"{name}_curve_error"] = (observed_value - expected_value).astype(
-                np.float32
-            )
-        for meta_name, curves in curve_meta.items():
-            data[f"{name}_curve_{meta_name}"] = self._select_curve_scalar(
+        data[f"{curve_name}_curve_x_span"] = (x_max - x_min).astype(np.float32)
+        data[f"{curve_name}_curve_y_span"] = (y_max - y_min).astype(np.float32)
+        data[f"{curve_name}_curve_reverse_steps"] = self._curve_reverse_steps(selected_x)
+        data[f"{curve_name}_curve_mean_slope"] = mean_slope
+        data[f"{curve_name}_curve_max_abs_slope"] = max_abs_slope
+        data[f"{curve_name}_curve_measure_margin_low"] = (
+            spec.measure_value - x_min
+        ).astype(np.float32)
+        data[f"{curve_name}_curve_measure_margin_high"] = (
+            x_max - spec.measure_value
+        ).astype(np.float32)
+        expected_value = self._piecewise_interp(spec.measure_value, selected_x, selected_y)
+        data[f"{curve_name}_curve_expected"] = expected_value.astype(np.float32)
+        data[f"{curve_name}_curve_error"] = (
+            spec.observed_value - expected_value
+        ).astype(np.float32)
+        for meta_name, curves in spec.curve_meta.items():
+            data[f"{curve_name}_curve_{meta_name}"] = self._select_curve_scalar(
                 curves, adpt_idx
             ).astype(np.float32)
 
@@ -1405,99 +1487,82 @@ class ResearchBaseline:
         self,
         data: Dict[str, np.ndarray],
         df: pd.DataFrame,
-        *,
-        w: np.ndarray,
-        va: np.ndarray,
-        var: np.ndarray,
-        pf: np.ndarray,
-        a: np.ndarray,
-        llv: np.ndarray,
-        lnv: np.ndarray,
-        hz: np.ndarray,
-        wmaxrtg: np.ndarray,
-        vamaxrtg: np.ndarray,
-        varmaxinjrtg: np.ndarray,
-        varmaxabsrtg: np.ndarray,
-        wmax: np.ndarray,
-        vamax: np.ndarray,
-        varmaxinj: np.ndarray,
-        varmaxabs: np.ndarray,
-        amax: np.ndarray,
-        vnom: np.ndarray,
-        vmax: np.ndarray,
-        vmin: np.ndarray,
+        ac: AcSnapshot,
+        capacity: CapacitySnapshot,
     ) -> Tuple[np.ndarray, np.ndarray]:
         for name, numerator, denominator in [
-            ("w_over_wmaxrtg", w, wmaxrtg),
-            ("w_over_wmax", w, wmax),
-            ("va_over_vamax", va, vamax),
-            ("va_over_vamaxrtg", va, vamaxrtg),
-            ("var_over_injmax", var, varmaxinj),
-            ("var_over_absmax", var, varmaxabs),
-            ("a_over_amax", a, amax),
-            ("llv_over_vnom", llv, vnom),
-            ("lnv_over_vnom", lnv * SQRT3, vnom),
+            ("w_over_wmaxrtg", ac.w, capacity.wmaxrtg),
+            ("w_over_wmax", ac.w, capacity.wmax),
+            ("va_over_vamax", ac.va, capacity.vamax),
+            ("va_over_vamaxrtg", ac.va, capacity.vamaxrtg),
+            ("var_over_injmax", ac.var, capacity.varmaxinj),
+            ("var_over_absmax", ac.var, capacity.varmaxabs),
+            ("a_over_amax", ac.a, capacity.amax),
+            ("llv_over_vnom", ac.llv, capacity.vnom),
+            ("lnv_over_vnom", ac.lnv * SQRT3, capacity.vnom),
         ]:
             data[name] = self._safe_div(numerator, denominator)
 
         for name, value in [
-            ("w_minus_wmax", w - wmax),
-            ("w_minus_wmaxrtg", w - wmaxrtg),
-            ("va_minus_vamax", va - vamax),
-            ("var_minus_injmax", var - varmaxinj),
-            ("var_plus_absmax", var + varmaxabs),
-            ("llv_minus_lnv_sqrt3", llv - lnv * SQRT3),
-            ("hz_delta_60", hz - 60.0),
+            ("w_minus_wmax", ac.w - capacity.wmax),
+            ("w_minus_wmaxrtg", ac.w - capacity.wmaxrtg),
+            ("va_minus_vamax", ac.va - capacity.vamax),
+            ("var_minus_injmax", ac.var - capacity.varmaxinj),
+            ("var_plus_absmax", ac.var + capacity.varmaxabs),
+            ("llv_minus_lnv_sqrt3", ac.llv - ac.lnv * SQRT3),
+            ("hz_delta_60", ac.hz - 60.0),
         ]:
             data[name] = value.astype(np.float32)
 
         for name, left, right in [
-            ("w_eq_wmaxrtg", w, wmaxrtg),
-            ("w_eq_wmax", w, wmax),
-            ("var_eq_varmaxinj", var, varmaxinj),
-            ("var_eq_neg_varmaxabs", var, -varmaxabs),
+            ("w_eq_wmaxrtg", ac.w, capacity.wmaxrtg),
+            ("w_eq_wmax", ac.w, capacity.wmax),
+            ("var_eq_varmaxinj", ac.var, capacity.varmaxinj),
+            ("var_eq_neg_varmaxabs", ac.var, -capacity.varmaxabs),
         ]:
             data[name] = np.isclose(left, right, equal_nan=False).astype(np.int8)
         data["pf_sign_mismatch"] = (
-            (np.sign(np.nan_to_num(pf)) != np.sign(np.nan_to_num(w)))
-            & (np.nan_to_num(pf) != 0)
-            & (np.nan_to_num(w) != 0)
+            (np.sign(np.nan_to_num(ac.pf)) != np.sign(np.nan_to_num(ac.w)))
+            & (np.nan_to_num(ac.pf) != 0)
+            & (np.nan_to_num(ac.w) != 0)
         ).astype(np.int8)
 
-        tolw = np.maximum(50.0, 0.02 * np.nan_to_num(wmaxrtg, nan=0.0)).astype(
+        tolw = np.maximum(50.0, 0.02 * np.nan_to_num(capacity.wmaxrtg, nan=0.0)).astype(
             np.float32
         )
-        tolva = np.maximum(50.0, 0.02 * np.nan_to_num(vamax, nan=0.0)).astype(
+        tolva = np.maximum(50.0, 0.02 * np.nan_to_num(capacity.vamax, nan=0.0)).astype(
             np.float32
         )
-        tolvi = np.maximum(20.0, 0.02 * np.nan_to_num(varmaxinj, nan=0.0)).astype(
-            np.float32
-        )
-        tolva2 = np.maximum(20.0, 0.02 * np.nan_to_num(varmaxabs, nan=0.0)).astype(
-            np.float32
-        )
+        tolvi = np.maximum(
+            20.0, 0.02 * np.nan_to_num(capacity.varmaxinj, nan=0.0)
+        ).astype(np.float32)
+        tolva2 = np.maximum(
+            20.0, 0.02 * np.nan_to_num(capacity.varmaxabs, nan=0.0)
+        ).astype(np.float32)
         for name, value, upper_bound in [
-            ("w_gt_wmax_tol", w, wmax + tolw),
-            ("w_gt_wmaxrtg_tol", w, wmaxrtg + tolw),
-            ("va_gt_vamax_tol", va, vamax + tolva),
-            ("var_gt_injmax_tol", var, varmaxinj + tolvi),
+            ("w_gt_wmax_tol", ac.w, capacity.wmax + tolw),
+            ("w_gt_wmaxrtg_tol", ac.w, capacity.wmaxrtg + tolw),
+            ("va_gt_vamax_tol", ac.va, capacity.vamax + tolva),
+            ("var_gt_injmax_tol", ac.var, capacity.varmaxinj + tolvi),
         ]:
             data[name] = (value > upper_bound).astype(np.int8)
-        data["var_lt_absmax_tol"] = (var < (-varmaxabs - tolva2)).astype(np.int8)
+        data["var_lt_absmax_tol"] = (
+            ac.var < (-capacity.varmaxabs - tolva2)
+        ).astype(np.int8)
 
         pq = np.sqrt(
-            np.square(w.astype(np.float32)) + np.square(var.astype(np.float32))
+            np.square(ac.w.astype(np.float32)) + np.square(ac.var.astype(np.float32))
         )
-        data["va_minus_pqmag"] = (va - pq).astype(np.float32)
-        data["va_over_pqmag"] = self._safe_div(va, pq)
-        pf_from_w_va = self._safe_div(w, va)
+        data["va_minus_pqmag"] = (ac.va - pq).astype(np.float32)
+        data["va_over_pqmag"] = self._safe_div(ac.va, pq)
+        pf_from_w_va = self._safe_div(ac.w, ac.va)
         data["pf_from_w_va"] = pf_from_w_va
-        data["pf_error"] = (pf - pf_from_w_va).astype(np.float32)
+        data["pf_error"] = (ac.pf - pf_from_w_va).astype(np.float32)
 
         for name, total, suffixes in [
-            ("w_phase_sum_error", w, ["WL1", "WL2", "WL3"]),
-            ("va_phase_sum_error", va, ["VAL1", "VAL2", "VAL3"]),
-            ("var_phase_sum_error", var, ["VarL1", "VarL2", "VarL3"]),
+            ("w_phase_sum_error", ac.w, ["WL1", "WL2", "WL3"]),
+            ("va_phase_sum_error", ac.va, ["VAL1", "VAL2", "VAL3"]),
+            ("var_phase_sum_error", ac.var, ["VarL1", "VarL2", "VarL3"]),
         ]:
             phase_sum = sum(
                 df[f"DERMeasureAC[0].{suffix}"].to_numpy(float) for suffix in suffixes
@@ -1517,10 +1582,10 @@ class ResearchBaseline:
             ).astype(np.float32)
 
         for name, numerator, denominator in [
-            ("wmax_over_wmaxrtg", wmax, wmaxrtg),
-            ("vamax_over_vamaxrtg", vamax, vamaxrtg),
-            ("vmax_over_vnom", vmax, vnom),
-            ("vmin_over_vnom", vmin, vnom),
+            ("wmax_over_wmaxrtg", capacity.wmax, capacity.wmaxrtg),
+            ("vamax_over_vamaxrtg", capacity.vamax, capacity.vamaxrtg),
+            ("vmax_over_vnom", capacity.vmax, capacity.vnom),
+            ("vmin_over_vnom", capacity.vmin, capacity.vnom),
         ]:
             data[name] = self._safe_div(numerator, denominator)
         return tolw, tolva
@@ -1529,11 +1594,8 @@ class ResearchBaseline:
         self,
         data: Dict[str, np.ndarray],
         df: pd.DataFrame,
-        *,
-        w: np.ndarray,
-        var: np.ndarray,
-        wmaxrtg: np.ndarray,
-        varmaxinj: np.ndarray,
+        ac: AcSnapshot,
+        capacity: CapacitySnapshot,
     ) -> None:
         wsetena = np.nan_to_num(df["DERCtlAC[0].WSetEna"].to_numpy(float), nan=0.0)
         wset = df["DERCtlAC[0].WSet"].to_numpy(float)
@@ -1545,15 +1607,17 @@ class ResearchBaseline:
         varsetena = np.nan_to_num(df["DERCtlAC[0].VarSetEna"].to_numpy(float), nan=0.0)
         varset = df["DERCtlAC[0].VarSet"].to_numpy(float)
         varsetpct = df["DERCtlAC[0].VarSetPct"].to_numpy(float)
-        wset_abs_error = np.where(wsetena > 0, np.abs(w - wset), np.nan)
-        wsetpct_target = wmaxrtg * (wsetpct / 100.0)
-        wsetpct_abs_error = np.where(wsetena > 0, np.abs(w - wsetpct_target), np.nan)
-        wmaxlim_target = wmaxrtg * (wmaxlimpct / 100.0)
-        wmaxlim_excess = np.where(wmaxlimena > 0, w - wmaxlim_target, np.nan)
-        varset_abs_error = np.where(varsetena > 0, np.abs(var - varset), np.nan)
-        varsetpct_target = varmaxinj * (varsetpct / 100.0)
+        wset_abs_error = np.where(wsetena > 0, np.abs(ac.w - wset), np.nan)
+        wsetpct_target = capacity.wmaxrtg * (wsetpct / 100.0)
+        wsetpct_abs_error = np.where(
+            wsetena > 0, np.abs(ac.w - wsetpct_target), np.nan
+        )
+        wmaxlim_target = capacity.wmaxrtg * (wmaxlimpct / 100.0)
+        wmaxlim_excess = np.where(wmaxlimena > 0, ac.w - wmaxlim_target, np.nan)
+        varset_abs_error = np.where(varsetena > 0, np.abs(ac.var - varset), np.nan)
+        varsetpct_target = capacity.varmaxinj * (varsetpct / 100.0)
         varsetpct_abs_error = np.where(
-            varsetena > 0, np.abs(var - varsetpct_target), np.nan
+            varsetena > 0, np.abs(ac.var - varsetpct_target), np.nan
         )
         data["wset_abs_error"] = wset_abs_error.astype(np.float32)
         data["wsetpct_target"] = wsetpct_target.astype(np.float32)
@@ -1567,55 +1631,47 @@ class ResearchBaseline:
             (wsetena > 0)
             & (
                 wset_abs_error
-                > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0))
+                > np.maximum(50.0, 0.05 * np.nan_to_num(capacity.wmaxrtg, nan=0.0))
             )
         ).astype(np.int8)
         data["wsetpct_enabled_far"] = (
             (wsetena > 0)
             & (
                 wsetpct_abs_error
-                > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0))
+                > np.maximum(50.0, 0.05 * np.nan_to_num(capacity.wmaxrtg, nan=0.0))
             )
         ).astype(np.int8)
         data["wmaxlim_enabled_far"] = (
             (wmaxlimena > 0)
             & (
                 wmaxlim_excess
-                > np.maximum(50.0, 0.05 * np.nan_to_num(wmaxrtg, nan=0.0))
+                > np.maximum(50.0, 0.05 * np.nan_to_num(capacity.wmaxrtg, nan=0.0))
             )
         ).astype(np.int8)
         data["varsetpct_enabled_far"] = (
             (varsetena > 0)
             & (
                 varsetpct_abs_error
-                > np.maximum(20.0, 0.05 * np.nan_to_num(varmaxinj, nan=0.0))
+                > np.maximum(20.0, 0.05 * np.nan_to_num(capacity.varmaxinj, nan=0.0))
             )
         ).astype(np.int8)
 
     def _compute_trip_summary_flags(
-        self,
-        data: Dict[str, np.ndarray],
-        df: pd.DataFrame,
-        *,
-        voltage_pct: np.ndarray,
-        hz: np.ndarray,
-        abs_w: np.ndarray,
-        tolw: np.ndarray,
+        self, data: Dict[str, np.ndarray], df: pd.DataFrame, ctx: FeatureContext
     ) -> Tuple[np.ndarray, np.ndarray]:
         trip_outside_flags = []
         trip_power_flags = []
         for short_name, (prefix, axis_name, mode) in TRIP_SPECS.items():
-            measure_value = voltage_pct if axis_name == "V" else hz
             outside, power_when_outside = self._add_trip_block_features(
                 data,
                 df,
-                short_name=short_name,
-                prefix=prefix,
-                axis_name=axis_name,
-                mode=mode,
-                measure_value=measure_value,
-                abs_w=abs_w,
-                tolw=tolw,
+                TripBlockSpec(
+                    short_name=short_name,
+                    prefix=prefix,
+                    axis_name=axis_name,
+                    mode=mode,
+                ),
+                ctx,
             )
             trip_outside_flags.append(outside)
             trip_power_flags.append(power_when_outside)
@@ -1632,10 +1688,7 @@ class ResearchBaseline:
         self,
         data: Dict[str, np.ndarray],
         df: pd.DataFrame,
-        *,
-        voltage_pct: np.ndarray,
-        w_pct: np.ndarray,
-        var_pct: np.ndarray,
+        ctx: FeatureContext,
     ) -> None:
         curve_scalars = lambda prefix, field: [
             df[f"{prefix}.Crv[{curve}].{field}"].to_numpy(float) for curve in range(3)
@@ -1666,10 +1719,10 @@ class ResearchBaseline:
                     "rsp": "RspTms",
                     "readonly": "ReadOnly",
                 },
-                voltage_pct
+                ctx.voltage_pct
                 - 100.0
                 + df["DERVoltVar[0].Crv[0].VRef"].fillna(100.0).to_numpy(float),
-                var_pct,
+                ctx.var_pct,
             ),
             (
                 "voltwatt",
@@ -1678,8 +1731,8 @@ class ResearchBaseline:
                 "V",
                 "W",
                 {"deptref": "DeptRef", "rsp": "RspTms", "readonly": "ReadOnly"},
-                voltage_pct,
-                w_pct,
+                ctx.voltage_pct,
+                ctx.w_pct,
             ),
             (
                 "wattvar",
@@ -1688,8 +1741,8 @@ class ResearchBaseline:
                 "W",
                 "Var",
                 {"deptref": "DeptRef", "pri": "Pri", "readonly": "ReadOnly"},
-                w_pct,
-                var_pct,
+                ctx.w_pct,
+                ctx.var_pct,
             ),
         ]
         for (
@@ -1704,17 +1757,19 @@ class ResearchBaseline:
         ) in curve_specs:
             self._add_curve_block_features(
                 data,
-                name=name,
-                raw_idx=df[f"{prefix}.AdptCrvRslt"].to_numpy(float),
-                curve_x=curve_points(prefix, x_field, point_count),
-                curve_y=curve_points(prefix, y_field, point_count),
-                curve_actpt=curve_scalars(prefix, "ActPt"),
-                curve_meta={
-                    meta_name: curve_scalars(prefix, field)
-                    for meta_name, field in meta_fields.items()
-                },
-                measure_value=measure_value,
-                observed_value=observed_value,
+                CurveBlockSpec(
+                    name=name,
+                    raw_idx=df[f"{prefix}.AdptCrvRslt"].to_numpy(float),
+                    curve_x=curve_points(prefix, x_field, point_count),
+                    curve_y=curve_points(prefix, y_field, point_count),
+                    curve_actpt=curve_scalars(prefix, "ActPt"),
+                    curve_meta={
+                        meta_name: curve_scalars(prefix, field)
+                        for meta_name, field in meta_fields.items()
+                    },
+                    measure_value=measure_value,
+                    observed_value=observed_value,
+                ),
             )
 
     def _initialize_feature_data(self, df: pd.DataFrame) -> Dict[str, np.ndarray]:
@@ -1747,75 +1802,54 @@ class ResearchBaseline:
         data["noncanonical"] = (data["device_family"] == "other").astype(np.int8)
         return data
 
-    def _load_ac_measurements(
-        self, df: pd.DataFrame
-    ) -> Tuple[
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-    ]:
+    def _load_ac_measurements(self, df: pd.DataFrame) -> AcSnapshot:
         w = df["DERMeasureAC[0].W"].to_numpy(float)
-        return (
-            w,
-            np.abs(w),
-            df["DERMeasureAC[0].VA"].to_numpy(float),
-            df["DERMeasureAC[0].Var"].to_numpy(float),
-            df["DERMeasureAC[0].PF"].to_numpy(float),
-            df["DERMeasureAC[0].A"].to_numpy(float),
-            df["DERMeasureAC[0].LLV"].to_numpy(float),
-            df["DERMeasureAC[0].LNV"].to_numpy(float),
-            df["DERMeasureAC[0].Hz"].to_numpy(float),
+        return AcSnapshot(
+            w=w,
+            abs_w=np.abs(w),
+            va=df["DERMeasureAC[0].VA"].to_numpy(float),
+            var=df["DERMeasureAC[0].Var"].to_numpy(float),
+            pf=df["DERMeasureAC[0].PF"].to_numpy(float),
+            a=df["DERMeasureAC[0].A"].to_numpy(float),
+            llv=df["DERMeasureAC[0].LLV"].to_numpy(float),
+            lnv=df["DERMeasureAC[0].LNV"].to_numpy(float),
+            hz=df["DERMeasureAC[0].Hz"].to_numpy(float),
         )
 
-    def _load_capacity_limits(
-        self, df: pd.DataFrame
-    ) -> Tuple[
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-    ]:
-        return (
-            df["DERCapacity[0].WMaxRtg"].to_numpy(float),
-            df["DERCapacity[0].VAMaxRtg"].to_numpy(float),
-            df["DERCapacity[0].VarMaxInjRtg"].to_numpy(float),
-            df["DERCapacity[0].VarMaxAbsRtg"].to_numpy(float),
-            df["DERCapacity[0].WMax"].to_numpy(float),
-            df["DERCapacity[0].VAMax"].to_numpy(float),
-            df["DERCapacity[0].VarMaxInj"].to_numpy(float),
-            df["DERCapacity[0].VarMaxAbs"].to_numpy(float),
-            df["DERCapacity[0].AMax"].to_numpy(float),
-            df["DERCapacity[0].VNom"].to_numpy(float),
-            df["DERCapacity[0].VMax"].to_numpy(float),
-            df["DERCapacity[0].VMin"].to_numpy(float),
+    def _load_capacity_limits(self, df: pd.DataFrame) -> CapacitySnapshot:
+        return CapacitySnapshot(
+            wmaxrtg=df["DERCapacity[0].WMaxRtg"].to_numpy(float),
+            vamaxrtg=df["DERCapacity[0].VAMaxRtg"].to_numpy(float),
+            varmaxinjrtg=df["DERCapacity[0].VarMaxInjRtg"].to_numpy(float),
+            varmaxabsrtg=df["DERCapacity[0].VarMaxAbsRtg"].to_numpy(float),
+            wmax=df["DERCapacity[0].WMax"].to_numpy(float),
+            vamax=df["DERCapacity[0].VAMax"].to_numpy(float),
+            varmaxinj=df["DERCapacity[0].VarMaxInj"].to_numpy(float),
+            varmaxabs=df["DERCapacity[0].VarMaxAbs"].to_numpy(float),
+            amax=df["DERCapacity[0].AMax"].to_numpy(float),
+            vnom=df["DERCapacity[0].VNom"].to_numpy(float),
+            vmax=df["DERCapacity[0].VMax"].to_numpy(float),
+            vmin=df["DERCapacity[0].VMin"].to_numpy(float),
+            vnomrtg=df["DERCapacity[0].VNomRtg"].to_numpy(float),
+            vmaxrtg=df["DERCapacity[0].VMaxRtg"].to_numpy(float),
+            vminrtg=df["DERCapacity[0].VMinRtg"].to_numpy(float),
+            amaxrtg=df["DERCapacity[0].AMaxRtg"].to_numpy(float),
+            wcha_rtg=df["DERCapacity[0].WChaRteMaxRtg"].to_numpy(float),
+            wdis_rtg=df["DERCapacity[0].WDisChaRteMaxRtg"].to_numpy(float),
+            vacha_rtg=df["DERCapacity[0].VAChaRteMaxRtg"].to_numpy(float),
+            vadis_rtg=df["DERCapacity[0].VADisChaRteMaxRtg"].to_numpy(float),
+            wcha=df["DERCapacity[0].WChaRteMax"].to_numpy(float),
+            wdis=df["DERCapacity[0].WDisChaRteMax"].to_numpy(float),
+            vacha=df["DERCapacity[0].VAChaRteMax"].to_numpy(float),
+            vadis=df["DERCapacity[0].VADisChaRteMax"].to_numpy(float),
+            pfover_rtg=df["DERCapacity[0].PFOvrExtRtg"].to_numpy(float),
+            pfover=df["DERCapacity[0].PFOvrExt"].to_numpy(float),
+            pfunder_rtg=df["DERCapacity[0].PFUndExtRtg"].to_numpy(float),
+            pfunder=df["DERCapacity[0].PFUndExt"].to_numpy(float),
         )
 
     def _add_hard_rule_features(
-        self,
-        data: Dict[str, np.ndarray],
-        *,
-        ac_type_is_rare: np.ndarray,
-        dc_port_type_rare: np.ndarray,
-        enter_state_anomaly: np.ndarray,
-        enter_blocked_power: np.ndarray,
-        enter_blocked_current: np.ndarray,
-        pf_abs_ext_present: np.ndarray,
-        pf_abs_rvrt_ext_present: np.ndarray,
-        trip_any_power_when_outside: np.ndarray,
+        self, data: Dict[str, np.ndarray], inputs: HardRuleInputs
     ) -> None:
         flag_map = {
             "noncanonical": data["noncanonical"] == 1,
@@ -1830,14 +1864,14 @@ class ResearchBaseline:
             "wmaxlim_far": data["wmaxlim_enabled_far"] == 1,
             "varsetpct_far": data["varsetpct_enabled_far"] == 1,
             "model_structure": data["model_structure_anomaly_any"] == 1,
-            "ac_type_rare": ac_type_is_rare == 1,
-            "dc_type_rare": dc_port_type_rare == 1,
-            "enter_state": enter_state_anomaly == 1,
-            "enter_blocked_power": enter_blocked_power == 1,
-            "enter_blocked_current": enter_blocked_current == 1,
-            "pf_abs": pf_abs_ext_present == 1,
-            "pf_abs_rvrt": pf_abs_rvrt_ext_present == 1,
-            "trip_power": trip_any_power_when_outside == 1,
+            "ac_type_rare": inputs.ac_type_is_rare == 1,
+            "dc_type_rare": inputs.dc_port_type_rare == 1,
+            "enter_state": inputs.enter_state_anomaly == 1,
+            "enter_blocked_power": inputs.enter_blocked_power == 1,
+            "enter_blocked_current": inputs.enter_blocked_current == 1,
+            "pf_abs": inputs.pf_abs_ext_present == 1,
+            "pf_abs_rvrt": inputs.pf_abs_rvrt_ext_present == 1,
+            "trip_power": inputs.trip_any_power_when_outside == 1,
         }
         hard_rule_flags = np.column_stack([flag_map[name] for name in HARD_RULE_NAMES])
         hard_override_flags = np.column_stack(
@@ -1889,151 +1923,62 @@ class ResearchBaseline:
         self._add_model_integrity_features(data, df)
         self._add_temperature_features(data, df)
 
-        w, abs_w, va, var, pf, a, llv, lnv, hz = self._load_ac_measurements(df)
-        (
-            wmaxrtg,
-            vamaxrtg,
-            varmaxinjrtg,
-            varmaxabsrtg,
-            wmax,
-            vamax,
-            varmaxinj,
-            varmaxabs,
-            amax,
-            vnom,
-            vmax,
-            vmin,
-        ) = self._load_capacity_limits(df)
+        ac = self._load_ac_measurements(df)
+        capacity = self._load_capacity_limits(df)
+        tolw, tolva = self._add_measurement_relationship_features(data, df, ac, capacity)
+        self._add_control_target_features(data, df, ac, capacity)
+        self._add_capacity_extension_features(data, capacity)
 
-        tolw, tolva = self._add_measurement_relationship_features(
-            data,
-            df,
-            w=w,
-            va=va,
-            var=var,
-            pf=pf,
-            a=a,
-            llv=llv,
-            lnv=lnv,
-            hz=hz,
-            wmaxrtg=wmaxrtg,
-            vamaxrtg=vamaxrtg,
-            varmaxinjrtg=varmaxinjrtg,
-            varmaxabsrtg=varmaxabsrtg,
-            wmax=wmax,
-            vamax=vamax,
-            varmaxinj=varmaxinj,
-            varmaxabs=varmaxabs,
-            amax=amax,
-            vnom=vnom,
-            vmax=vmax,
-            vmin=vmin,
+        voltage_pct = 100.0 * self._safe_div(ac.llv, capacity.vnom)
+        line_neutral_voltage_pct = 100.0 * self._safe_div(ac.lnv * SQRT3, capacity.vnom)
+        w_pct = 100.0 * self._safe_div(ac.w, capacity.wmaxrtg)
+        var_pct = self._var_pct(ac.var, capacity.varmaxinj, capacity.varmaxabs)
+        ctx = FeatureContext(
+            ac=ac,
+            capacity=capacity,
+            tolw=tolw,
+            tolva=tolva,
+            voltage_pct=voltage_pct,
+            line_neutral_voltage_pct=line_neutral_voltage_pct,
+            w_pct=w_pct,
+            var_pct=var_pct,
         )
-        self._add_control_target_features(
-            data,
-            df,
-            w=w,
-            var=var,
-            wmaxrtg=wmaxrtg,
-            varmaxinj=varmaxinj,
-        )
-        self._add_capacity_extension_features(
-            data,
-            wmaxrtg=wmaxrtg,
-            wmax=wmax,
-            vamaxrtg=vamaxrtg,
-            vamax=vamax,
-            varmaxinjrtg=varmaxinjrtg,
-            varmaxinj=varmaxinj,
-            varmaxabsrtg=varmaxabsrtg,
-            varmaxabs=varmaxabs,
-            vnomrtg=df["DERCapacity[0].VNomRtg"].to_numpy(float),
-            vnom=vnom,
-            vmaxrtg=df["DERCapacity[0].VMaxRtg"].to_numpy(float),
-            vmax=vmax,
-            vminrtg=df["DERCapacity[0].VMinRtg"].to_numpy(float),
-            vmin=vmin,
-            amaxrtg=df["DERCapacity[0].AMaxRtg"].to_numpy(float),
-            amax=amax,
-            wcha_rtg=df["DERCapacity[0].WChaRteMaxRtg"].to_numpy(float),
-            wdis_rtg=df["DERCapacity[0].WDisChaRteMaxRtg"].to_numpy(float),
-            vacha_rtg=df["DERCapacity[0].VAChaRteMaxRtg"].to_numpy(float),
-            vadis_rtg=df["DERCapacity[0].VADisChaRteMaxRtg"].to_numpy(float),
-            wcha=df["DERCapacity[0].WChaRteMax"].to_numpy(float),
-            wdis=df["DERCapacity[0].WDisChaRteMax"].to_numpy(float),
-            vacha=df["DERCapacity[0].VAChaRteMax"].to_numpy(float),
-            vadis=df["DERCapacity[0].VADisChaRteMax"].to_numpy(float),
-            pfover_rtg=df["DERCapacity[0].PFOvrExtRtg"].to_numpy(float),
-            pfover=df["DERCapacity[0].PFOvrExt"].to_numpy(float),
-            pfunder_rtg=df["DERCapacity[0].PFUndExtRtg"].to_numpy(float),
-            pfunder=df["DERCapacity[0].PFUndExt"].to_numpy(float),
-        )
-
-        voltage_pct = 100.0 * self._safe_div(llv, vnom)
-        line_neutral_voltage_pct = 100.0 * self._safe_div(lnv * SQRT3, vnom)
-        w_pct = 100.0 * self._safe_div(w, wmaxrtg)
-        var_pct = self._var_pct(var, varmaxinj, varmaxabs)
-        data["voltage_pct"] = voltage_pct.astype(np.float32)
-        data["line_neutral_voltage_pct"] = line_neutral_voltage_pct.astype(np.float32)
-        data["w_pct_of_rtg"] = w_pct.astype(np.float32)
-        data["var_pct_of_limit"] = var_pct.astype(np.float32)
+        data["voltage_pct"] = ctx.voltage_pct.astype(np.float32)
+        data["line_neutral_voltage_pct"] = ctx.line_neutral_voltage_pct.astype(np.float32)
+        data["w_pct_of_rtg"] = ctx.w_pct.astype(np.float32)
+        data["var_pct_of_limit"] = ctx.var_pct.astype(np.float32)
 
         enter_state_anomaly, enter_blocked_power, enter_blocked_current = (
-            self._add_enter_service_features(
-                data,
-                df,
-                voltage_pct=voltage_pct,
-                hz=hz,
-                abs_w=abs_w,
-                va=va,
-                a=a,
-                tolw=tolw,
-                tolva=tolva,
-                amax=amax,
-            )
+            self._add_enter_service_features(data, df, ctx)
         )
         pf_abs_ext_present, pf_abs_rvrt_ext_present = self._add_pf_control_features(
-            data,
-            df,
-            pf=pf,
-            var=var,
-            varmaxinj=varmaxinj,
-            varmaxabs=varmaxabs,
+            data, df, ctx
         )
         trip_any_outside, trip_any_power_when_outside = self._compute_trip_summary_flags(
-            data,
-            df,
-            voltage_pct=voltage_pct,
-            hz=hz,
-            abs_w=abs_w,
-            tolw=tolw,
+            data, df, ctx
         )
         data["trip_any_outside_musttrip"] = trip_any_outside
         data["trip_any_power_when_outside"] = trip_any_power_when_outside
 
-        self._add_curve_family_features(
-            data,
-            df,
-            voltage_pct=voltage_pct,
-            w_pct=w_pct,
-            var_pct=var_pct,
-        )
-        self._add_freq_droop_features(data, df, hz=hz, w_pct=w_pct)
-        dc_port_type_rare = self._add_dc_features(data, df, w=w, abs_w=abs_w)
+        self._add_curve_family_features(data, df, ctx)
+        self._add_freq_droop_features(data, df, hz=ctx.ac.hz, w_pct=ctx.w_pct)
+        dc_port_type_rare = self._add_dc_features(data, df, w=ctx.ac.w, abs_w=ctx.ac.abs_w)
 
         ac_type = df["DERMeasureAC[0].ACType"].to_numpy(float)
         ac_type_is_rare = np.isfinite(ac_type) & (ac_type == 3.0)
         data["ac_type_is_rare"] = ac_type_is_rare.astype(np.int8)
         self._add_hard_rule_features(
             data,
-            ac_type_is_rare=ac_type_is_rare,
-            dc_port_type_rare=dc_port_type_rare,
-            enter_state_anomaly=enter_state_anomaly,
-            enter_blocked_power=enter_blocked_power,
-            enter_blocked_current=enter_blocked_current,
-            pf_abs_ext_present=pf_abs_ext_present,
-            pf_abs_rvrt_ext_present=pf_abs_rvrt_ext_present,
-            trip_any_power_when_outside=trip_any_power_when_outside,
+            HardRuleInputs(
+                ac_type_is_rare=ac_type_is_rare,
+                dc_port_type_rare=dc_port_type_rare,
+                enter_state_anomaly=enter_state_anomaly,
+                enter_blocked_power=enter_blocked_power,
+                enter_blocked_current=enter_blocked_current,
+                pf_abs_ext_present=pf_abs_ext_present,
+                pf_abs_rvrt_ext_present=pf_abs_rvrt_ext_present,
+                trip_any_power_when_outside=trip_any_power_when_outside,
+            ),
         )
         return pd.DataFrame(data)
 
@@ -2213,30 +2158,26 @@ class ResearchBaseline:
 
     @staticmethod
     def _assign_scenario_features(
-        out: pd.DataFrame,
-        *,
-        family_prior: np.ndarray,
-        scenario_rate: np.ndarray,
-        scenario_count: np.ndarray,
-        scenario_output_rate: np.ndarray,
-        scenario_output_count: np.ndarray,
+        out: pd.DataFrame, stats: ScenarioFeatureStats
     ) -> pd.DataFrame:
-        out["scenario_rate"] = scenario_rate.astype(np.float32)
-        out["scenario_rate_delta"] = (scenario_rate - family_prior).astype(np.float32)
-        out["scenario_count"] = scenario_count.astype(np.int32)
-        out["scenario_log_count"] = np.log1p(scenario_count).astype(np.float32)
-        out["scenario_low_support"] = (scenario_count < 20).astype(np.int8)
-        out["scenario_output_rate"] = scenario_output_rate.astype(np.float32)
-        out["scenario_output_rate_delta"] = (
-            scenario_output_rate - family_prior
+        out["scenario_rate"] = stats.scenario_rate.astype(np.float32)
+        out["scenario_rate_delta"] = (
+            stats.scenario_rate - stats.family_prior
         ).astype(np.float32)
-        out["scenario_output_count"] = scenario_output_count.astype(np.int32)
-        out["scenario_output_log_count"] = np.log1p(scenario_output_count).astype(
+        out["scenario_count"] = stats.scenario_count.astype(np.int32)
+        out["scenario_log_count"] = np.log1p(stats.scenario_count).astype(np.float32)
+        out["scenario_low_support"] = (stats.scenario_count < 20).astype(np.int8)
+        out["scenario_output_rate"] = stats.scenario_output_rate.astype(np.float32)
+        out["scenario_output_rate_delta"] = (
+            stats.scenario_output_rate - stats.family_prior
+        ).astype(np.float32)
+        out["scenario_output_count"] = stats.scenario_output_count.astype(np.int32)
+        out["scenario_output_log_count"] = np.log1p(stats.scenario_output_count).astype(
             np.float32
         )
-        out["scenario_output_low_support"] = (scenario_output_count < 20).astype(
-            np.int8
-        )
+        out["scenario_output_low_support"] = (
+            stats.scenario_output_count < 20
+        ).astype(np.int8)
         return out
 
     def _fit_transform_scenario_features(
@@ -2336,11 +2277,13 @@ class ResearchBaseline:
         )
         return self._assign_scenario_features(
             out,
-            family_prior=family_prior,
-            scenario_rate=scenario_rate,
-            scenario_count=scenario_count,
-            scenario_output_rate=scenario_output_rate,
-            scenario_output_count=scenario_output_count,
+            ScenarioFeatureStats(
+                family_prior=family_prior,
+                scenario_rate=scenario_rate,
+                scenario_count=scenario_count,
+                scenario_output_rate=scenario_output_rate,
+                scenario_output_count=scenario_output_count,
+            ),
         )
 
     def _apply_scenario_features(self, x_df: pd.DataFrame) -> pd.DataFrame:
@@ -2380,11 +2323,13 @@ class ResearchBaseline:
         ) / (output_count_values + SCENARIO_SMOOTHING)
         return self._assign_scenario_features(
             out,
-            family_prior=family_prior,
-            scenario_rate=scenario_rate,
-            scenario_count=count_values,
-            scenario_output_rate=scenario_output_rate,
-            scenario_output_count=output_count_values,
+            ScenarioFeatureStats(
+                family_prior=family_prior,
+                scenario_rate=scenario_rate,
+                scenario_count=count_values,
+                scenario_output_rate=scenario_output_rate,
+                scenario_output_count=output_count_values,
+            ),
         )
 
     def _add_family_interaction_features(self, x_df: pd.DataFrame) -> pd.DataFrame:
@@ -3074,18 +3019,11 @@ class ResearchBaseline:
         return probs, final_model
 
     def _train_cat_oof(
-        self,
-        cat_df: pd.DataFrame,
-        y: np.ndarray,
-        feature_cols: Sequence[str],
-        categorical_cols: Sequence[str],
-        *,
-        fold_col: str,
-        fit_final: bool,
+        self, cat_df: pd.DataFrame, y: np.ndarray, config: CatOofConfig
     ) -> Tuple[np.ndarray, Optional["CatBoostClassifier"]]:
         probs = np.ones(len(cat_df), dtype=np.float32)
         model_mask = cat_df["hard_override_anomaly"].to_numpy(np.int8) == 0
-        fold_ids = cat_df[fold_col].to_numpy(np.int8)
+        fold_ids = cat_df[config.fold_col].to_numpy(np.int8)
         final_model: Optional["CatBoostClassifier"] = None
         for fold in range(self.cv_folds):
             train_mask = model_mask & (fold_ids != fold)
@@ -3095,47 +3033,47 @@ class ResearchBaseline:
             model = self._new_cat_model()
             weights = self._build_sample_weights(cat_df.loc[train_mask], y[train_mask])
             model.fit(
-                cat_df.loc[train_mask, feature_cols],
+                cat_df.loc[train_mask, config.feature_cols],
                 y[train_mask],
-                cat_features=list(categorical_cols),
+                cat_features=list(config.categorical_cols),
                 sample_weight=weights,
                 verbose=False,
             )
             probs[valid_mask] = model.predict_proba(
-                cat_df.loc[valid_mask, feature_cols]
+                cat_df.loc[valid_mask, config.feature_cols]
             )[:, 1].astype(np.float32)
-        if fit_final and model_mask.any():
+        if config.fit_final and model_mask.any():
             final_model = self._new_cat_model()
             weights = self._build_sample_weights(cat_df.loc[model_mask], y[model_mask])
             final_model.fit(
-                cat_df.loc[model_mask, feature_cols],
+                cat_df.loc[model_mask, config.feature_cols],
                 y[model_mask],
-                cat_features=list(categorical_cols),
+                cat_features=list(config.categorical_cols),
                 sample_weight=weights,
                 verbose=False,
             )
         return probs, final_model
 
-    def _select_family_blend(
-        self,
-        y: np.ndarray,
-        hard_override: np.ndarray,
-        semantic_primary: np.ndarray,
-        semantic_audit: np.ndarray,
-        cat_primary: Optional[np.ndarray],
-        cat_audit: Optional[np.ndarray],
-    ) -> Tuple[float, float]:
-        baseline_primary_prob = semantic_primary.copy()
-        baseline_primary_prob[hard_override] = 1.0
-        baseline_thr, _ = self.tune_threshold(y, baseline_primary_prob)
+    def _select_family_blend(self, inputs: BlendInputs) -> Tuple[float, float]:
+        baseline_primary_prob = inputs.semantic_primary.copy()
+        baseline_primary_prob[inputs.hard_override] = 1.0
+        baseline_thr, _ = self.tune_threshold(inputs.y, baseline_primary_prob)
         baseline_primary_score = float(
-            fbeta_score(y, (baseline_primary_prob >= baseline_thr).astype(np.int8), beta=2)
+            fbeta_score(
+                inputs.y,
+                (baseline_primary_prob >= baseline_thr).astype(np.int8),
+                beta=2,
+            )
         )
 
-        baseline_audit_prob = semantic_audit.copy()
-        baseline_audit_prob[hard_override] = 1.0
+        baseline_audit_prob = inputs.semantic_audit.copy()
+        baseline_audit_prob[inputs.hard_override] = 1.0
         baseline_audit_score = float(
-            fbeta_score(y, (baseline_audit_prob >= baseline_thr).astype(np.int8), beta=2)
+            fbeta_score(
+                inputs.y,
+                (baseline_audit_prob >= baseline_thr).astype(np.int8),
+                beta=2,
+            )
         )
 
         best_weight = 1.0
@@ -3145,21 +3083,29 @@ class ResearchBaseline:
 
         weight_grid = (
             [round(step / 20.0, 2) for step in range(21)]
-            if cat_primary is not None
+            if inputs.cat_primary is not None
             else [1.0]
         )
         for weight in weight_grid:
-            blended_primary = self._blend_probs(semantic_primary, cat_primary, weight)
-            blended_primary[hard_override] = 1.0
-            thr, _ = self.tune_threshold(y, blended_primary)
+            blended_primary = self._blend_probs(
+                inputs.semantic_primary, inputs.cat_primary, weight
+            )
+            blended_primary[inputs.hard_override] = 1.0
+            thr, _ = self.tune_threshold(inputs.y, blended_primary)
             primary_score = float(
-                fbeta_score(y, (blended_primary >= thr).astype(np.int8), beta=2)
+                fbeta_score(
+                    inputs.y,
+                    (blended_primary >= thr).astype(np.int8),
+                    beta=2,
+                )
             )
 
-            blended_audit = self._blend_probs(semantic_audit, cat_audit, weight)
-            blended_audit[hard_override] = 1.0
+            blended_audit = self._blend_probs(
+                inputs.semantic_audit, inputs.cat_audit, weight
+            )
+            blended_audit[inputs.hard_override] = 1.0
             audit_score = float(
-                fbeta_score(y, (blended_audit >= thr).astype(np.int8), beta=2)
+                fbeta_score(inputs.y, (blended_audit >= thr).astype(np.int8), beta=2)
             )
             if audit_score < baseline_audit_score - AUDIT_TOLERANCE:
                 continue
@@ -3243,28 +3189,34 @@ class ResearchBaseline:
                     cat_primary_prob, cat_model = self._train_cat_oof(
                         cat_df,
                         y,
-                        cat_feature_cols,
-                        cat_categorical_cols,
-                        fold_col="fold_id",
-                        fit_final=True,
+                        CatOofConfig(
+                            feature_cols=cat_feature_cols,
+                            categorical_cols=cat_categorical_cols,
+                            fold_col="fold_id",
+                            fit_final=True,
+                        ),
                     )
                     cat_audit_prob, _ = self._train_cat_oof(
                         cat_df,
                         y,
-                        cat_feature_cols,
-                        cat_categorical_cols,
-                        fold_col="audit_fold_id",
-                        fit_final=False,
+                        CatOofConfig(
+                            feature_cols=cat_feature_cols,
+                            categorical_cols=cat_categorical_cols,
+                            fold_col="audit_fold_id",
+                            fit_final=False,
+                        ),
                     )
                 self.cat_models[family] = cat_model
 
                 weight, threshold = self._select_family_blend(
-                    y,
-                    hard_override,
-                    semantic_primary_prob,
-                    semantic_audit_prob,
-                    cat_primary_prob,
-                    cat_audit_prob,
+                    BlendInputs(
+                        y=y,
+                        hard_override=hard_override,
+                        semantic_primary=semantic_primary_prob,
+                        semantic_audit=semantic_audit_prob,
+                        cat_primary=cat_primary_prob,
+                        cat_audit=cat_audit_prob,
+                    )
                 )
                 self.family_blend_weights[family] = weight
                 self.family_thresholds[family] = threshold
