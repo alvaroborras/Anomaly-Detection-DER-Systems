@@ -618,6 +618,13 @@ class ScenarioFeatureStats:
 
 
 @dataclass(frozen=True)
+class SemanticOofConfig:
+    feature_cols: Sequence[str]
+    fold_col: str
+    fit_final: bool
+
+
+@dataclass(frozen=True)
 class CatOofConfig:
     feature_cols: Sequence[str]
     categorical_cols: Sequence[str]
@@ -1357,12 +1364,7 @@ class ResearchBaseline:
             ).astype(np.float32)
 
     def _add_freq_droop_features(
-        self,
-        data: Dict[str, np.ndarray],
-        df: pd.DataFrame,
-        *,
-        hz: np.ndarray,
-        w_pct: np.ndarray,
+        self, data: Dict[str, np.ndarray], df: pd.DataFrame, ctx: FeatureContext
     ) -> None:
         raw_idx = df["DERFreqDroop[0].AdptCtlRslt"].to_numpy(float)
         ctl_idx = self._curve_index(raw_idx, 3)
@@ -1395,8 +1397,8 @@ class ResearchBaseline:
         pmin = self._select_curve_scalar(pmin_curves, ctl_idx)
         readonly = self._select_curve_scalar(ro_curves, ctl_idx)
 
-        over_activation = np.maximum(hz - (60.0 + dbof), 0.0)
-        under_activation = np.maximum((60.0 - dbuf) - hz, 0.0)
+        over_activation = np.maximum(ctx.ac.hz - (60.0 + dbof), 0.0)
+        under_activation = np.maximum((60.0 - dbuf) - ctx.ac.hz, 0.0)
         expected_delta_pct = 100.0 * self._safe_div(
             over_activation, kof
         ) - 100.0 * self._safe_div(under_activation, kuf)
@@ -1420,7 +1422,7 @@ class ResearchBaseline:
         data["freqdroop_outside_deadband"] = (
             (over_activation > 0) | (under_activation > 0)
         ).astype(np.int8)
-        data["freqdroop_w_over_pmin_pct"] = (w_pct - pmin).astype(np.float32)
+        data["freqdroop_w_over_pmin_pct"] = (ctx.w_pct - pmin).astype(np.float32)
         data["freqdroop_db_span"] = (
             self._nanmax_rows(np.column_stack([dbof_stack, dbuf_stack]))
             - self._nanmin_rows(np.column_stack([dbof_stack, dbuf_stack]))
@@ -1433,12 +1435,7 @@ class ResearchBaseline:
         ).astype(np.float32)
 
     def _add_dc_features(
-        self,
-        data: Dict[str, np.ndarray],
-        df: pd.DataFrame,
-        *,
-        w: np.ndarray,
-        abs_w: np.ndarray,
+        self, data: Dict[str, np.ndarray], df: pd.DataFrame, ctx: FeatureContext
     ) -> np.ndarray:
         dcw = df["DERMeasureDC[0].DCW"].to_numpy(float)
         dca = df["DERMeasureDC[0].DCA"].to_numpy(float)
@@ -1451,8 +1448,8 @@ class ResearchBaseline:
         prt0_t = df["DERMeasureDC[0].Prt[0].PrtTyp"].to_numpy(float)
         prt1_t = df["DERMeasureDC[0].Prt[1].PrtTyp"].to_numpy(float)
 
-        data["dcw_over_w"] = self._safe_div(dcw, w)
-        data["dcw_over_abs_w"] = self._safe_div(dcw, abs_w)
+        data["dcw_over_w"] = self._safe_div(dcw, ctx.ac.w)
+        data["dcw_over_abs_w"] = self._safe_div(dcw, ctx.ac.abs_w)
         data["dcw_minus_port_sum"] = (dcw - (prt0 + prt1)).astype(np.float32)
         data["dcv_spread"] = np.abs(prt0_v - prt1_v).astype(np.float32)
         data["dca_spread"] = np.abs(prt0_a - prt1_a).astype(np.float32)
@@ -1462,10 +1459,11 @@ class ResearchBaseline:
         ).astype(np.int8)
         rare_type = (prt0_t == 7) | (prt1_t == 7)
         data["dc_port_type_rare_any"] = rare_type.astype(np.int8)
-        data["ac_zero_dc_positive"] = ((np.abs(w) <= 1e-6) & (dcw > 0)).astype(np.int8)
-        data["ac_positive_dc_zero"] = ((w > 0) & (np.abs(dcw) <= 1e-6)).astype(np.int8)
+        data["ac_zero_dc_positive"] = ((np.abs(ctx.ac.w) <= 1e-6) & (dcw > 0)).astype(np.int8)
+        data["ac_positive_dc_zero"] = ((ctx.ac.w > 0) & (np.abs(dcw) <= 1e-6)).astype(np.int8)
         data["ac_dc_same_sign"] = (
-            np.sign(np.nan_to_num(w, nan=0.0)) == np.sign(np.nan_to_num(dcw, nan=0.0))
+            np.sign(np.nan_to_num(ctx.ac.w, nan=0.0))
+            == np.sign(np.nan_to_num(dcw, nan=0.0))
         ).astype(np.int8)
         data["dca_over_total"] = self._safe_div(dca, prt0_a + prt1_a)
         return rare_type.astype(np.int8)
@@ -1961,8 +1959,8 @@ class ResearchBaseline:
         data["trip_any_power_when_outside"] = trip_any_power_when_outside
 
         self._add_curve_family_features(data, df, ctx)
-        self._add_freq_droop_features(data, df, hz=ctx.ac.hz, w_pct=ctx.w_pct)
-        dc_port_type_rare = self._add_dc_features(data, df, w=ctx.ac.w, abs_w=ctx.ac.abs_w)
+        self._add_freq_droop_features(data, df, ctx)
+        dc_port_type_rare = self._add_dc_features(data, df, ctx)
 
         ac_type = df["DERMeasureAC[0].ACType"].to_numpy(float)
         ac_type_is_rare = np.isfinite(ac_type) & (ac_type == 3.0)
@@ -2981,17 +2979,11 @@ class ResearchBaseline:
         ]
 
     def _train_semantic_oof(
-        self,
-        semantic_df: pd.DataFrame,
-        y: np.ndarray,
-        feature_cols: Sequence[str],
-        *,
-        fold_col: str,
-        fit_final: bool,
+        self, semantic_df: pd.DataFrame, y: np.ndarray, config: SemanticOofConfig
     ) -> Tuple[np.ndarray, Optional[XGBClassifier]]:
         probs = np.ones(len(semantic_df), dtype=np.float32)
         model_mask = semantic_df["hard_override_anomaly"].to_numpy(np.int8) == 0
-        fold_ids = semantic_df[fold_col].to_numpy(np.int8)
+        fold_ids = semantic_df[config.fold_col].to_numpy(np.int8)
         final_model: Optional[XGBClassifier] = None
         for fold in range(self.cv_folds):
             train_mask = model_mask & (fold_ids != fold)
@@ -2999,20 +2991,20 @@ class ResearchBaseline:
             if not valid_mask.any():
                 continue
             model = self._new_classifier()
-            x_train = semantic_df.loc[train_mask, feature_cols]
+            x_train = semantic_df.loc[train_mask, config.feature_cols]
             y_train = y[train_mask]
             weights = self._build_sample_weights(semantic_df.loc[train_mask], y_train)
             model.fit(x_train, y_train, sample_weight=weights)
             probs[valid_mask] = model.predict_proba(
-                semantic_df.loc[valid_mask, feature_cols]
+                semantic_df.loc[valid_mask, config.feature_cols]
             )[:, 1].astype(np.float32)
-        if fit_final and model_mask.any():
+        if config.fit_final and model_mask.any():
             final_model = self._new_classifier()
             weights = self._build_sample_weights(
                 semantic_df.loc[model_mask], y[model_mask]
             )
             final_model.fit(
-                semantic_df.loc[model_mask, feature_cols],
+                semantic_df.loc[model_mask, config.feature_cols],
                 y[model_mask],
                 sample_weight=weights,
             )
@@ -3169,16 +3161,20 @@ class ResearchBaseline:
                 semantic_primary_prob, semantic_model = self._train_semantic_oof(
                     semantic_df,
                     y,
-                    semantic_feature_cols,
-                    fold_col="fold_id",
-                    fit_final=True,
+                    SemanticOofConfig(
+                        feature_cols=semantic_feature_cols,
+                        fold_col="fold_id",
+                        fit_final=True,
+                    ),
                 )
                 semantic_audit_prob, _ = self._train_semantic_oof(
                     semantic_df,
                     y,
-                    semantic_feature_cols,
-                    fold_col="audit_fold_id",
-                    fit_final=False,
+                    SemanticOofConfig(
+                        feature_cols=semantic_feature_cols,
+                        fold_col="audit_fold_id",
+                        fit_final=False,
+                    ),
                 )
                 self.semantic_models[family] = semantic_model
 
