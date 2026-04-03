@@ -1,12 +1,11 @@
 import gc
-import hashlib
 import json
 import logging
 import math
 import random
 import re
 import shutil
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
@@ -29,205 +28,300 @@ def prefixed(prefix: str, fields: Sequence[str]) -> List[str]:
     return [f"{prefix}.{field}" for field in fields]
 
 
-def build_volt_var_columns(prefix: str) -> List[str]:
-    columns = [
-        f"{prefix}.ID",
-        f"{prefix}.L",
-        f"{prefix}.Ena",
-        f"{prefix}.AdptCrvReq",
-        f"{prefix}.AdptCrvRslt",
-        f"{prefix}.NPt",
-        f"{prefix}.NCrv",
-        f"{prefix}.RvrtTms",
-        f"{prefix}.RvrtRem",
-        f"{prefix}.RvrtCrv",
-    ]
-    for curve in range(3):
-        curve_prefix = f"{prefix}.Crv[{curve}]"
-        columns.extend(
-            [
-                f"{curve_prefix}.ActPt",
-                f"{curve_prefix}.DeptRef",
-                f"{curve_prefix}.Pri",
-                f"{curve_prefix}.VRef",
-                f"{curve_prefix}.VRefAuto",
-                f"{curve_prefix}.VRefAutoEna",
-                f"{curve_prefix}.VRefAutoTms",
-                f"{curve_prefix}.RspTms",
-                f"{curve_prefix}.ReadOnly",
-            ]
-        )
-        for point in range(4):
+def build_block_columns(
+    prefix: str,
+    *,
+    base_fields: Sequence[str],
+    item_label: str,
+    item_count: int,
+    item_fields: Sequence[str] = (),
+    point_count: int = 0,
+    point_fields: Sequence[str] = (),
+    groups: Sequence[str] = (),
+) -> List[str]:
+    columns = prefixed(prefix, base_fields)
+    for item_idx in range(item_count):
+        item_prefix = f"{prefix}.{item_label}[{item_idx}]"
+        columns.extend(prefixed(item_prefix, item_fields))
+        if groups:
+            for group in groups:
+                group_prefix = f"{item_prefix}.{group}"
+                columns.append(f"{group_prefix}.ActPt")
+                for point_idx in range(point_count):
+                    columns.extend(
+                        prefixed(
+                            f"{group_prefix}.Pt[{point_idx}]",
+                            point_fields,
+                        )
+                    )
+            continue
+        for point_idx in range(point_count):
             columns.extend(
-                [
-                    f"{curve_prefix}.Pt[{point}].V",
-                    f"{curve_prefix}.Pt[{point}].Var",
-                ]
+                prefixed(f"{item_prefix}.Pt[{point_idx}]", point_fields)
             )
     return columns
 
 
-def build_volt_watt_columns(prefix: str) -> List[str]:
-    columns = [
-        f"{prefix}.ID",
-        f"{prefix}.L",
-        f"{prefix}.Ena",
-        f"{prefix}.AdptCrvReq",
-        f"{prefix}.AdptCrvRslt",
-        f"{prefix}.NPt",
-        f"{prefix}.NCrv",
-        f"{prefix}.RvrtTms",
-        f"{prefix}.RvrtRem",
-        f"{prefix}.RvrtCrv",
-    ]
-    for curve in range(3):
-        curve_prefix = f"{prefix}.Crv[{curve}]"
-        columns.extend(
-            [
-                f"{curve_prefix}.ActPt",
-                f"{curve_prefix}.DeptRef",
-                f"{curve_prefix}.RspTms",
-                f"{curve_prefix}.ReadOnly",
-            ]
-        )
-        for point in range(2):
-            columns.extend(
-                [
-                    f"{curve_prefix}.Pt[{point}].V",
-                    f"{curve_prefix}.Pt[{point}].W",
-                ]
-            )
-    return columns
-
-
-def build_watt_var_columns(prefix: str) -> List[str]:
-    columns = [
-        f"{prefix}.ID",
-        f"{prefix}.L",
-        f"{prefix}.Ena",
-        f"{prefix}.AdptCrvReq",
-        f"{prefix}.AdptCrvRslt",
-        f"{prefix}.NPt",
-        f"{prefix}.NCrv",
-        f"{prefix}.RvrtTms",
-        f"{prefix}.RvrtRem",
-        f"{prefix}.RvrtCrv",
-    ]
-    for curve in range(3):
-        curve_prefix = f"{prefix}.Crv[{curve}]"
-        columns.extend(
-            [
-                f"{curve_prefix}.ActPt",
-                f"{curve_prefix}.DeptRef",
-                f"{curve_prefix}.Pri",
-                f"{curve_prefix}.ReadOnly",
-            ]
-        )
-        for point in range(6):
-            columns.extend(
-                [
-                    f"{curve_prefix}.Pt[{point}].W",
-                    f"{curve_prefix}.Pt[{point}].Var",
-                ]
-            )
-    return columns
-
-
-def build_freq_droop_columns(prefix: str) -> List[str]:
-    columns = [
-        f"{prefix}.ID",
-        f"{prefix}.L",
-        f"{prefix}.Ena",
-        f"{prefix}.AdptCtlReq",
-        f"{prefix}.AdptCtlRslt",
-        f"{prefix}.NCtl",
-        f"{prefix}.RvrtTms",
-        f"{prefix}.RvrtRem",
-        f"{prefix}.RvrtCtl",
-    ]
-    for ctl in range(3):
-        ctl_prefix = f"{prefix}.Ctl[{ctl}]"
-        columns.extend(
-            [
-                f"{ctl_prefix}.DbOf",
-                f"{ctl_prefix}.DbUf",
-                f"{ctl_prefix}.KOf",
-                f"{ctl_prefix}.KUf",
-                f"{ctl_prefix}.RspTms",
-                f"{ctl_prefix}.PMin",
-                f"{ctl_prefix}.ReadOnly",
-            ]
-        )
-    return columns
-
-
-def build_trip_columns(prefix: str, axis_name: str) -> List[str]:
-    columns = [
-        f"{prefix}.ID",
-        f"{prefix}.L",
-        f"{prefix}.Ena",
-        f"{prefix}.AdptCrvReq",
-        f"{prefix}.AdptCrvRslt",
-        f"{prefix}.NPt",
-        f"{prefix}.NCrvSet",
-    ]
-    for curve in range(2):
-        curve_prefix = f"{prefix}.Crv[{curve}]"
-        columns.append(f"{curve_prefix}.ReadOnly")
-        for group in ["MustTrip", "MayTrip", "MomCess"]:
-            group_prefix = f"{curve_prefix}.{group}"
-            columns.append(f"{group_prefix}.ActPt")
-            for point in range(5):
-                columns.extend(
-                    [
-                        f"{group_prefix}.Pt[{point}].{axis_name}",
-                        f"{group_prefix}.Pt[{point}].Tms",
-                    ]
-                )
-    return columns
-
-
-COMMON_FIELDS = "Mn Md Opt Vr SN".split()
+COMMON_FIELDS = (
+    "Mn",
+    "Md",
+    "Opt",
+    "Vr",
+    "SN",
+)
 COMMON_STR = prefixed("common[0]", COMMON_FIELDS)
-COMMON_COLUMNS = prefixed("common[0]", ["ID", "L", *COMMON_FIELDS, "DA"])
+COMMON_COLUMNS = prefixed("common[0]", ("ID", "L", *COMMON_FIELDS, "DA"))
 
-MEASURE_AC_FIELDS = """
-ID L ACType W VA Var PF A LLV LNV Hz TmpAmb TmpCab TmpSnk TmpTrns TmpSw TmpOt
-ThrotPct ThrotSrc WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3
-AL1 AL2 AL3 VL1L2 VL2L3 VL3L1 VL1 VL2 VL3
-""".split()
+MEASURE_AC_FIELDS = (
+    "ID",
+    "L",
+    "ACType",
+    "W",
+    "VA",
+    "Var",
+    "PF",
+    "A",
+    "LLV",
+    "LNV",
+    "Hz",
+    "TmpAmb",
+    "TmpCab",
+    "TmpSnk",
+    "TmpTrns",
+    "TmpSw",
+    "TmpOt",
+    "ThrotPct",
+    "ThrotSrc",
+    "WL1",
+    "WL2",
+    "WL3",
+    "VAL1",
+    "VAL2",
+    "VAL3",
+    "VarL1",
+    "VarL2",
+    "VarL3",
+    "PFL1",
+    "PFL2",
+    "PFL3",
+    "AL1",
+    "AL2",
+    "AL3",
+    "VL1L2",
+    "VL2L3",
+    "VL3L1",
+    "VL1",
+    "VL2",
+    "VL3",
+)
 MEASURE_AC_COLUMNS = prefixed("DERMeasureAC[0]", MEASURE_AC_FIELDS)
 
-CAPACITY_FIELDS = """
-ID L WMaxRtg VAMaxRtg VarMaxInjRtg VarMaxAbsRtg WChaRteMaxRtg WDisChaRteMaxRtg
-VAChaRteMaxRtg VADisChaRteMaxRtg VNomRtg VMaxRtg VMinRtg AMaxRtg PFOvrExtRtg
-PFUndExtRtg NorOpCatRtg AbnOpCatRtg IntIslandCatRtg WMax WMaxOvrExt WOvrExtPF
-WMaxUndExt WUndExtPF VAMax VarMaxInj VarMaxAbs WChaRteMax WDisChaRteMax
-VAChaRteMax VADisChaRteMax VNom VMax VMin AMax PFOvrExt PFUndExt CtrlModes
-IntIslandCat
-""".split()
+CAPACITY_FIELDS = (
+    "ID",
+    "L",
+    "WMaxRtg",
+    "VAMaxRtg",
+    "VarMaxInjRtg",
+    "VarMaxAbsRtg",
+    "WChaRteMaxRtg",
+    "WDisChaRteMaxRtg",
+    "VAChaRteMaxRtg",
+    "VADisChaRteMaxRtg",
+    "VNomRtg",
+    "VMaxRtg",
+    "VMinRtg",
+    "AMaxRtg",
+    "PFOvrExtRtg",
+    "PFUndExtRtg",
+    "NorOpCatRtg",
+    "AbnOpCatRtg",
+    "IntIslandCatRtg",
+    "WMax",
+    "WMaxOvrExt",
+    "WOvrExtPF",
+    "WMaxUndExt",
+    "WUndExtPF",
+    "VAMax",
+    "VarMaxInj",
+    "VarMaxAbs",
+    "WChaRteMax",
+    "WDisChaRteMax",
+    "VAChaRteMax",
+    "VADisChaRteMax",
+    "VNom",
+    "VMax",
+    "VMin",
+    "AMax",
+    "PFOvrExt",
+    "PFUndExt",
+    "CtrlModes",
+    "IntIslandCat",
+)
 CAPACITY_COLUMNS = prefixed("DERCapacity[0]", CAPACITY_FIELDS)
 
 ENTER_SERVICE_FIELDS = (
-    "ID L ES ESVHi ESVLo ESHzHi ESHzLo ESDlyTms ESRndTms ESRmpTms ESDlyRemTms".split()
+    "ID",
+    "L",
+    "ES",
+    "ESVHi",
+    "ESVLo",
+    "ESHzHi",
+    "ESHzLo",
+    "ESDlyTms",
+    "ESRndTms",
+    "ESRmpTms",
+    "ESDlyRemTms",
 )
 ENTER_SERVICE_COLUMNS = prefixed("DEREnterService[0]", ENTER_SERVICE_FIELDS)
 
-CTL_AC_FIELDS = """
-ID L PFWInjEna PFWInjEnaRvrt PFWInjRvrtTms PFWInjRvrtRem PFWAbsEna PFWAbsEnaRvrt
-PFWAbsRvrtTms PFWAbsRvrtRem WMaxLimPctEna WMaxLimPct WMaxLimPctRvrt
-WMaxLimPctEnaRvrt WMaxLimPctRvrtTms WMaxLimPctRvrtRem WSetEna WSetMod WSet
-WSetRvrt WSetPct WSetPctRvrt WSetEnaRvrt WSetRvrtTms WSetRvrtRem VarSetEna
-VarSetMod VarSetPri VarSet VarSetRvrt VarSetPct VarSetPctRvrt VarSetEnaRvrt
-VarSetRvrtTms VarSetRvrtRem WRmp WRmpRef VarRmp AntiIslEna PFWInj.PF PFWInj.Ext
-PFWInjRvrt.PF PFWInjRvrt.Ext PFWAbs.Ext PFWAbsRvrt.Ext
-""".split()
+CTL_AC_FIELDS = (
+    "ID",
+    "L",
+    "PFWInjEna",
+    "PFWInjEnaRvrt",
+    "PFWInjRvrtTms",
+    "PFWInjRvrtRem",
+    "PFWAbsEna",
+    "PFWAbsEnaRvrt",
+    "PFWAbsRvrtTms",
+    "PFWAbsRvrtRem",
+    "WMaxLimPctEna",
+    "WMaxLimPct",
+    "WMaxLimPctRvrt",
+    "WMaxLimPctEnaRvrt",
+    "WMaxLimPctRvrtTms",
+    "WMaxLimPctRvrtRem",
+    "WSetEna",
+    "WSetMod",
+    "WSet",
+    "WSetRvrt",
+    "WSetPct",
+    "WSetPctRvrt",
+    "WSetEnaRvrt",
+    "WSetRvrtTms",
+    "WSetRvrtRem",
+    "VarSetEna",
+    "VarSetMod",
+    "VarSetPri",
+    "VarSet",
+    "VarSetRvrt",
+    "VarSetPct",
+    "VarSetPctRvrt",
+    "VarSetEnaRvrt",
+    "VarSetRvrtTms",
+    "VarSetRvrtRem",
+    "WRmp",
+    "WRmpRef",
+    "VarRmp",
+    "AntiIslEna",
+    "PFWInj.PF",
+    "PFWInj.Ext",
+    "PFWInjRvrt.PF",
+    "PFWInjRvrt.Ext",
+    "PFWAbs.Ext",
+    "PFWAbsRvrt.Ext",
+)
 CTL_AC_COLUMNS = prefixed("DERCtlAC[0]", CTL_AC_FIELDS)
 
-VOLT_VAR_COLUMNS = build_volt_var_columns("DERVoltVar[0]")
-VOLT_WATT_COLUMNS = build_volt_watt_columns("DERVoltWatt[0]")
-FREQ_DROOP_COLUMNS = build_freq_droop_columns("DERFreqDroop[0]")
-WATT_VAR_COLUMNS = build_watt_var_columns("DERWattVar[0]")
+CURVE_BLOCK_BASE_FIELDS = (
+    "ID",
+    "L",
+    "Ena",
+    "AdptCrvReq",
+    "AdptCrvRslt",
+    "NPt",
+    "NCrv",
+    "RvrtTms",
+    "RvrtRem",
+    "RvrtCrv",
+)
+VOLT_VAR_ITEM_FIELDS = (
+    "ActPt",
+    "DeptRef",
+    "Pri",
+    "VRef",
+    "VRefAuto",
+    "VRefAutoEna",
+    "VRefAutoTms",
+    "RspTms",
+    "ReadOnly",
+)
+VOLT_WATT_ITEM_FIELDS = (
+    "ActPt",
+    "DeptRef",
+    "RspTms",
+    "ReadOnly",
+)
+FREQ_DROOP_BASE_FIELDS = (
+    "ID",
+    "L",
+    "Ena",
+    "AdptCtlReq",
+    "AdptCtlRslt",
+    "NCtl",
+    "RvrtTms",
+    "RvrtRem",
+    "RvrtCtl",
+)
+FREQ_DROOP_ITEM_FIELDS = (
+    "DbOf",
+    "DbUf",
+    "KOf",
+    "KUf",
+    "RspTms",
+    "PMin",
+    "ReadOnly",
+)
+WATT_VAR_ITEM_FIELDS = (
+    "ActPt",
+    "DeptRef",
+    "Pri",
+    "ReadOnly",
+)
+TRIP_BLOCK_BASE_FIELDS = (
+    "ID",
+    "L",
+    "Ena",
+    "AdptCrvReq",
+    "AdptCrvRslt",
+    "NPt",
+    "NCrvSet",
+)
+
+VOLT_VAR_COLUMNS = build_block_columns(
+    "DERVoltVar[0]",
+    base_fields=CURVE_BLOCK_BASE_FIELDS,
+    item_label="Crv",
+    item_count=3,
+    item_fields=VOLT_VAR_ITEM_FIELDS,
+    point_count=4,
+    point_fields=("V", "Var"),
+)
+VOLT_WATT_COLUMNS = build_block_columns(
+    "DERVoltWatt[0]",
+    base_fields=CURVE_BLOCK_BASE_FIELDS,
+    item_label="Crv",
+    item_count=3,
+    item_fields=VOLT_WATT_ITEM_FIELDS,
+    point_count=2,
+    point_fields=("V", "W"),
+)
+FREQ_DROOP_COLUMNS = build_block_columns(
+    "DERFreqDroop[0]",
+    base_fields=FREQ_DROOP_BASE_FIELDS,
+    item_label="Ctl",
+    item_count=3,
+    item_fields=FREQ_DROOP_ITEM_FIELDS,
+)
+WATT_VAR_COLUMNS = build_block_columns(
+    "DERWattVar[0]",
+    base_fields=CURVE_BLOCK_BASE_FIELDS,
+    item_label="Crv",
+    item_count=3,
+    item_fields=WATT_VAR_ITEM_FIELDS,
+    point_count=6,
+    point_fields=("W", "Var"),
+)
 
 TRIP_SPECS: Dict[str, Tuple[str, str, str]] = {
     "lv": ("DERTripLV[0]", "V", "low"),
@@ -236,14 +330,38 @@ TRIP_SPECS: Dict[str, Tuple[str, str, str]] = {
     "hf": ("DERTripHF[0]", "Hz", "high"),
 }
 TRIP_COLUMNS = {
-    short_name: build_trip_columns(prefix, axis_name)
+    short_name: build_block_columns(
+        prefix,
+        base_fields=TRIP_BLOCK_BASE_FIELDS,
+        item_label="Crv",
+        item_count=2,
+        item_fields=("ReadOnly",),
+        point_count=5,
+        point_fields=(axis_name, "Tms"),
+        groups=("MustTrip", "MayTrip", "MomCess"),
+    )
     for short_name, (prefix, axis_name, _) in TRIP_SPECS.items()
 }
 
-MEASURE_DC_FIELDS = """
-ID L NPrt DCA DCW Prt[0].PrtTyp Prt[0].ID Prt[0].DCA Prt[0].DCV Prt[0].DCW
-Prt[0].Tmp Prt[1].PrtTyp Prt[1].ID Prt[1].DCA Prt[1].DCV Prt[1].DCW Prt[1].Tmp
-""".split()
+MEASURE_DC_FIELDS = (
+    "ID",
+    "L",
+    "NPrt",
+    "DCA",
+    "DCW",
+    "Prt[0].PrtTyp",
+    "Prt[0].ID",
+    "Prt[0].DCA",
+    "Prt[0].DCV",
+    "Prt[0].DCW",
+    "Prt[0].Tmp",
+    "Prt[1].PrtTyp",
+    "Prt[1].ID",
+    "Prt[1].DCA",
+    "Prt[1].DCV",
+    "Prt[1].DCW",
+    "Prt[1].Tmp",
+)
 MEASURE_DC_COLUMNS = prefixed("DERMeasureDC[0]", MEASURE_DC_FIELDS)
 
 BLOCK_SOURCE_COLUMNS: Dict[str, List[str]] = {
@@ -262,12 +380,31 @@ for short_name, cols in TRIP_COLUMNS.items():
     BLOCK_SOURCE_COLUMNS[f"trip_{short_name}"] = cols
 
 CURVE_BLOCK_META_FIELDS = (
-    "Ena AdptCrvReq AdptCrvRslt NPt NCrv RvrtTms RvrtRem RvrtCrv".split()
+    "Ena",
+    "AdptCrvReq",
+    "AdptCrvRslt",
+    "NPt",
+    "NCrv",
+    "RvrtTms",
+    "RvrtRem",
+    "RvrtCrv",
 )
 FREQ_DROOP_META_FIELDS = (
-    "Ena AdptCtlReq AdptCtlRslt NCtl RvrtTms RvrtRem RvrtCtl".split()
+    "Ena",
+    "AdptCtlReq",
+    "AdptCtlRslt",
+    "NCtl",
+    "RvrtTms",
+    "RvrtRem",
+    "RvrtCtl",
 )
-TRIP_META_FIELDS = "Ena AdptCrvReq AdptCrvRslt NPt NCrvSet".split()
+TRIP_META_FIELDS = (
+    "Ena",
+    "AdptCrvReq",
+    "AdptCrvRslt",
+    "NPt",
+    "NCrvSet",
+)
 
 RAW_NUMERIC = dedupe(
     [
@@ -353,8 +490,6 @@ TEST_CSV_PATH = Path(
     "/kaggle/input/competitions/cyber-physical-anomaly-detection-for-der-systems/test.csv"
 )
 DEFAULT_SEED = 42
-MODEL_FILENAME = "semantic_full_data_xgb.json"
-REPORT_FILENAME = "semantic_full_data_validation.json"
 DEFAULT_OUTPUT_DIR = KAGGLE_WORKING_DIR / "outputs" / "full_data_hybrid"
 SQRT3 = math.sqrt(3.0)
 DEVICE_FAMILY_MAP = {"canon10": 0, "canon100": 1}
@@ -382,34 +517,99 @@ SURROGATE_TARGETS = {
     "pf": ("DERMeasureAC_0_PF", None),
     "a": ("DERMeasureAC_0_A", "DERCapacity_0_AMaxRtg"),
 }
+SURROGATE_MEASURE_AC_FIELDS = (
+    "W",
+    "VA",
+    "Var",
+    "PF",
+    "A",
+    "WL1",
+    "WL2",
+    "WL3",
+    "VAL1",
+    "VAL2",
+    "VAL3",
+    "VarL1",
+    "VarL2",
+    "VarL3",
+    "PFL1",
+    "PFL2",
+    "PFL3",
+    "AL1",
+    "AL2",
+    "AL3",
+)
+SURROGATE_DERIVED_FEATURES = (
+    "w_over_wmaxrtg",
+    "w_over_wmax",
+    "va_over_vamax",
+    "va_over_vamaxrtg",
+    "var_over_injmax",
+    "var_over_absmax",
+    "a_over_amax",
+    "w_minus_wmax",
+    "w_minus_wmaxrtg",
+    "va_minus_vamax",
+    "var_minus_injmax",
+    "var_plus_absmax",
+    "w_eq_wmaxrtg",
+    "w_eq_wmax",
+    "var_eq_varmaxinj",
+    "var_eq_neg_varmaxabs",
+    "pf_sign_mismatch",
+    "w_gt_wmax_tol",
+    "w_gt_wmaxrtg_tol",
+    "va_gt_vamax_tol",
+    "var_gt_injmax_tol",
+    "var_lt_absmax_tol",
+    "va_minus_pqmag",
+    "va_over_pqmag",
+    "pf_from_w_va",
+    "pf_error",
+    "w_phase_sum_error",
+    "va_phase_sum_error",
+    "var_phase_sum_error",
+    "phase_w_spread",
+    "phase_var_spread",
+    "wset_abs_error",
+    "wsetpct_target",
+    "wsetpct_abs_error",
+    "wmaxlim_target",
+    "wmaxlim_excess",
+    "varset_abs_error",
+    "varsetpct_target",
+    "varsetpct_abs_error",
+    "wset_enabled_far",
+    "wsetpct_enabled_far",
+    "wmaxlim_enabled_far",
+    "varsetpct_enabled_far",
+    "w_pct_of_rtg",
+    "var_pct_of_limit",
+    "enter_service_blocked_power",
+    "enter_service_blocked_va",
+    "enter_service_blocked_current",
+    "pf_inj_target_error",
+    "pf_inj_reversion_error",
+    "pf_reactive_near_limit",
+    "trip_lv_power_when_outside",
+    "trip_hv_power_when_outside",
+    "trip_lf_power_when_outside",
+    "trip_hf_power_when_outside",
+    "trip_any_power_when_outside",
+    "voltvar_curve_error",
+    "voltwatt_curve_error",
+    "wattvar_curve_expected",
+    "wattvar_curve_error",
+    "freqdroop_w_over_pmin_pct",
+    "dcw_over_w",
+    "dcw_over_abs_w",
+    "ac_zero_dc_positive",
+    "ac_positive_dc_zero",
+    "ac_dc_same_sign",
+)
 SURROGATE_LEAKY_FEATURES = {
-    *(
-        f"DERMeasureAC_0_{field}"
-        for field in """
-    W VA Var PF A WL1 WL2 WL3 VAL1 VAL2 VAL3 VarL1 VarL2 VarL3 PFL1 PFL2 PFL3
-    AL1 AL2 AL3
-    """.split()
-    ),
-    *"""
-    w_over_wmaxrtg w_over_wmax va_over_vamax va_over_vamaxrtg var_over_injmax
-    var_over_absmax a_over_amax w_minus_wmax w_minus_wmaxrtg va_minus_vamax
-    var_minus_injmax var_plus_absmax w_eq_wmaxrtg w_eq_wmax var_eq_varmaxinj
-    var_eq_neg_varmaxabs pf_sign_mismatch w_gt_wmax_tol w_gt_wmaxrtg_tol
-    va_gt_vamax_tol var_gt_injmax_tol var_lt_absmax_tol va_minus_pqmag
-    va_over_pqmag pf_from_w_va pf_error w_phase_sum_error va_phase_sum_error
-    var_phase_sum_error phase_w_spread phase_var_spread wset_abs_error
-    wsetpct_target wsetpct_abs_error wmaxlim_target wmaxlim_excess
-    varset_abs_error varsetpct_target varsetpct_abs_error wset_enabled_far
-    wsetpct_enabled_far wmaxlim_enabled_far varsetpct_enabled_far w_pct_of_rtg
-    var_pct_of_limit enter_service_blocked_power enter_service_blocked_va
-    enter_service_blocked_current pf_inj_target_error pf_inj_reversion_error
-    pf_reactive_near_limit trip_lv_power_when_outside trip_hv_power_when_outside
-    trip_lf_power_when_outside trip_hf_power_when_outside
-    trip_any_power_when_outside voltvar_curve_error voltwatt_curve_error
-    wattvar_curve_expected wattvar_curve_error freqdroop_w_over_pmin_pct
-    dcw_over_w dcw_over_abs_w ac_zero_dc_positive ac_positive_dc_zero
-    ac_dc_same_sign
-    """.split(),
+    *(f"DERMeasureAC_0_{field}" for field in SURROGATE_MEASURE_AC_FIELDS),
+    *SURROGATE_DERIVED_FEATURES,
 }
 
 HARD_RULE_NAMES = [
@@ -516,45 +716,10 @@ class FamilySemanticContext:
     scenario_output_count_map: Dict[int, int]
 
 
-@dataclass
-class TrainingReport:
-    primary_metrics: Dict[str, MetricSummary]
-    audit_metrics: Dict[str, MetricSummary]
-    family_thresholds: Dict[str, float]
-    family_blend_weights: Dict[str, float]
-    semantic_feature_counts: Dict[str, int]
-    cat_feature_counts: Dict[str, int]
-    active_hard_override_names: List[str]
-    demoted_hard_override_names: List[str]
-    hard_override_rule_stats: Dict[str, Dict[str, float]]
-    artifact_row_counts: Dict[str, int]
-    artifact_dir: str
-
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "primary_metrics": {
-                name: asdict(metric) for name, metric in self.primary_metrics.items()
-            },
-            "audit_metrics": {
-                name: asdict(metric) for name, metric in self.audit_metrics.items()
-            },
-            "family_thresholds": self.family_thresholds,
-            "family_blend_weights": self.family_blend_weights,
-            "semantic_feature_counts": self.semantic_feature_counts,
-            "cat_feature_counts": self.cat_feature_counts,
-            "active_hard_override_names": self.active_hard_override_names,
-            "demoted_hard_override_names": self.demoted_hard_override_names,
-            "hard_override_rule_stats": self.hard_override_rule_stats,
-            "artifact_row_counts": self.artifact_row_counts,
-            "artifact_dir": self.artifact_dir,
-        }
-
-
 @dataclass(frozen=True)
 class RunConfig:
     train_path: Path = TRAIN_CSV_PATH
     test_path: Path = TEST_CSV_PATH
-    output_dir: Path = DEFAULT_OUTPUT_DIR
     artifact_dir: Path = DEFAULT_OUTPUT_DIR / "artifacts"
     submission_path: Path = KAGGLE_WORKING_DIR / "submission.csv"
     train_row_limit: int = 0
@@ -594,7 +759,6 @@ class RunConfig:
 
 
 def seed_everything(seed: int) -> None:
-    # Keep the pipeline reproducible without forcing single-threaded execution.
     random.seed(seed)
     np.random.seed(seed)
 
@@ -605,14 +769,6 @@ def configure_logging() -> None:
         format="%(asctime)s | %(levelname)s | %(message)s",
         force=True,
     )
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 class ResearchBaseline:
@@ -649,15 +805,11 @@ class ResearchBaseline:
         self.n_jobs = n_jobs
         self.seed = seed
         self.hard_override_names = list(DEFAULT_HARD_OVERRIDE_NAMES)
-        self.hard_override_rule_stats: Dict[str, Dict[str, float]] = {}
-        self.row_counts_by_family: Dict[str, int] = {}
-        self.model: Optional[XGBClassifier] = None
         self.semantic_models: Dict[str, XGBClassifier] = {}
         self.cat_models: Dict[str, Any] = {}
         self.semantic_contexts: Dict[str, FamilySemanticContext] = {}
         self.family_thresholds: Dict[str, float] = {"canon10": 0.5, "canon100": 0.5}
         self.family_blend_weights: Dict[str, float] = {"canon10": 1.0, "canon100": 1.0}
-        self.feature_cols: Optional[List[str]] = None
         self.semantic_feature_cols_by_family: Dict[str, List[str]] = {}
         self.cat_feature_cols_by_family: Dict[str, List[str]] = {}
         self.cat_categorical_cols_by_family: Dict[str, List[str]] = {}
@@ -669,7 +821,6 @@ class ResearchBaseline:
         self.scenario_count_map: Dict[int, int] = {}
         self.scenario_output_sum_map: Dict[int, float] = {}
         self.scenario_output_count_map: Dict[int, int] = {}
-        self.training_report: Optional[TrainingReport] = None
 
     @staticmethod
     def _safe_div(a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -2824,9 +2975,6 @@ class ResearchBaseline:
         if metadata_path.exists() and not self.rebuild_artifacts:
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             if self._artifact_cache_is_current(metadata, limit_rows):
-                self.row_counts_by_family = {
-                    k: int(v) for k, v in metadata.get("row_counts", {}).items()
-                }
                 LOGGER.info(
                     "[artifacts] using cached training artifacts from %s",
                     self.artifact_dir,
@@ -2909,7 +3057,6 @@ class ResearchBaseline:
             "cv_folds": self.cv_folds,
         }
         metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-        self.row_counts_by_family = row_counts
         return metadata
 
     def _load_family_artifact(
@@ -2945,11 +3092,10 @@ class ResearchBaseline:
         df["hard_rule_anomaly"] = hard_rule_flags.any(axis=1).astype(np.int8)
         return df
 
-    def _audit_hard_override_rules(self) -> List[str]:
+    def _audit_hard_override_rules(self) -> None:
         unique_rule_cols = sorted(
             {RULE_COLUMN_MAP[name] for name in DEFAULT_HARD_OVERRIDE_NAMES}
         )
-        total_positive = 0
         per_rule_counts = {
             name: {"count": 0, "positives": 0} for name in DEFAULT_HARD_OVERRIDE_NAMES
         }
@@ -2960,33 +3106,24 @@ class ResearchBaseline:
             if frame.empty:
                 continue
             labels = frame["Label"].to_numpy(np.int8)
-            total_positive += int(labels.sum())
             for rule_name in DEFAULT_HARD_OVERRIDE_NAMES:
                 mask = self._flag_array(frame[RULE_COLUMN_MAP[rule_name]])
                 if not mask.any():
                     continue
                 per_rule_counts[rule_name]["count"] += int(mask.sum())
                 per_rule_counts[rule_name]["positives"] += int(labels[mask].sum())
-        stats: Dict[str, Dict[str, float]] = {}
         demoted: List[str] = []
         for rule_name, counts in per_rule_counts.items():
             count = counts["count"]
             positives = counts["positives"]
             precision = float(positives / count) if count else 1.0
-            recall = float(positives / total_positive) if total_positive else 0.0
-            stats[rule_name] = {
-                "count": int(count),
-                "positives": int(positives),
-                "precision": precision,
-                "recall": recall,
-            }
             if count > 0 and precision < MIN_OVERRIDE_PRECISION:
                 demoted.append(rule_name)
-        self.hard_override_rule_stats = stats
         self.hard_override_names = [
             name for name in DEFAULT_HARD_OVERRIDE_NAMES if name not in demoted
         ]
-        return demoted
+        if demoted:
+            LOGGER.info("[fit] demoted hard overrides: %s", ", ".join(demoted))
 
     def _capture_semantic_context(self, family: str) -> FamilySemanticContext:
         return FamilySemanticContext(
@@ -3226,13 +3363,9 @@ class ResearchBaseline:
             best_audit_pred.astype(np.int8),
         )
 
-    def fit(self, train_path: Path, row_limit: int = 0) -> TrainingReport:
-        metadata = self._build_train_artifacts(train_path, row_limit)
-        demoted_rules = self._audit_hard_override_rules()
-        primary_metrics: Dict[str, MetricSummary] = {}
-        audit_metrics: Dict[str, MetricSummary] = {}
-        semantic_feature_counts: Dict[str, int] = {}
-        cat_feature_counts: Dict[str, int] = {}
+    def fit(self, train_path: Path, row_limit: int = 0) -> None:
+        self._build_train_artifacts(train_path, row_limit)
+        self._audit_hard_override_rules()
         prediction_rows: List[pd.DataFrame] = []
 
         LOGGER.info("[fit] starting family training")
@@ -3259,7 +3392,6 @@ class ResearchBaseline:
                     self._semantic_feature_candidates(semantic_df),
                 )
                 self.semantic_feature_cols_by_family[family] = semantic_feature_cols
-                semantic_feature_counts[family] = len(semantic_feature_cols)
 
                 y = y_series.to_numpy(np.int8, copy=False)
                 family_ids = semantic_df["Id"].to_numpy(np.int64, copy=False)
@@ -3297,7 +3429,6 @@ class ResearchBaseline:
                 ]
                 self.cat_feature_cols_by_family[family] = cat_feature_cols
                 self.cat_categorical_cols_by_family[family] = cat_categorical_cols
-                cat_feature_counts[family] = len(cat_feature_cols)
 
                 if cat_feature_cols:
                     cat_primary_prob, cat_model = self._train_cat_oof(
@@ -3342,15 +3473,15 @@ class ResearchBaseline:
                     }
                 )
                 prediction_rows.append(family_rows)
-                primary_metrics[family] = self._report_rows_to_metric(
+                family_primary_metric = self._report_rows_to_metric(
                     family_rows, "pred_primary"
                 )
-                audit_metrics[family] = self._report_rows_to_metric(
+                family_audit_metric = self._report_rows_to_metric(
                     family_rows, "pred_audit"
                 )
                 LOGGER.info(
-                    f"[fit] {family} primary F2={primary_metrics[family].f2:.6f}, "
-                    f"audit F2={audit_metrics[family].f2:.6f}, "
+                    f"[fit] {family} primary F2={family_primary_metric.f2:.6f}, "
+                    f"audit F2={family_audit_metric.f2:.6f}, "
                     f"threshold={threshold:.3f}, blend_weight={weight:.2f}"
                 )
                 del family_ids, family_rows
@@ -3365,53 +3496,30 @@ class ResearchBaseline:
             prediction_rows.append(
                 other_rows[["Id", "Label", "family", "pred_primary", "pred_audit"]]
             )
-            primary_metrics["other"] = self._report_rows_to_metric(
-                other_rows, "pred_primary"
-            )
-            audit_metrics["other"] = self._report_rows_to_metric(
-                other_rows, "pred_audit"
-            )
 
         if not prediction_rows:
             raise RuntimeError(
                 "No training artifacts were available for model fitting."
             )
         all_predictions = pd.concat(prediction_rows, ignore_index=True)
-        primary_metrics["overall"] = self._report_rows_to_metric(
+        overall_primary_metric = self._report_rows_to_metric(
             all_predictions, "pred_primary"
         )
-        audit_metrics["overall"] = self._report_rows_to_metric(
+        overall_audit_metric = self._report_rows_to_metric(
             all_predictions, "pred_audit"
         )
-        report = TrainingReport(
-            primary_metrics=primary_metrics,
-            audit_metrics=audit_metrics,
-            family_thresholds=dict(self.family_thresholds),
-            family_blend_weights=dict(self.family_blend_weights),
-            semantic_feature_counts=semantic_feature_counts,
-            cat_feature_counts=cat_feature_counts,
-            active_hard_override_names=list(self.hard_override_names),
-            demoted_hard_override_names=demoted_rules,
-            hard_override_rule_stats=dict(self.hard_override_rule_stats),
-            artifact_row_counts={
-                k: int(v) for k, v in metadata.get("row_counts", {}).items()
-            },
-            artifact_dir=str(self.artifact_dir),
-        )
-        self.training_report = report
         LOGGER.info(
             "[fit] overall primary "
-            f"F2={report.primary_metrics['overall'].f2:.6f}, "
-            f"precision={report.primary_metrics['overall'].precision:.4f}, "
-            f"recall={report.primary_metrics['overall'].recall:.4f}"
+            f"F2={overall_primary_metric.f2:.6f}, "
+            f"precision={overall_primary_metric.precision:.4f}, "
+            f"recall={overall_primary_metric.recall:.4f}"
         )
         LOGGER.info(
             "[fit] overall audit "
-            f"F2={report.audit_metrics['overall'].f2:.6f}, "
-            f"precision={report.audit_metrics['overall'].precision:.4f}, "
-            f"recall={report.audit_metrics['overall'].recall:.4f}"
+            f"F2={overall_audit_metric.f2:.6f}, "
+            f"precision={overall_audit_metric.precision:.4f}, "
+            f"recall={overall_audit_metric.recall:.4f}"
         )
-        return report
 
     def _predict_family_chunk(self, family: str, base_df: pd.DataFrame) -> np.ndarray:
         if family not in self.semantic_contexts or family not in self.semantic_models:
@@ -3457,7 +3565,7 @@ class ResearchBaseline:
         return pred
 
     def predict_test(self, test_path: Path, out_csv: Path, row_limit: int = 0) -> None:
-        if self.training_report is None:
+        if not self.semantic_contexts or not self.semantic_models:
             raise RuntimeError("Model is not fitted.")
         out_csv.parent.mkdir(parents=True, exist_ok=True)
         total_rows = 0
@@ -3499,88 +3607,25 @@ class ResearchBaseline:
             f"positive_rows={positive_rows:,}, positive_rate={positive_rows / max(total_rows, 1):.6f}"
         )
 
-    def save(self, model_path: Path, report_path: Path) -> None:
-        if self.training_report is None:
-            raise RuntimeError("Nothing to save; fit the model first.")
-        model_path.parent.mkdir(parents=True, exist_ok=True)
-        model_dir = model_path.parent / "models"
-        model_dir.mkdir(parents=True, exist_ok=True)
-        manifest: Dict[str, Any] = {
-            "semantic_models": {},
-            "cat_models": {},
-            "surrogates": {},
-            "active_hard_override_names": self.hard_override_names,
-        }
-        for family, model in self.semantic_models.items():
-            if model is None:
-                continue
-            path = model_dir / f"semantic_{family}.json"
-            model.save_model(path)
-            manifest["semantic_models"][family] = path.name
-        for family, model in self.cat_models.items():
-            if model is None:
-                continue
-            path = model_dir / f"cat_{family}.cbm"
-            model.save_model(path)
-            manifest["cat_models"][family] = path.name
-        surrogate_dir = model_dir / "surrogates"
-        surrogate_dir.mkdir(parents=True, exist_ok=True)
-        for family, context in self.semantic_contexts.items():
-            for (ctx_family, target_name), model in context.surrogate_models.items():
-                path = surrogate_dir / f"{ctx_family}_{target_name}.json"
-                model.save_model(path)
-                manifest["surrogates"].setdefault(family, {})[target_name] = path.name
-        model_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-
-        payload = self.training_report.as_dict()
-        payload["semantic_feature_cols_by_family"] = (
-            self.semantic_feature_cols_by_family
-        )
-        payload["cat_feature_cols_by_family"] = self.cat_feature_cols_by_family
-        payload["cat_categorical_cols_by_family"] = self.cat_categorical_cols_by_family
-        payload["semantic_context_metadata"] = {
-            family: {
-                "surrogate_feature_cols": context.surrogate_feature_cols,
-                "residual_quantiles": context.residual_quantiles,
-                "family_base_rates": context.family_base_rates,
-            }
-            for family, context in self.semantic_contexts.items()
-        }
-        report_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
 
 DEFAULT_RUN_CONFIG = RunConfig()
 
 
-def run_pipeline(config: RunConfig = DEFAULT_RUN_CONFIG) -> TrainingReport:
+def run_pipeline(config: RunConfig = DEFAULT_RUN_CONFIG) -> None:
     seed_everything(config.seed)
     LOGGER.info(
-        "[run] starting pipeline with train=%s test=%s output=%s",
+        "[run] starting pipeline with train=%s test=%s artifact_dir=%s submission=%s",
         config.train_path,
         config.test_path,
-        config.output_dir,
+        config.artifact_dir,
+        config.submission_path,
     )
     baseline = config.create_baseline()
-    report = baseline.fit(config.train_path, config.train_row_limit)
-    config.output_dir.mkdir(parents=True, exist_ok=True)
-    model_path = config.output_dir / MODEL_FILENAME
-    report_path = config.output_dir / REPORT_FILENAME
-    LOGGER.info("[run] saving model to %s", model_path)
-    LOGGER.info("[run] saving report to %s", report_path)
-    baseline.save(model_path, report_path)
-    final_solution_path = report_path
-    final_solution_label = "validation_report"
+    baseline.fit(config.train_path, config.train_row_limit)
     if config.write_test_predictions:
         baseline.predict_test(
             config.test_path, config.submission_path, config.test_row_limit
         )
-        final_solution_path = config.submission_path
-        final_solution_label = "submission"
-    LOGGER.info(
-        f"[solution] {final_solution_label}_sha256={file_sha256(final_solution_path)} "
-        f"path={final_solution_path}"
-    )
-    return report
 
 
 def main() -> None:
