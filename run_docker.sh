@@ -8,20 +8,15 @@ platform="linux/amd64"
 competition_dir="/kaggle/input/competitions/cyber-physical-anomaly-detection-for-der-systems"
 workspace_dir="$repo_root"
 data_dir="$repo_root/data"
-working_dir="$repo_root/kaggle-working"
+working_dir="$repo_root/"
 docker_bin=""
 
 usage() {
   cat <<EOF
 Usage:
-  ./run_docker.sh [--train-row-limit N] [--profile-memory]
+  ./run_docker.sh
 
 This script runs the fixed reproducible Docker workflow for main.py.
-
-Allowed override:
-  --train-row-limit N  Train on a deterministic sample of N training rows.
-                       Use 0 for the full dataset.
-  --profile-memory     Log stage-level timing and RSS memory summary.
 
 Pinned runtime:
   - image: ${image}
@@ -33,64 +28,19 @@ Build the image first if needed:
 EOF
 }
 
-train_row_limit=""
-profile_memory=0
-main_args=()
-
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     -h|--help)
       usage
       exit 0
       ;;
-    --train-row-limit)
-      if [[ "$#" -lt 2 ]]; then
-        printf 'Missing value for --train-row-limit\n' >&2
-        exit 2
-      fi
-      if [[ -n "$train_row_limit" ]]; then
-        printf '%s\n' '--train-row-limit may only be provided once' >&2
-        exit 2
-      fi
-      train_row_limit="$2"
-      shift 2
-      ;;
-    --train-row-limit=*)
-      if [[ -n "$train_row_limit" ]]; then
-        printf '%s\n' '--train-row-limit may only be provided once' >&2
-        exit 2
-      fi
-      train_row_limit="${1#*=}"
-      shift
-      ;;
-    --profile-memory)
-      if [[ "$profile_memory" -eq 1 ]]; then
-        printf '%s\n' '--profile-memory may only be provided once' >&2
-        exit 2
-      fi
-      profile_memory=1
-      shift
-      ;;
     *)
       printf 'Unsupported argument: %s\n' "$1" >&2
-      printf 'run_docker.sh only accepts --train-row-limit N and --profile-memory\n' >&2
+      printf 'run_docker.sh does not accept any arguments\n' >&2
       exit 2
       ;;
   esac
 done
-
-if [[ -n "$train_row_limit" ]]; then
-  if [[ ! "$train_row_limit" =~ ^[0-9]+$ ]]; then
-    printf 'Invalid --train-row-limit value: %s\n' "$train_row_limit" >&2
-    printf 'Expected a non-negative integer.\n' >&2
-    exit 2
-  fi
-  main_args+=(--train-row-limit "$train_row_limit")
-fi
-
-if [[ "$profile_memory" -eq 1 ]]; then
-  main_args+=(--profile-memory)
-fi
 
 if [[ ! -d "$data_dir" ]]; then
   printf 'Missing data directory: %s\n' "$data_dir" >&2
@@ -126,9 +76,5 @@ docker_cmd=(
   "$image"
   uv run python main.py
 )
-
-if [[ ${#main_args[@]} -gt 0 ]]; then
-  docker_cmd+=("${main_args[@]}")
-fi
 
 exec "${docker_cmd[@]}"
