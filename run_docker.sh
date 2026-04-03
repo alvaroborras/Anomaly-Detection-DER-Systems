@@ -3,44 +3,79 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$script_dir"
-image="${DER_DOCKER_IMAGE:-der-kaggle-cpu}"
-platform="${DER_DOCKER_PLATFORM:-linux/amd64}"
+image="der-kaggle-cpu"
+platform="linux/amd64"
 competition_dir="/kaggle/input/competitions/cyber-physical-anomaly-detection-for-der-systems"
 workspace_dir="$repo_root"
 data_dir="$repo_root/data"
 working_dir="$repo_root/kaggle-working"
-docker_bin="${DER_DOCKER_BIN:-}"
+docker_bin=""
 
 usage() {
   cat <<EOF
 Usage:
-  ./run_docker.sh
-  ./run_docker.sh shell
-  ./run_docker.sh pipeline [main.py args...]
-  ./run_docker.sh <command> [args...]
+  ./run_docker.sh [--train-row-limit N]
 
-Defaults:
-  - Opens an interactive shell when no command is provided
-  - Uses image: ${image}
-  - Uses platform: ${platform}
+This script runs the fixed reproducible Docker workflow for main.py.
 
-Examples:
-  ./run_docker.sh
-  ./run_docker.sh shell
-  ./run_docker.sh pipeline
-  ./run_docker.sh pipeline --chunksize 10000
-  ./run_docker.sh uv run python main.py
+Allowed override:
+  --train-row-limit N  Train only on the first N training rows for deterministic
+                       faster iteration. Use 0 for the full dataset.
 
-Environment overrides:
-  DER_DOCKER_IMAGE     Override the Docker image name
-  DER_DOCKER_PLATFORM  Override the Docker platform
-  DER_DOCKER_BIN       Override the docker executable path
+Pinned runtime:
+  - image: ${image}
+  - platform: ${platform}
+  - output: /kaggle/working/submission.csv
+
+Build the image first if needed:
+  docker build --platform ${platform} -t ${image} .
 EOF
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
+train_row_limit=""
+main_args=()
+
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --train-row-limit)
+      if [[ "$#" -lt 2 ]]; then
+        printf 'Missing value for --train-row-limit\n' >&2
+        exit 2
+      fi
+      if [[ -n "$train_row_limit" ]]; then
+        printf '%s\n' '--train-row-limit may only be provided once' >&2
+        exit 2
+      fi
+      train_row_limit="$2"
+      shift 2
+      ;;
+    --train-row-limit=*)
+      if [[ -n "$train_row_limit" ]]; then
+        printf '%s\n' '--train-row-limit may only be provided once' >&2
+        exit 2
+      fi
+      train_row_limit="${1#*=}"
+      shift
+      ;;
+    *)
+      printf 'Unsupported argument: %s\n' "$1" >&2
+      printf 'run_docker.sh only accepts --train-row-limit N\n' >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -n "$train_row_limit" ]]; then
+  if [[ ! "$train_row_limit" =~ ^[0-9]+$ ]]; then
+    printf 'Invalid --train-row-limit value: %s\n' "$train_row_limit" >&2
+    printf 'Expected a non-negative integer.\n' >&2
+    exit 2
+  fi
+  main_args=(--train-row-limit "$train_row_limit")
 fi
 
 if [[ ! -d "$data_dir" ]]; then
@@ -50,16 +85,12 @@ fi
 
 mkdir -p "$working_dir"
 
-if [[ -z "$docker_bin" ]]; then
-  if command -v docker >/dev/null 2>&1; then
-    docker_bin="$(command -v docker)"
-  elif [[ -x "/Applications/Docker.app/Contents/Resources/bin/docker" ]]; then
-    docker_bin="/Applications/Docker.app/Contents/Resources/bin/docker"
-  fi
-fi
-
-if [[ -z "$docker_bin" ]]; then
-  printf 'docker was not found. Open Docker Desktop or set DER_DOCKER_BIN first.\n' >&2
+if command -v docker >/dev/null 2>&1; then
+  docker_bin="$(command -v docker)"
+elif [[ -x "/Applications/Docker.app/Contents/Resources/bin/docker" ]]; then
+  docker_bin="/Applications/Docker.app/Contents/Resources/bin/docker"
+else
+  printf 'docker was not found. Open Docker Desktop so the pinned Docker workflow can run.\n' >&2
   exit 1
 fi
 
@@ -69,35 +100,13 @@ if [[ -z "$("$docker_bin" image ls -q "$image")" ]]; then
   exit 1
 fi
 
-docker_args=(
-  run
-  --rm
-  --platform "$platform"
-  -v "$workspace_dir:/workspace"
-  -v "$data_dir:$competition_dir:ro"
-  -v "$working_dir:/kaggle/working"
-  -w /workspace
-)
-
-if [[ -t 0 && -t 1 ]]; then
-  docker_args+=( -it )
-fi
-
-if [[ "$#" -eq 0 ]]; then
-  set -- shell
-fi
-
-case "$1" in
-  shell)
-    shift
-    if [[ "$#" -eq 0 ]]; then
-      set -- /bin/bash
-    fi
-    ;;
-  pipeline)
-    shift
-    set -- uv run python main.py "$@"
-    ;;
-esac
-
-exec "$docker_bin" "${docker_args[@]}" "$image" "$@"
+exec "$docker_bin" \
+  run \
+  --rm \
+  --platform "$platform" \
+  -v "$workspace_dir:/workspace" \
+  -v "$data_dir:$competition_dir:ro" \
+  -v "$working_dir:/kaggle/working" \
+  -w /workspace \
+  "$image" \
+  uv run python main.py "${main_args[@]}"
