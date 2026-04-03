@@ -14,13 +14,14 @@ docker_bin=""
 usage() {
   cat <<EOF
 Usage:
-  ./run_docker.sh [--train-row-limit N]
+  ./run_docker.sh [--train-row-limit N] [--profile-memory]
 
 This script runs the fixed reproducible Docker workflow for main.py.
 
 Allowed override:
-  --train-row-limit N  Train only on the first N training rows for deterministic
-                       faster iteration. Use 0 for the full dataset.
+  --train-row-limit N  Train on a deterministic sample of N training rows.
+                       Use 0 for the full dataset.
+  --profile-memory     Log stage-level timing and RSS memory summary.
 
 Pinned runtime:
   - image: ${image}
@@ -33,6 +34,7 @@ EOF
 }
 
 train_row_limit=""
+profile_memory=0
 main_args=()
 
 while [[ "$#" -gt 0 ]]; do
@@ -61,9 +63,17 @@ while [[ "$#" -gt 0 ]]; do
       train_row_limit="${1#*=}"
       shift
       ;;
+    --profile-memory)
+      if [[ "$profile_memory" -eq 1 ]]; then
+        printf '%s\n' '--profile-memory may only be provided once' >&2
+        exit 2
+      fi
+      profile_memory=1
+      shift
+      ;;
     *)
       printf 'Unsupported argument: %s\n' "$1" >&2
-      printf 'run_docker.sh only accepts --train-row-limit N\n' >&2
+      printf 'run_docker.sh only accepts --train-row-limit N and --profile-memory\n' >&2
       exit 2
       ;;
   esac
@@ -75,7 +85,11 @@ if [[ -n "$train_row_limit" ]]; then
     printf 'Expected a non-negative integer.\n' >&2
     exit 2
   fi
-  main_args=(--train-row-limit "$train_row_limit")
+  main_args+=(--train-row-limit "$train_row_limit")
+fi
+
+if [[ "$profile_memory" -eq 1 ]]; then
+  main_args+=(--profile-memory)
 fi
 
 if [[ ! -d "$data_dir" ]]; then
@@ -100,13 +114,21 @@ if [[ -z "$("$docker_bin" image ls -q "$image")" ]]; then
   exit 1
 fi
 
-exec "$docker_bin" \
-  run \
-  --rm \
-  --platform "$platform" \
-  -v "$workspace_dir:/workspace" \
-  -v "$data_dir:$competition_dir:ro" \
-  -v "$working_dir:/kaggle/working" \
-  -w /workspace \
-  "$image" \
-  uv run python main.py "${main_args[@]}"
+docker_cmd=(
+  "$docker_bin"
+  run
+  --rm
+  --platform "$platform"
+  -v "$workspace_dir:/workspace"
+  -v "$data_dir:$competition_dir:ro"
+  -v "$working_dir:/kaggle/working"
+  -w /workspace
+  "$image"
+  uv run python main.py
+)
+
+if [[ ${#main_args[@]} -gt 0 ]]; then
+  docker_cmd+=("${main_args[@]}")
+fi
+
+exec "${docker_cmd[@]}"

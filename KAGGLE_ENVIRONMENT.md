@@ -27,46 +27,35 @@ Kaggle CPU base image, creates `/opt/der-uv-env` with
 `uv run` reuses the Kaggle-installed packages. `--without-pip` is required
 because this Kaggle image does not ship `ensurepip`.
 
-## Open a shell in the Kaggle image
-
-```bash
-docker run --rm -it \
-  --platform linux/amd64 \
-  -v "$PWD":/workspace \
-  -w /workspace \
-  der-kaggle-cpu
-```
-
 On Apple Silicon, keep `--platform linux/amd64` for both `docker build` and
 `docker run`; the Kaggle CPU image is published for `linux/amd64`.
 
-## Open the container
+## Run the fixed Docker workflow
 
-`run_docker.sh` wraps the long `docker run ...` command and mounts:
+`run_docker.sh` is now a single-purpose wrapper for reproducing the pinned
+`main.py` run inside the Docker image. It mounts:
 
 - the repo root at `/workspace`
 - `data/` at `/kaggle/input/competitions/cyber-physical-anomaly-detection-for-der-systems`
 - `kaggle-working/` at `/kaggle/working`
 
-With no arguments it opens an interactive shell:
+Run it with no arguments:
 
 ```bash
 ./run_docker.sh
 ```
 
-## Run the pipeline
+That command is the canonical reproducible entrypoint.
 
-```bash
-./run_docker.sh pipeline
-```
+Train/test paths, seed, parallelism, model settings, Docker image name,
+platform, and output location are all pinned in code so future users get the
+same published recipe by default.
 
-The submission will be written to `kaggle-working/submission.csv` on the host.
+The submission is always written to `kaggle-working/submission.csv` on the
+host.
 
-## Run `main.py` with `uv`
-
-```bash
-./run_docker.sh uv run python main.py
-```
+`run_docker.sh` does not accept any extra arguments, and `main.py` itself does
+not accept any arguments.
 
 ## Verify the container
 
@@ -88,11 +77,9 @@ PY
 
 ## Notes
 
-- `run_docker.sh` is the easiest way to start the pinned Docker environment.
-- `run_docker.sh pipeline ...` runs `uv run python main.py ...` inside the container.
+- `run_docker.sh` is the canonical way to reproduce the pinned Docker run.
+- The script always runs `uv run python main.py` inside the container.
 - The Docker image configures `uv` to use `/opt/der-uv-env`, which inherits the
-  Kaggle image's preinstalled Python packages.
-- `run_docker.sh` honors `DER_DOCKER_IMAGE` and `DER_DOCKER_PLATFORM` if you
-  need to override the defaults.
+-  Kaggle image's preinstalled Python packages.
 - Docker will not reproduce Kaggle's host kernel exactly, so `uname -r` may
-  differ locally.
+-  differ locally.
