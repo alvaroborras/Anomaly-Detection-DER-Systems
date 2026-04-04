@@ -9,6 +9,11 @@ sample_submission.csv
 outputs/
 __pycache__/
 *.py[cod]
+.ruff_cache/
+.artifacts/
+.artifacts_reference/
+kaggle-working/
+submission.csv
 
 # Local tooling
 .venv/
@@ -16,3 +21,5 @@ __pycache__/
 .DS_Store
 
 uv.lock
+
+*.csv

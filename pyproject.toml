@@ -3,15 +3,11 @@ name = "der-anomaly-xgb-baseline"
 version = "0.1.0"
 description = "Research-guided XGBoost baseline for DER anomaly detection"
 readme = "description.md"
-requires-python = ">=3.10,<3.13"
-dependencies = [
-    "catboost>=1.2,<2",
-    "numpy>=1.26,<3",
-    "pandas>=2.2,<3",
-    "pyarrow>=17,<30",
-    "scikit-learn>=1.5,<2",
-    "xgboost>=2.1,<4",
-]
+requires-python = ">=3.12,<3.13"
+
+[tool.ruff]
+line-length = 200
+target-version = "py312"
 
 [tool.uv]
 package = false
