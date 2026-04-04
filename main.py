@@ -479,13 +479,10 @@ class MetricSummary:
     f2: float
     precision: float
     recall: float
-    positive_rate: float
-    rows: int
 
 
 @dataclass
 class FamilySemanticContext:
-    family: str
     surrogate_feature_cols: List[str]
     surrogate_models: Dict[str, XGBRegressor]
     residual_quantiles: Dict[str, Dict[str, float]]
@@ -494,19 +491,6 @@ class FamilySemanticContext:
     scenario_count_map: Dict[int, int]
     scenario_output_sum_map: Dict[int, float]
     scenario_output_count_map: Dict[int, int]
-
-
-@dataclass
-class TrainingReport:
-    primary_metrics: Dict[str, MetricSummary]
-    audit_metrics: Dict[str, MetricSummary]
-    family_thresholds: Dict[str, float]
-    family_blend_weights: Dict[str, float]
-    semantic_feature_counts: Dict[str, int]
-    cat_feature_counts: Dict[str, int]
-    active_hard_override_names: List[str]
-    demoted_hard_override_names: List[str]
-    hard_override_rule_stats: Dict[str, Dict[str, float]]
 
 
 @dataclass(frozen=True)
@@ -563,18 +547,13 @@ class ResearchBaseline:
     def __init__(self, config: RunConfig | None = None) -> None:
         self.config = config if config is not None else RunConfig()
         self.hard_override_names = list(DEFAULT_HARD_OVERRIDE_NAMES)
-        self.hard_override_rule_stats: Dict[str, Dict[str, float]] = {}
-        self.row_counts_by_family: Dict[str, int] = {}
-        self.model: Optional[XGBClassifier] = None
         self.semantic_models: Dict[str, XGBClassifier] = {}
         self.cat_models: Dict[str, Any] = {}
         self.semantic_contexts: Dict[str, FamilySemanticContext] = {}
         self.family_thresholds: Dict[str, float] = {"canon10": 0.5, "canon100": 0.5}
         self.family_blend_weights: Dict[str, float] = {"canon10": 1.0, "canon100": 1.0}
-        self.feature_cols: Optional[List[str]] = None
         self.semantic_feature_cols_by_family: Dict[str, List[str]] = {}
         self.cat_feature_cols_by_family: Dict[str, List[str]] = {}
-        self.cat_categorical_cols_by_family: Dict[str, List[str]] = {}
         self.surrogate_feature_cols: Optional[List[str]] = None
         self.surrogate_models: Dict[str, XGBRegressor] = {}
         self.residual_quantiles: Dict[str, Dict[str, float]] = {}
@@ -583,7 +562,7 @@ class ResearchBaseline:
         self.scenario_count_map: Dict[int, int] = {}
         self.scenario_output_sum_map: Dict[int, float] = {}
         self.scenario_output_count_map: Dict[int, int] = {}
-        self.training_report: Optional[TrainingReport] = None
+        self.is_fitted = False
 
     @staticmethod
     def _safe_div(a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -2065,13 +2044,11 @@ class ResearchBaseline:
     @staticmethod
     def _metric_summary_from_pred(y_true: np.ndarray, pred: np.ndarray) -> MetricSummary:
         if len(y_true) == 0:
-            return MetricSummary(f2=0.0, precision=0.0, recall=0.0, positive_rate=0.0, rows=0)
+            return MetricSummary(f2=0.0, precision=0.0, recall=0.0)
         return MetricSummary(
             f2=float(fbeta_score(y_true, pred, beta=2)),
             precision=float(precision_score(y_true, pred, zero_division=0)),
             recall=float(recall_score(y_true, pred, zero_division=0)),
-            positive_rate=float(np.mean(pred)),
-            rows=int(len(y_true)),
         )
 
     @staticmethod
@@ -2149,7 +2126,6 @@ class ResearchBaseline:
             "[fit] finished materializing %s training rows in memory",
             f"{sum(row_counts.values()):,}",
         )
-        self.row_counts_by_family = row_counts
         return family_parts
 
     @staticmethod
@@ -2172,9 +2148,8 @@ class ResearchBaseline:
         out["hard_rule_anomaly"] = hard_rule_flags.any(axis=1).astype(np.int8)
         return out
 
-    def _audit_hard_override_rules(self, family_parts: Dict[str, List[pd.DataFrame]]) -> List[str]:
+    def _audit_hard_override_rules(self, family_parts: Dict[str, List[pd.DataFrame]]) -> None:
         unique_rule_cols = sorted({RULE_COLUMN_MAP[name] for name in DEFAULT_HARD_OVERRIDE_NAMES})
-        total_positive = 0
         per_rule_counts = {name: {"count": 0, "positives": 0} for name in DEFAULT_HARD_OVERRIDE_NAMES}
         for family in TRAINING_FAMILY_NAMES:
             frame = self._concat_family_parts(
@@ -2184,35 +2159,23 @@ class ResearchBaseline:
             if frame.empty:
                 continue
             labels = frame["Label"].to_numpy(np.int8)
-            total_positive += int(labels.sum())
             for rule_name in DEFAULT_HARD_OVERRIDE_NAMES:
                 mask = pd.to_numeric(frame[RULE_COLUMN_MAP[rule_name]], errors="coerce").fillna(0).to_numpy(np.int8) == 1
                 if not mask.any():
                     continue
                 per_rule_counts[rule_name]["count"] += int(mask.sum())
                 per_rule_counts[rule_name]["positives"] += int(labels[mask].sum())
-        stats: Dict[str, Dict[str, float]] = {}
         demoted: List[str] = []
         for rule_name, counts in per_rule_counts.items():
             count = counts["count"]
             positives = counts["positives"]
             precision = float(positives / count) if count else 1.0
-            recall = float(positives / total_positive) if total_positive else 0.0
-            stats[rule_name] = {
-                "count": int(count),
-                "positives": int(positives),
-                "precision": precision,
-                "recall": recall,
-            }
             if count > 0 and precision < MIN_OVERRIDE_PRECISION:
                 demoted.append(rule_name)
-        self.hard_override_rule_stats = stats
         self.hard_override_names = [name for name in DEFAULT_HARD_OVERRIDE_NAMES if name not in demoted]
-        return demoted
 
-    def _capture_semantic_context(self, family: str) -> FamilySemanticContext:
+    def _capture_semantic_context(self) -> FamilySemanticContext:
         return FamilySemanticContext(
-            family=family,
             surrogate_feature_cols=list(self.surrogate_feature_cols or []),
             surrogate_models=dict(self.surrogate_models),
             residual_quantiles=json.loads(json.dumps(self.residual_quantiles)),
@@ -2247,7 +2210,7 @@ class ResearchBaseline:
         work = self._apply_residual_calibration_features(work)
         work = self._fit_transform_scenario_features(work, y)
         work = self._add_family_interaction_features(work, family=family)
-        return work, self._capture_semantic_context(family)
+        return work, self._capture_semantic_context()
 
     def _semantic_feature_candidates(self, semantic_df: pd.DataFrame) -> List[str]:
         excluded = {
@@ -2423,13 +2386,10 @@ class ResearchBaseline:
             best_audit_pred.astype(np.int8),
         )
 
-    def fit(self, train_path: Path) -> TrainingReport:
+    def fit(self, train_path: Path) -> None:
+        self.is_fitted = False
         family_parts = self._build_train_family_parts(train_path)
-        demoted_rules = self._audit_hard_override_rules(family_parts)
-        primary_metrics: Dict[str, MetricSummary] = {}
-        audit_metrics: Dict[str, MetricSummary] = {}
-        semantic_feature_counts: Dict[str, int] = {}
-        cat_feature_counts: Dict[str, int] = {}
+        self._audit_hard_override_rules(family_parts)
         prediction_rows: List[pd.DataFrame] = []
 
         LOGGER.info("[fit] starting family training")
@@ -2454,14 +2414,11 @@ class ResearchBaseline:
                     self._semantic_feature_candidates(semantic_df),
                 )
                 self.semantic_feature_cols_by_family[family] = semantic_feature_cols
-                semantic_feature_counts[family] = len(semantic_feature_cols)
 
                 cat_df = self._prepare_cat_frame(base_df.copy())
                 cat_feature_cols = self._select_nonconstant_columns(cat_df, self._cat_feature_candidates(cat_df))
                 cat_categorical_cols = [col for col in [*SAFE_STR.values(), "device_fingerprint"] if col in cat_feature_cols]
                 self.cat_feature_cols_by_family[family] = cat_feature_cols
-                self.cat_categorical_cols_by_family[family] = cat_categorical_cols
-                cat_feature_counts[family] = len(cat_feature_cols)
 
                 y = y_series.to_numpy(np.int8)
                 hard_override = semantic_df["hard_override_anomaly"].to_numpy(np.int8) == 1
@@ -2529,9 +2486,9 @@ class ResearchBaseline:
                     }
                 )
                 prediction_rows.append(family_rows)
-                primary_metrics[family] = self._report_rows_to_metric(family_rows, "pred_primary")
-                audit_metrics[family] = self._report_rows_to_metric(family_rows, "pred_audit")
-                LOGGER.info(f"[fit] {family} primary F2={primary_metrics[family].f2:.6f}, audit F2={audit_metrics[family].f2:.6f}, threshold={threshold:.3f}, blend_weight={weight:.2f}")
+                primary_metric = self._report_rows_to_metric(family_rows, "pred_primary")
+                audit_metric = self._report_rows_to_metric(family_rows, "pred_audit")
+                LOGGER.info(f"[fit] {family} primary F2={primary_metric.f2:.6f}, audit F2={audit_metric.f2:.6f}, threshold={threshold:.3f}, blend_weight={weight:.2f}")
                 del base_df, semantic_df, cat_df, family_rows
                 gc.collect()
 
@@ -2542,31 +2499,15 @@ class ResearchBaseline:
             other_rows["pred_primary"] = 1
             other_rows["pred_audit"] = 1
             prediction_rows.append(other_rows[["Id", "Label", "family", "pred_primary", "pred_audit"]])
-            primary_metrics["other"] = self._report_rows_to_metric(other_rows, "pred_primary")
-            audit_metrics["other"] = self._report_rows_to_metric(other_rows, "pred_audit")
 
         if not prediction_rows:
             raise RuntimeError("No training rows were available for model fitting.")
         all_predictions = pd.concat(prediction_rows, ignore_index=True)
-        primary_metrics["overall"] = self._report_rows_to_metric(all_predictions, "pred_primary")
-        audit_metrics["overall"] = self._report_rows_to_metric(all_predictions, "pred_audit")
-        report = TrainingReport(
-            primary_metrics=primary_metrics,
-            audit_metrics=audit_metrics,
-            family_thresholds=dict(self.family_thresholds),
-            family_blend_weights=dict(self.family_blend_weights),
-            semantic_feature_counts=semantic_feature_counts,
-            cat_feature_counts=cat_feature_counts,
-            active_hard_override_names=list(self.hard_override_names),
-            demoted_hard_override_names=demoted_rules,
-            hard_override_rule_stats=dict(self.hard_override_rule_stats),
-        )
-        self.training_report = report
-        LOGGER.info(
-            f"[fit] overall primary F2={report.primary_metrics['overall'].f2:.6f}, precision={report.primary_metrics['overall'].precision:.4f}, recall={report.primary_metrics['overall'].recall:.4f}"
-        )
-        LOGGER.info(f"[fit] overall audit F2={report.audit_metrics['overall'].f2:.6f}, precision={report.audit_metrics['overall'].precision:.4f}, recall={report.audit_metrics['overall'].recall:.4f}")
-        return report
+        overall_primary_metric = self._report_rows_to_metric(all_predictions, "pred_primary")
+        overall_audit_metric = self._report_rows_to_metric(all_predictions, "pred_audit")
+        self.is_fitted = True
+        LOGGER.info(f"[fit] overall primary F2={overall_primary_metric.f2:.6f}, precision={overall_primary_metric.precision:.4f}, recall={overall_primary_metric.recall:.4f}")
+        LOGGER.info(f"[fit] overall audit F2={overall_audit_metric.f2:.6f}, precision={overall_audit_metric.precision:.4f}, recall={overall_audit_metric.recall:.4f}")
 
     def _predict_family_chunk(self, family: str, base_df: pd.DataFrame) -> np.ndarray:
         if family not in self.semantic_contexts or family not in self.semantic_models:
@@ -2598,11 +2539,9 @@ class ResearchBaseline:
         return pred
 
     def predict_test(self, test_path: Path, out_csv: Path) -> None:
-        if self.training_report is None:
+        if not self.is_fitted:
             raise RuntimeError("Model is not fitted.")
         out_csv.parent.mkdir(parents=True, exist_ok=True)
-        total_rows = 0
-        positive_rows = 0
         LOGGER.info("[test] generating predictions from %s", test_path)
         with out_csv.open("w", encoding="utf-8") as fh:
             fh.write("Id,Label\n")
@@ -2629,19 +2568,13 @@ class ResearchBaseline:
                         }
                     )
                     out.to_csv(fh, index=False, header=False)
-                    total_rows += len(out)
-                    positive_rows += int(out["Label"].sum())
-                    progress.set_postfix(
-                        rows=f"{total_rows:,}",
-                        positives=f"{positive_rows:,}",
-                    )
-        LOGGER.info(f"[test] done; total_rows={total_rows:,}, positive_rows={positive_rows:,}, positive_rate={positive_rows / max(total_rows, 1):.6f}")
+        LOGGER.info("[test] done; submission written to %s", out_csv)
 
 
 DEFAULT_RUN_CONFIG = RunConfig()
 
 
-def run_pipeline(config: RunConfig = DEFAULT_RUN_CONFIG) -> TrainingReport:
+def run_pipeline(config: RunConfig = DEFAULT_RUN_CONFIG) -> None:
     seed_everything(config.seed)
     LOGGER.info(
         "[run] starting pipeline with train=%s test=%s submission=%s",
@@ -2650,10 +2583,9 @@ def run_pipeline(config: RunConfig = DEFAULT_RUN_CONFIG) -> TrainingReport:
         config.submission_path,
     )
     baseline = ResearchBaseline(config)
-    report = baseline.fit(config.train_path)
+    baseline.fit(config.train_path)
     baseline.predict_test(config.test_path, config.submission_path)
     LOGGER.info(f"[solution] submission_sha256={file_sha256(config.submission_path)} path={config.submission_path}")
-    return report
 
 
 def main() -> None:
