@@ -554,14 +554,6 @@ class ResearchBaseline:
         self.family_blend_weights: Dict[str, float] = {"canon10": 1.0, "canon100": 1.0}
         self.semantic_feature_cols_by_family: Dict[str, List[str]] = {}
         self.cat_feature_cols_by_family: Dict[str, List[str]] = {}
-        self.surrogate_feature_cols: Optional[List[str]] = None
-        self.surrogate_models: Dict[str, XGBRegressor] = {}
-        self.residual_quantiles: Dict[str, Dict[str, float]] = {}
-        self.family_base_rates: Dict[str, float] = {}
-        self.scenario_sum_map: Dict[int, float] = {}
-        self.scenario_count_map: Dict[int, int] = {}
-        self.scenario_output_sum_map: Dict[int, float] = {}
-        self.scenario_output_count_map: Dict[int, int] = {}
         self.is_fitted = False
 
     @staticmethod
@@ -1675,11 +1667,20 @@ class ResearchBaseline:
         out["scenario_output_low_support"] = (scenario_output_count < 20).astype(np.int8)
         return out
 
-    def _fit_transform_scenario_features(self, x_train: pd.DataFrame, y_train: pd.Series) -> pd.DataFrame:
+    def _fit_transform_scenario_features(
+        self, x_train: pd.DataFrame, y_train: pd.Series
+    ) -> Tuple[
+        pd.DataFrame,
+        Dict[str, float],
+        Dict[int, float],
+        Dict[int, int],
+        Dict[int, float],
+        Dict[int, int],
+    ]:
         out = x_train.copy()
         y_arr = y_train.to_numpy(np.float32)
         family_series = out["device_family"].astype(str)
-        self.family_base_rates = pd.DataFrame({"family": family_series, "y": y_arr}).groupby("family")["y"].mean().to_dict()
+        family_base_rates = pd.DataFrame({"family": family_series, "y": y_arr}).groupby("family")["y"].mean().to_dict()
         keys = self._build_scenario_keys(out)
         output_keys = self._build_scenario_output_keys(out)
         fold_ids = (out["Id"].to_numpy(np.int64) % self.config.cv_folds).astype(np.int8)
@@ -1704,7 +1705,7 @@ class ResearchBaseline:
             valid_output_count = valid_output_keys.map(output_stats["count"]).fillna(0).to_numpy(np.int32)
             valid_family = family_series.loc[valid_mask].tolist()
             prior = np.array(
-                [self.family_base_rates.get(name, global_rate) for name in valid_family],
+                [family_base_rates.get(name, global_rate) for name in valid_family],
                 dtype=np.float32,
             )
             scenario_rate[valid_mask] = (valid_sum + SCENARIO_SMOOTHING * prior) / (valid_count + SCENARIO_SMOOTHING)
@@ -1714,23 +1715,39 @@ class ResearchBaseline:
 
         full_stats = pd.DataFrame({"key": keys, "y": y_arr}).groupby("key")["y"].agg(["sum", "count"])
         full_output_stats = pd.DataFrame({"key": output_keys, "y": y_arr}).groupby("key")["y"].agg(["sum", "count"])
-        self.scenario_sum_map = {int(idx): float(val) for idx, val in full_stats["sum"].items()}
-        self.scenario_count_map = {int(idx): int(val) for idx, val in full_stats["count"].items()}
-        self.scenario_output_sum_map = {int(idx): float(val) for idx, val in full_output_stats["sum"].items()}
-        self.scenario_output_count_map = {int(idx): int(val) for idx, val in full_output_stats["count"].items()}
+        scenario_sum_map = {int(idx): float(val) for idx, val in full_stats["sum"].items()}
+        scenario_count_map = {int(idx): int(val) for idx, val in full_stats["count"].items()}
+        scenario_output_sum_map = {int(idx): float(val) for idx, val in full_output_stats["sum"].items()}
+        scenario_output_count_map = {int(idx): int(val) for idx, val in full_output_stats["count"].items()}
 
-        family_prior = family_series.map(self.family_base_rates).fillna(global_rate).to_numpy(np.float32)
-        return self._assign_scenario_features(
-            out,
-            family_prior=family_prior,
-            scenario_rate=scenario_rate,
-            scenario_count=scenario_count,
-            scenario_output_rate=scenario_output_rate,
-            scenario_output_count=scenario_output_count,
+        family_prior = family_series.map(family_base_rates).fillna(global_rate).to_numpy(np.float32)
+        return (
+            self._assign_scenario_features(
+                out,
+                family_prior=family_prior,
+                scenario_rate=scenario_rate,
+                scenario_count=scenario_count,
+                scenario_output_rate=scenario_output_rate,
+                scenario_output_count=scenario_output_count,
+            ),
+            family_base_rates,
+            scenario_sum_map,
+            scenario_count_map,
+            scenario_output_sum_map,
+            scenario_output_count_map,
         )
 
-    def _apply_scenario_features(self, x_df: pd.DataFrame) -> pd.DataFrame:
-        if not self.scenario_count_map:
+    def _apply_scenario_features(
+        self,
+        x_df: pd.DataFrame,
+        *,
+        family_base_rates: Dict[str, float],
+        scenario_sum_map: Dict[int, float],
+        scenario_count_map: Dict[int, int],
+        scenario_output_sum_map: Dict[int, float],
+        scenario_output_count_map: Dict[int, int],
+    ) -> pd.DataFrame:
+        if not scenario_count_map:
             return x_df
 
         out = x_df.copy()
@@ -1738,16 +1755,16 @@ class ResearchBaseline:
         output_keys = self._build_scenario_output_keys(out)
         sum_values, count_values = self._lookup_scenario_stats(
             keys,
-            self.scenario_sum_map,
-            self.scenario_count_map,
+            scenario_sum_map,
+            scenario_count_map,
         )
         output_sum_values, output_count_values = self._lookup_scenario_stats(
             output_keys,
-            self.scenario_output_sum_map,
-            self.scenario_output_count_map,
+            scenario_output_sum_map,
+            scenario_output_count_map,
         )
-        global_rate = float(np.mean(list(self.family_base_rates.values()))) if self.family_base_rates else 0.5
-        family_prior = out["device_family"].astype(str).map(self.family_base_rates).fillna(global_rate).to_numpy(np.float32)
+        global_rate = float(np.mean(list(family_base_rates.values()))) if family_base_rates else 0.5
+        family_prior = out["device_family"].astype(str).map(family_base_rates).fillna(global_rate).to_numpy(np.float32)
         scenario_rate = (sum_values + SCENARIO_SMOOTHING * family_prior) / (count_values + SCENARIO_SMOOTHING)
         scenario_output_rate = (output_sum_values + SCENARIO_SMOOTHING * family_prior) / (output_count_values + SCENARIO_SMOOTHING)
         return self._assign_scenario_features(
@@ -1815,25 +1832,32 @@ class ResearchBaseline:
         valid_mask: pd.Series,
         *,
         family: str,
-    ) -> None:
-        self.surrogate_feature_cols = self._get_surrogate_feature_cols(x_train.columns)
+    ) -> Tuple[List[str], Dict[str, XGBRegressor]]:
+        surrogate_feature_cols = self._get_surrogate_feature_cols(x_train.columns)
         fit_partition = self._surrogate_partition_mask(x_train["Id"], fit_partition=True)
         normal_mask = (y_train == 0) & (x_train["hard_override_anomaly"] == 0) & (~valid_mask.to_numpy()) & fit_partition
         surrogate_df = x_train.loc[normal_mask].copy()
         if surrogate_df.empty:
             raise RuntimeError("No rows available to train surrogate models.")
 
-        self.surrogate_models = {}
-        x_surrogate = self._encode_device_family(surrogate_df[self.surrogate_feature_cols])
+        surrogate_models: Dict[str, XGBRegressor] = {}
+        x_surrogate = self._encode_device_family(surrogate_df[surrogate_feature_cols])
         for target_name, (target_col, _) in SURROGATE_TARGETS.items():
             model = self._new_surrogate_model()
             y_target = surrogate_df[target_col].to_numpy(np.float32)
             LOGGER.info(f"[surrogate] training {family}/{target_name} on {len(surrogate_df):,} normal rows")
             model.fit(x_surrogate, y_target)
-            self.surrogate_models[target_name] = model
+            surrogate_models[target_name] = model
+        return surrogate_feature_cols, surrogate_models
 
-    def _augment_with_surrogates(self, x_df: pd.DataFrame) -> pd.DataFrame:
-        if self.surrogate_feature_cols is None or not self.surrogate_models:
+    def _augment_with_surrogates(
+        self,
+        x_df: pd.DataFrame,
+        *,
+        surrogate_feature_cols: Sequence[str],
+        surrogate_models: Dict[str, XGBRegressor],
+    ) -> pd.DataFrame:
+        if not surrogate_feature_cols or not surrogate_models:
             return x_df
 
         out = x_df.copy()
@@ -1847,9 +1871,9 @@ class ResearchBaseline:
             out[f"extreme_resid_{target_name}"] = 0
             out[f"ultra_resid_{target_name}"] = 0
             out[f"q99_ratio_resid_{target_name}"] = np.nan
-        x_surrogate = self._encode_device_family(out[self.surrogate_feature_cols])
+        x_surrogate = self._encode_device_family(out[list(surrogate_feature_cols)])
         for target_name, (target_col, scale_col) in SURROGATE_TARGETS.items():
-            model = self.surrogate_models.get(target_name)
+            model = surrogate_models.get(target_name)
             if model is None:
                 continue
             pred = model.predict(x_surrogate).astype(np.float32)
@@ -1892,7 +1916,7 @@ class ResearchBaseline:
         x_train: pd.DataFrame,
         y_train: pd.Series,
         valid_mask: pd.Series,
-    ) -> None:
+    ) -> Dict[str, Dict[str, float]]:
         calibration_partition = self._surrogate_partition_mask(x_train["Id"], fit_partition=False)
         calibration_mask = (y_train == 0) & (x_train["hard_override_anomaly"] == 0) & (~valid_mask.to_numpy()) & calibration_partition
         if not calibration_mask.any():
@@ -1908,10 +1932,10 @@ class ResearchBaseline:
                 for level_name, q in RESIDUAL_TAIL_LEVELS.items():
                     quantiles[level_name] = float(np.quantile(values, q))
             family_quantiles[target_name] = {key: max(1e-6, value) for key, value in quantiles.items()}
-        self.residual_quantiles = family_quantiles
+        return family_quantiles
 
-    def _apply_residual_calibration_features(self, x_df: pd.DataFrame) -> pd.DataFrame:
-        if not self.residual_quantiles:
+    def _apply_residual_calibration_features(self, x_df: pd.DataFrame, *, residual_quantiles: Dict[str, Dict[str, float]]) -> pd.DataFrame:
+        if not residual_quantiles:
             return x_df
 
         out = x_df.copy()
@@ -1921,10 +1945,9 @@ class ResearchBaseline:
             out[f"ultra_resid_{target_name}"] = 0
             out[f"q99_ratio_resid_{target_name}"] = np.nan
 
-        family_quantiles = self.residual_quantiles
         for target_name in SURROGATE_TARGETS:
             abs_norm = out[f"abs_norm_resid_{target_name}"].to_numpy(np.float32)
-            q = family_quantiles.get(target_name, RESIDUAL_TAIL_FALLBACKS)
+            q = residual_quantiles.get(target_name, RESIDUAL_TAIL_FALLBACKS)
             tail = abs_norm >= q["tail"]
             extreme = abs_norm >= q["extreme"]
             ultra = abs_norm >= q["ultra"]
@@ -2174,28 +2197,6 @@ class ResearchBaseline:
                 demoted.append(rule_name)
         self.hard_override_names = [name for name in DEFAULT_HARD_OVERRIDE_NAMES if name not in demoted]
 
-    def _capture_semantic_context(self) -> FamilySemanticContext:
-        return FamilySemanticContext(
-            surrogate_feature_cols=list(self.surrogate_feature_cols or []),
-            surrogate_models=dict(self.surrogate_models),
-            residual_quantiles=json.loads(json.dumps(self.residual_quantiles)),
-            family_base_rates=dict(self.family_base_rates),
-            scenario_sum_map=dict(self.scenario_sum_map),
-            scenario_count_map=dict(self.scenario_count_map),
-            scenario_output_sum_map=dict(self.scenario_output_sum_map),
-            scenario_output_count_map=dict(self.scenario_output_count_map),
-        )
-
-    def _activate_semantic_context(self, context: FamilySemanticContext) -> None:
-        self.surrogate_feature_cols = list(context.surrogate_feature_cols)
-        self.surrogate_models = dict(context.surrogate_models)
-        self.residual_quantiles = json.loads(json.dumps(context.residual_quantiles))
-        self.family_base_rates = dict(context.family_base_rates)
-        self.scenario_sum_map = dict(context.scenario_sum_map)
-        self.scenario_count_map = dict(context.scenario_count_map)
-        self.scenario_output_sum_map = dict(context.scenario_output_sum_map)
-        self.scenario_output_count_map = dict(context.scenario_output_count_map)
-
     def _prepare_family_semantic_frame(
         self,
         base_df: pd.DataFrame,
@@ -2204,13 +2205,33 @@ class ResearchBaseline:
     ) -> Tuple[pd.DataFrame, FamilySemanticContext]:
         work = self._refresh_override_columns(base_df)
         no_valid = pd.Series(np.zeros(len(work), dtype=bool), index=work.index)
-        self._fit_surrogate_models(work, y, no_valid, family=family)
-        work = self._augment_with_surrogates(work)
-        self._compute_residual_quantiles(work, y, no_valid)
-        work = self._apply_residual_calibration_features(work)
-        work = self._fit_transform_scenario_features(work, y)
+        surrogate_feature_cols, surrogate_models = self._fit_surrogate_models(work, y, no_valid, family=family)
+        work = self._augment_with_surrogates(
+            work,
+            surrogate_feature_cols=surrogate_feature_cols,
+            surrogate_models=surrogate_models,
+        )
+        residual_quantiles = self._compute_residual_quantiles(work, y, no_valid)
+        work = self._apply_residual_calibration_features(work, residual_quantiles=residual_quantiles)
+        (
+            work,
+            family_base_rates,
+            scenario_sum_map,
+            scenario_count_map,
+            scenario_output_sum_map,
+            scenario_output_count_map,
+        ) = self._fit_transform_scenario_features(work, y)
         work = self._add_family_interaction_features(work, family=family)
-        return work, self._capture_semantic_context()
+        return work, FamilySemanticContext(
+            surrogate_feature_cols=list(surrogate_feature_cols),
+            surrogate_models=dict(surrogate_models),
+            residual_quantiles=json.loads(json.dumps(residual_quantiles)),
+            family_base_rates=dict(family_base_rates),
+            scenario_sum_map=dict(scenario_sum_map),
+            scenario_count_map=dict(scenario_count_map),
+            scenario_output_sum_map=dict(scenario_output_sum_map),
+            scenario_output_count_map=dict(scenario_output_count_map),
+        )
 
     def _semantic_feature_candidates(self, semantic_df: pd.DataFrame) -> List[str]:
         excluded = {
@@ -2513,12 +2534,25 @@ class ResearchBaseline:
         if family not in self.semantic_contexts or family not in self.semantic_models:
             raise RuntimeError(f"Missing fitted semantic model bundle for family {family}.")
         context = self.semantic_contexts[family]
-        self._activate_semantic_context(context)
         work = self._refresh_override_columns(base_df.copy())
         hard_override = work["hard_override_anomaly"].to_numpy(np.int8) == 1
-        semantic_df = self._augment_with_surrogates(work.copy())
-        semantic_df = self._apply_residual_calibration_features(semantic_df)
-        semantic_df = self._apply_scenario_features(semantic_df)
+        semantic_df = self._augment_with_surrogates(
+            work.copy(),
+            surrogate_feature_cols=context.surrogate_feature_cols,
+            surrogate_models=context.surrogate_models,
+        )
+        semantic_df = self._apply_residual_calibration_features(
+            semantic_df,
+            residual_quantiles=context.residual_quantiles,
+        )
+        semantic_df = self._apply_scenario_features(
+            semantic_df,
+            family_base_rates=context.family_base_rates,
+            scenario_sum_map=context.scenario_sum_map,
+            scenario_count_map=context.scenario_count_map,
+            scenario_output_sum_map=context.scenario_output_sum_map,
+            scenario_output_count_map=context.scenario_output_count_map,
+        )
         semantic_df = self._add_family_interaction_features(semantic_df, family=family)
         semantic_prob = np.ones(len(semantic_df), dtype=np.float32)
         if (~hard_override).any():
