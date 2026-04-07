@@ -33,7 +33,8 @@ On Apple Silicon, keep `--platform linux/amd64` for both `docker build` and
 ## Run the fixed Docker workflow
 
 `run_docker.sh` is now a single-purpose wrapper for reproducing the pinned
-`main.py` run inside the Docker image. It mounts:
+repo-root `main.py` entrypoint inside the Docker image. The root `main.py`
+stays as a thin shim, and the implementation lives under `src/`. It mounts:
 
 - the repo root at `/workspace`
 - `data/` at `/kaggle/input/competitions/cyber-physical-anomaly-detection-for-der-systems`
@@ -54,8 +55,8 @@ same published recipe by default.
 The submission is always written to `kaggle-working/submission.csv` on the
 host.
 
-`run_docker.sh` does not accept any extra arguments, and `main.py` itself does
-not accept any arguments.
+`run_docker.sh` does not accept any extra arguments, and the repo-root
+`main.py` shim itself does not accept any arguments.
 
 ## Verify the container
 
@@ -79,6 +80,8 @@ PY
 
 - `run_docker.sh` is the canonical way to reproduce the pinned Docker run.
 - The script always runs `uv run python main.py` inside the container.
+- The repo-root `main.py` is intentionally tiny; the reusable pipeline modules
+-  live under `src/`.
 - The Docker image configures `uv` to use `/opt/der-uv-env`, which inherits the
 -  Kaggle image's preinstalled Python packages.
 - Docker will not reproduce Kaggle's host kernel exactly, so `uname -r` may
