@@ -88,7 +88,18 @@ closely than a lightweight local Python environment.
 
 ### 1. Prepare the data
 
-Place the competition files in `data/`:
+If you have the Kaggle CLI configured, you can download the competition files
+straight into `data/` with:
+
+```bash
+mkdir -p data
+kaggle competitions download -c cyber-physical-anomaly-detection-for-der-systems -p data
+```
+
+The Kaggle CLI downloads the competition files directly into `data/`; there is
+no single competition zip to unpack here.
+
+That should produce:
 
 - `data/train.csv`
 - `data/test.csv`
@@ -122,7 +133,7 @@ The script:
 - mounts `data/` at
   `/kaggle/input/competitions/cyber-physical-anomaly-detection-for-der-systems`
 - mounts `kaggle-working/` at `/kaggle/working`
-- runs `uv run python -m src.main` inside the container
+- runs `uv run python main.py` inside the container
 
 ### 4. Collect the output
 
@@ -135,8 +146,8 @@ kaggle-working/submission.csv
 ## Runtime and reproducibility notes
 
 - `run_docker.sh` is the canonical way to reproduce the final pipeline
-- the executable entrypoint lives in `src/main.py` and is invoked as
-  `python -m src.main`
+- the canonical Docker workflow runs `uv run python main.py`
+- the reusable package entrypoint also exists at `src/main.py`
 - the Docker image is designed to mirror the Kaggle CPU environment, not to be
   a general-purpose development image
 
