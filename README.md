@@ -90,15 +90,16 @@ closely than a lightweight local Python environment.
 
 ### 1. Prepare the data
 
-If you have the Kaggle CLI configured, you can download and unpack the
-competition files directly into `data/` with:
+If you have the Kaggle CLI configured, you can download the competition files
+straight into `data/` with:
 
 ```bash
 mkdir -p data
 kaggle competitions download -c cyber-physical-anomaly-detection-for-der-systems -p data
-unzip -o data/cyber-physical-anomaly-detection-for-der-systems.zip -d data
-rm -f data/cyber-physical-anomaly-detection-for-der-systems.zip
 ```
+
+The Kaggle CLI downloads the competition files directly into `data/`; there is
+no single competition zip to unpack here.
 
 That should produce:
 
