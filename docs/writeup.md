@@ -14,7 +14,7 @@ More concretely, I build a 5-field fingerprint from `common[0].Mn`, `common[0].M
 
 That split drives the rest of the pipeline. The two canonical families are modeled separately, while the noncanonical rows are handled outside the main learned-model path because they already form a very strong anomaly signal in training.
 
-From `665` selected source columns, I build semantic features that make the DER structure explicit: missingness and schema-integrity signals, measurement-vs-setting consistency, control-compliance features, protection and curve features, and AC/DC consistency checks. 
+From `665` selected source columns, I build semantic features that make the DER structure explicit: missingness and schema-integrity signals, measurement-vs-rating/setting consistency, control-compliance features, protection and curve features, and AC/DC consistency checks.
 
 For each canonical family, the final predictor is a small ensemble of XGBoost on the semantic numeric table and CatBoost on a narrower raw + categorical table, with the blend and threshold tuned directly for F2.
 
@@ -57,15 +57,16 @@ I also used a small set of high-confidence hard overrides. They are simply anoma
 
 The most important case is the noncanonical bucket itself. If the 5-field fingerprint does not exactly match one of the two canonical simulator identities, the row is assigned to `other`, which acts as an identity-based anomaly bucket rather than a learned family.
 
-Inside the canonical families, the overrides are limited to a few high-precision patterns such as:
+Inside the canonical families, the active overrides are limited to a few high-precision patterns such as:
 
 - clear electrical envelope violations,
-- large mismatches between enabled controls and measured output,
-- rare metadata or AC/DC patterns,
+- large active-power setpoint mismatches when the corresponding control is enabled,
+- rare AC-type or DC port-type metadata,
 - enter-service contradictions,
+- PF-absolute control fields appearing in rows where they are almost always absent,
 - producing power while already outside a must-trip region.
 
-An important implementation detail is that candidate overrides are audited on the training data. Only the most precise ones remain true hard overrides; the rest can still help as features without forcing the final prediction.
+An important implementation detail is that candidate overrides are audited on the training data. Only the most precise ones remain true hard overrides; demoted rules still contribute to the aggregate hard-rule features without forcing the final prediction.
 
 ## Family-specific models and ensembling
 
@@ -73,11 +74,11 @@ For `canon10` and `canon100`, I train separate models. This worked better than a
 
 The main model is **XGBoost** on the full semantic numeric feature set. The companion model is **CatBoost** on a narrower raw + categorical table containing selected raw numeric columns, raw identity fields, the full device fingerprint, and additional identity / missingness-engineered features.
 
-I also add family-specific regressors trained on normal rows to predict quantities such as active power, apparent power, reactive power, power factor, and current. Their residuals become new features for the final classifiers. For validation, I use both a primary 5-fold split based on `Id` and an audit split based on a hashed representation of the operating scenario.
+I also add family-specific regressors trained on normal, non-overridden canonical rows to predict quantities such as active power, apparent power, reactive power, power factor, and current. Their residuals become new features for the final classifiers. For validation, I use both a primary 5-fold split based on `Id % 5` and an audit split based on a hashed representation of the operating scenario.
 
 ## Threshold optimization
 
-Since the competition metric is F2, I did not use the default `0.5` threshold. For each canonical family, I search directly over out-of-fold probabilities to find the threshold that maximizes F2. I do the same for the XGBoost / CatBoost blend weight, and keep the family-specific operating point that performs well on both the primary and audit splits.
+Since the competition metric is F2, I did not use the default `0.5` threshold. For each canonical family, I search directly over out-of-fold probabilities to find the threshold that maximizes F2. I do the same for the XGBoost / CatBoost blend weight, but only keep a blended operating point if it does not materially degrade the audit split relative to the semantic-model baseline.
 
 ## Tools used
 
