@@ -18,7 +18,7 @@ From `665` selected source columns, I build semantic features that make the DER 
 
 For each canonical family, the final predictor is a small ensemble of XGBoost on the semantic numeric table and CatBoost on a narrower raw + categorical table, with the blend and threshold tuned directly for F2.
 
-![High level overview of the final pipeline](diagrams/overall_pipeline.png)
+![High level overview of the final pipeline](../diagrams/overall_pipeline.png)
 
 *High level view of the pipeline. Rows are first split by device fingerprint; the two canonical families go through family-specific feature engineering and models, while the small noncanonical bucket is handled separately.*
 
