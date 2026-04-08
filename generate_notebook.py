@@ -32,17 +32,17 @@ def code_cell(source: str) -> dict:
 def discover_source_files(repo_root: Path) -> list[Path]:
     """Return the local source files that must exist for the current import graph."""
 
-    main_path = repo_root / "main.py"
     src_dir = repo_root / "src"
-    if not main_path.exists():
-        raise FileNotFoundError(f"Missing entrypoint: {main_path}")
     if not src_dir.exists():
         raise FileNotFoundError(f"Missing source package directory: {src_dir}")
+    main_path = src_dir / "main.py"
+    if not main_path.exists():
+        raise FileNotFoundError(f"Missing entrypoint module: {main_path}")
 
     src_files = sorted(path.relative_to(repo_root) for path in src_dir.rglob("*.py"))
     if not src_files:
         raise FileNotFoundError(f"No Python source files found under: {src_dir}")
-    return [*src_files, Path("main.py")]
+    return src_files
 
 
 def setup_cell_source(source_files: list[Path]) -> str:
@@ -77,7 +77,7 @@ def writefile_cell_source(relative_path: Path, contents: str) -> str:
 def run_cell_source() -> str:
     return """import sys
 
-!{sys.executable} main.py
+!{sys.executable} -m src.main
 """
 
 
@@ -112,7 +112,7 @@ def notebook_cells(repo_root: Path) -> list[dict]:
             "# DER Kaggle submission notebook\n\n"
             "This notebook was generated from the repo source tree.\n\n"
             "Run the cells from top to bottom to recreate the local package layout with `%%writefile`, "
-            "then execute the unchanged `main.py` entrypoint.\n\n"
+            "then execute the unchanged `src.main` module entrypoint.\n\n"
             "## Included files\n"
             f"{manifest}"
         ),
@@ -124,7 +124,7 @@ def notebook_cells(repo_root: Path) -> list[dict]:
     cells.append(
         markdown_cell(
             "## Run the pipeline\n\n"
-            "This cell executes the same repo entrypoint (`main.py`) in a fresh Python subprocess so notebook reruns pick up the latest written files."
+            "This cell executes the same repo entrypoint (`python -m src.main`) in a fresh Python subprocess so notebook reruns pick up the latest written files."
         )
     )
     cells.append(code_cell(run_cell_source()))

@@ -8,7 +8,7 @@ platform="linux/amd64"
 competition_dir="/kaggle/input/competitions/cyber-physical-anomaly-detection-for-der-systems"
 workspace_dir="$repo_root"
 data_dir="$repo_root/data"
-working_dir="$repo_root/"
+working_dir="$repo_root/kaggle-working"
 docker_bin=""
 
 usage() {
@@ -16,7 +16,7 @@ usage() {
 Usage:
   ./run_docker.sh
 
-This script runs the fixed reproducible Docker workflow for main.py.
+This script runs the fixed reproducible Docker workflow for src.main.
 
 Pinned runtime:
   - image: ${image}
@@ -74,7 +74,7 @@ docker_cmd=(
   -v "$working_dir:/kaggle/working"
   -w /workspace
   "$image"
-  uv run python main.py
+  uv run python -m src.main
 )
 
 exec "${docker_cmd[@]}"

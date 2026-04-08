@@ -2,7 +2,7 @@
 
 import logging
 
-from src.pipeline import run_pipeline
+from .pipeline import run_pipeline
 
 
 def configure_logging() -> None:
