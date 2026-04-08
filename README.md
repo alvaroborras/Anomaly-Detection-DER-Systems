@@ -77,8 +77,6 @@ ensembling, is documented in [`docs/writeup.md`](docs/writeup.md).
 - `docs/` — competition description notes and the full solution writeup
 - `diagrams/` — figures used by the documentation
 - `run_docker.sh` — canonical pinned local execution path
-- `generate_notebook.py` — generates a notebook version of the repo layout for
-  Kaggle-style execution
 - `data/` — expected location for the local train/test CSVs
 - `kaggle-working/` — host-side output directory for generated submissions
 
